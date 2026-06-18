@@ -354,6 +354,8 @@
       resume: () => ensure(),
       toggle() { muted = !muted; return muted; },
       isMuted: () => muted,
+      ctx: () => ac,
+      out: () => master,
       move()    { tone(220, 0.05, { type: "square", vol: 0.18 }); },
       rotate()  { tone(440, 0.06, { type: "triangle", vol: 0.22, glide: 120 }); },
       soft()    { tone(160, 0.04, { type: "sine", vol: 0.18 }); },
@@ -375,6 +377,123 @@
         const seq = [392, 330, 262, 196];
         seq.forEach((f, i) => tone(f, 0.3, { type: "sawtooth", vol: 0.35, delay: i * 0.16 }));
       },
+    };
+  })();
+
+  // ---------- Looping synthwave background music ----------
+  const Music = (() => {
+    // Am - F - C - G progression (classic synthwave). Hz per step.
+    // Each chord = one bar of 8 sixteenth-ish steps.
+    const ROOTS = {
+      A2: 110.00, C3: 130.81, E3: 164.81, F2: 87.31,
+      G2: 98.00,  A3: 220.00, C4: 261.63, E4: 329.63,
+      F3: 174.61, G3: 196.00,
+    };
+    // [bass root, arp notes across the bar]
+    const PROG = [
+      { bass: ROOTS.A2, arp: [ROOTS.A3, ROOTS.C4, ROOTS.E4, ROOTS.C4] }, // Am
+      { bass: ROOTS.F2, arp: [ROOTS.F3, ROOTS.A3, ROOTS.C4, ROOTS.A3] }, // F
+      { bass: ROOTS.C3, arp: [ROOTS.C4, ROOTS.E4, ROOTS.G3, ROOTS.E4] }, // C
+      { bass: ROOTS.G2, arp: [ROOTS.G3, ROOTS.A3, ROOTS.E4, ROOTS.A3] }, // G
+    ];
+
+    let gain = null;       // dedicated music bus (under master)
+    let timer = null;
+    let step = 0;          // global sixteenth-step counter
+    let nextTime = 0;      // when the next step is scheduled (audio clock)
+    let bpm = 96;
+    let playing = false;
+    const STEPS_PER_BAR = 8;
+
+    function bus() {
+      const master = Sfx.out();
+      if (!gain && master) {
+        gain = Sfx.ctx().createGain();
+        gain.gain.value = 0.0; // fade in
+        gain.connect(master);
+      }
+      return gain;
+    }
+
+    function blip(freq, dur, type, vol, time) {
+      const ac = Sfx.ctx();
+      const osc = ac.createOscillator();
+      const g = ac.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, time);
+      g.gain.exponentialRampToValueAtTime(vol, time + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+      osc.connect(g).connect(bus());
+      osc.start(time);
+      osc.stop(time + dur + 0.02);
+    }
+
+    function kick(time) {
+      const ac = Sfx.ctx();
+      const osc = ac.createOscillator();
+      const g = ac.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(140, time);
+      osc.frequency.exponentialRampToValueAtTime(45, time + 0.12);
+      g.gain.setValueAtTime(0.5, time);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + 0.14);
+      osc.connect(g).connect(bus());
+      osc.start(time);
+      osc.stop(time + 0.16);
+    }
+
+    function scheduleStep(s, time) {
+      const bar = Math.floor(s / STEPS_PER_BAR) % PROG.length;
+      const pos = s % STEPS_PER_BAR;
+      const chord = PROG[bar];
+
+      // Bass: pulse on every other step (eighths)
+      if (pos % 2 === 0) {
+        blip(chord.bass, 0.22, "sawtooth", 0.22, time);
+      }
+      // Arpeggio: a note every step, walking the chord tones
+      const arpNote = chord.arp[Math.floor(pos / 2) % chord.arp.length];
+      blip(arpNote * 2, 0.12, "square", 0.07, time); // octave-up sparkle
+      // Drum pulse: kick on beats 1 and 5
+      if (pos === 0 || pos === 4) kick(time);
+    }
+
+    function loop() {
+      const ac = Sfx.ctx();
+      if (!ac) return;
+      const stepDur = 60 / bpm / 2; // sixteenth note
+      // schedule a little ahead of the clock for steady timing
+      while (nextTime < ac.currentTime + 0.1) {
+        scheduleStep(step, nextTime);
+        nextTime += stepDur;
+        step++;
+      }
+      // duck music while muted, restore otherwise
+      if (gain) {
+        const target = Sfx.isMuted() ? 0.0 : 0.16;
+        gain.gain.setTargetAtTime(target, ac.currentTime, 0.1);
+      }
+      timer = setTimeout(loop, 25);
+    }
+
+    return {
+      start() {
+        const ac = Sfx.ctx();
+        if (!ac || playing) return;
+        playing = true;
+        step = 0;
+        nextTime = ac.currentTime + 0.05;
+        bus();
+        loop();
+      },
+      stop() {
+        playing = false;
+        if (timer) { clearTimeout(timer); timer = null; }
+        if (gain) gain.gain.setTargetAtTime(0.0, Sfx.ctx().currentTime, 0.2);
+      },
+      // tempo rises gently with level for added intensity
+      setLevel(level) { bpm = Math.min(150, 96 + (level - 1) * 5); },
     };
   })();
 
@@ -512,6 +631,7 @@
     void flash.offsetWidth; // restart animation
     flash.classList.add("show");
     Sfx.levelUp();
+    Music.setLevel(level);
   }
 
   function spawn() {
@@ -641,6 +761,8 @@
     bag = [];
     over = false; paused = false; running = true;
     Sfx.resume(); // unlock/resume audio on the start gesture
+    Music.setLevel(1);
+    Music.start();
     document.documentElement.style.setProperty("--grid", LEVEL_TINTS[0]);
     nextPiece = makePiece(nextType());
     spawn();
@@ -651,6 +773,7 @@
 
   function gameOver() {
     over = true; running = false;
+    Music.stop();
     Sfx.gameOver();
     ovTitle.textContent = "GAME OVER";
     ovText.innerHTML = `You reached <b>Level ${level}</b> with <b>${score}</b> points.<br>Clear the grid, ride again.`;
@@ -662,11 +785,13 @@
     if (over || !running) return;
     paused = !paused;
     if (paused) {
+      Music.stop();
       ovTitle.textContent = "PAUSED";
       ovText.textContent = "Take a breath. Press P or the button to resume.";
       startBtn.textContent = "Resume";
       overlay.classList.remove("hidden");
     } else {
+      Music.start();
       overlay.classList.add("hidden");
     }
   }
