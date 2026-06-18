@@ -239,8 +239,9 @@
         <b>Z</b> Rotate CCW<br>
         <b>↓</b> Soft drop<br>
         <b>Space</b> Hard drop<br>
-        <b>P</b> Pause
+        <b>P</b> Pause &nbsp; <b>M</b> Mute
       </div>
+      <button id="soundBtn" class="btn">♪ Sound: On</button>
     </div>
   </div>
 
@@ -261,6 +262,7 @@
   const ovTitle = document.getElementById("ov-title");
   const ovText = document.getElementById("ov-text");
   const startBtn = document.getElementById("startBtn");
+  const soundBtn = document.getElementById("soundBtn");
   const flash = document.getElementById("flash");
 
   // Tetromino definitions (4x4 rotation states generated from base shapes)
@@ -292,6 +294,89 @@
   let grid, current, nextPiece, score, lines, level;
   let dropCounter, dropInterval, lastTime, running, paused, over;
   let bag = [];
+
+  // ---------- Synthwave sound engine (Web Audio, no assets) ----------
+  const Sfx = (() => {
+    let ac = null;
+    let master = null;
+    let muted = false;
+
+    function ensure() {
+      if (!ac) {
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        master = ac.createGain();
+        master.gain.value = 0.35;
+        master.connect(ac.destination);
+      }
+      if (ac.state === "suspended") ac.resume();
+      return ac;
+    }
+
+    // A single synth voice: oscillator -> gain envelope -> master
+    function tone(freq, dur, { type = "square", vol = 0.5, glide = 0, delay = 0 } = {}) {
+      if (muted || !ac) return;
+      const t0 = ac.currentTime + delay;
+      const osc = ac.createOscillator();
+      const g = ac.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      if (glide) osc.frequency.exponentialRampToValueAtTime(Math.max(1, freq + glide), t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g).connect(master);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    }
+
+    // Noise burst for percussive hits (lock / hard drop)
+    function noise(dur, { vol = 0.4, delay = 0, hp = 800 } = {}) {
+      if (muted || !ac) return;
+      const t0 = ac.currentTime + delay;
+      const frames = Math.floor(ac.sampleRate * dur);
+      const buf = ac.createBuffer(1, frames, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const filt = ac.createBiquadFilter();
+      filt.type = "highpass";
+      filt.frequency.value = hp;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(vol, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(filt).connect(g).connect(master);
+      src.start(t0);
+      src.stop(t0 + dur);
+    }
+
+    return {
+      resume: () => ensure(),
+      toggle() { muted = !muted; return muted; },
+      isMuted: () => muted,
+      move()    { tone(220, 0.05, { type: "square", vol: 0.18 }); },
+      rotate()  { tone(440, 0.06, { type: "triangle", vol: 0.22, glide: 120 }); },
+      soft()    { tone(160, 0.04, { type: "sine", vol: 0.18 }); },
+      lock()    { noise(0.07, { vol: 0.25, hp: 1200 }); tone(110, 0.08, { type: "square", vol: 0.2 }); },
+      hard()    { noise(0.12, { vol: 0.45, hp: 500 }); tone(80, 0.14, { type: "sawtooth", vol: 0.3, glide: -40 }); },
+      // bright ascending arpeggio; the bigger the clear, the more notes
+      clear(n) {
+        const notes = [523, 659, 784, 1046]; // C E G C — major
+        const count = Math.min(n + 1, notes.length);
+        for (let i = 0; i < count; i++) {
+          tone(notes[i], 0.16, { type: "triangle", vol: 0.4, delay: i * 0.06 });
+        }
+      },
+      levelUp() {
+        const seq = [392, 523, 659, 784, 1046];
+        seq.forEach((f, i) => tone(f, 0.18, { type: "sawtooth", vol: 0.32, delay: i * 0.07 }));
+      },
+      gameOver() {
+        const seq = [392, 330, 262, 196];
+        seq.forEach((f, i) => tone(f, 0.3, { type: "sawtooth", vol: 0.35, delay: i * 0.16 }));
+      },
+    };
+  })();
 
   function newGrid() {
     return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
@@ -346,6 +431,7 @@
       if (!collides(current, rotated, current.x + dx, current.y)) {
         current.cells = rotated;
         current.x += dx;
+        Sfx.rotate();
         return;
       }
     }
@@ -354,6 +440,7 @@
   function move(dx) {
     if (!collides(current, current.cells, current.x + dx, current.y)) {
       current.x += dx;
+      Sfx.move();
     }
   }
 
@@ -361,6 +448,7 @@
     if (!collides(current, current.cells, current.x, current.y + 1)) {
       current.y++;
       score += 1;
+      Sfx.soft();
       updateStats();
     } else {
       lockPiece();
@@ -375,15 +463,17 @@
       dist++;
     }
     score += dist * 2;
-    lockPiece();
+    Sfx.hard();
+    lockPiece(true);
   }
 
-  function lockPiece() {
+  function lockPiece(silent = false) {
     for (const [cx, cy] of current.cells) {
       const x = current.x + cx, y = current.y + cy;
       if (y < 0) { gameOver(); return; }
       grid[y][x] = current.color;
     }
+    if (!silent) Sfx.lock();
     clearLines();
     spawn();
   }
@@ -403,6 +493,7 @@
       const points = [0, 100, 300, 500, 800][cleared] * level;
       score += points;
       lines += cleared;
+      Sfx.clear(cleared);
       const newLevel = Math.floor(lines / 10) + 1;
       if (newLevel > level) levelUp(newLevel);
       updateStats();
@@ -420,6 +511,7 @@
     flash.classList.remove("show");
     void flash.offsetWidth; // restart animation
     flash.classList.add("show");
+    Sfx.levelUp();
   }
 
   function spawn() {
@@ -548,6 +640,7 @@
     dropInterval = 1000; dropCounter = 0; lastTime = 0;
     bag = [];
     over = false; paused = false; running = true;
+    Sfx.resume(); // unlock/resume audio on the start gesture
     document.documentElement.style.setProperty("--grid", LEVEL_TINTS[0]);
     nextPiece = makePiece(nextType());
     spawn();
@@ -558,6 +651,7 @@
 
   function gameOver() {
     over = true; running = false;
+    Sfx.gameOver();
     ovTitle.textContent = "GAME OVER";
     ovText.innerHTML = `You reached <b>Level ${level}</b> with <b>${score}</b> points.<br>Clear the grid, ride again.`;
     startBtn.textContent = "Play Again";
@@ -580,6 +674,11 @@
   // ---------- Input ----------
   document.addEventListener("keydown", (e) => {
     if (e.key === "p" || e.key === "P") { togglePause(); return; }
+    if (e.key === "m" || e.key === "M") {
+      const muted = Sfx.toggle();
+      soundBtn.textContent = muted ? "♪ Sound: Off" : "♪ Sound: On";
+      return;
+    }
     if (!running || over || paused) return;
     switch (e.key) {
       case "ArrowLeft": move(-1); break;
@@ -597,6 +696,12 @@
   startBtn.addEventListener("click", () => {
     if (paused && !over) { togglePause(); return; }
     start();
+  });
+
+  soundBtn.addEventListener("click", () => {
+    Sfx.resume();
+    const muted = Sfx.toggle();
+    soundBtn.textContent = muted ? "♪ Sound: Off" : "♪ Sound: On";
   });
 })();
 </script>
