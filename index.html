@@ -919,23 +919,12 @@
       g.fillStyle = rg;
       g.fillRect(0, 0, size, size);
 
-      // inner edge ambient occlusion so the patch feels stuffed
-      g.lineWidth = size * 0.09;
-      g.strokeStyle = "rgba(0,0,0,0.16)";
+      // gentle edge ambient occlusion only — no hard seam, so it doesn't read flat
+      g.lineWidth = size * 0.06;
+      g.strokeStyle = "rgba(0,0,0,0.12)";
       roundRect(g, pad, pad, size - pad * 2, size - pad * 2, r);
       g.stroke();
       g.restore();
-
-      // dark sewn seam around the patch — defines the block on a light board
-      g.lineWidth = size * 0.045;
-      g.strokeStyle = shade(color, -0.5, 0.55);
-      roundRect(g, pad + size * 0.012, pad + size * 0.012, size - pad * 2 - size * 0.024, size - pad * 2 - size * 0.024, r);
-      g.stroke();
-      // a thin top highlight just inside it
-      g.lineWidth = size * 0.016;
-      g.strokeStyle = shade(color, 0.45, 0.4);
-      roundRect(g, pad + size * 0.05, pad + size * 0.05, size - pad * 2 - size * 0.1, size - pad * 2 - size * 0.1, r * 0.85);
-      g.stroke();
 
       return c;
     }
@@ -978,15 +967,126 @@
     };
   })();
 
-  // logical cell size stays CELL; tiles are high-res and down-scaled.
+  // ---------- GPU knit shader ----------
+  // Renders a continuous, normal-mapped knitted sheet per colour: a procedural
+  // stockinette height field is lit per-pixel (diffuse + soft wool specular +
+  // ambient occlusion), giving true 3-D relief with no flat per-cell seam.
+  // Falls back to the 2-D Yarn tiles if WebGL is unavailable.
+  const Shader = (() => {
+    let gl = null, prog = null, uColor = null, glCanvas = null, W = 0, H = 0, ok = null;
+    const cache = new Map();
+
+    const VS = "attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }";
+    const FS = [
+      "precision highp float;",
+      "uniform vec2 uRes; uniform float uStitch; uniform vec3 uColor;",
+      "float dseg(vec2 p, vec2 a, vec2 b){ vec2 pa=p-a, ba=b-a;",
+      "  float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0); return length(pa-ba*h); }",
+      // distance to the two splayed legs of one knit loop in cell cc
+      "float leg(vec2 p, vec2 cc){ vec2 b=cc+vec2(0.5,1.04);",
+      "  return min(dseg(p,b,cc+vec2(0.08,-0.04)), dseg(p,b,cc+vec2(0.92,-0.04))); }",
+      "float hash(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5453); }",
+      "float height(vec2 st){ float row=floor(st.y); st.x += mod(row,2.0)*0.5;",
+      "  vec2 c=floor(st); float d=10.0;",
+      "  for(int j=-1;j<=1;j++){ for(int i=-1;i<=1;i++){",
+      "    d=min(d, leg(st, c+vec2(float(i),float(j)))); } }",
+      "  float t=clamp(1.0-d/0.36,0.0,1.0); float hgt=sqrt(t);",
+      "  hgt += (hash(floor(st*9.0))-0.5)*0.05; return hgt; }",
+      "void main(){",
+      "  vec2 st = gl_FragCoord.xy / uStitch;",
+      "  float e=0.04;",
+      "  float h=height(st), hx=height(st+vec2(e,0.0)), hy=height(st+vec2(0.0,e));",
+      "  vec3 N=normalize(vec3((h-hx)*2.4,(h-hy)*2.4,1.0));",
+      "  vec3 L=normalize(vec3(-0.45,0.6,0.72));",
+      "  float diff=max(dot(N,L),0.0);",
+      "  vec3 Hh=normalize(L+vec3(0.0,0.0,1.0));",
+      "  float spec=pow(max(dot(N,Hh),0.0),16.0)*0.10;",
+      "  float ao=mix(0.5,1.0,clamp(h,0.0,1.0));",
+      "  float fib=(hash(floor(st*vec2(7.0,7.0)))-0.5)*0.07;",
+      "  vec3 base=uColor*(1.0+fib);",
+      "  vec3 col=base*(0.5*ao + diff*0.85) + spec;",
+      "  gl_FragColor=vec4(col,1.0);",
+      "}",
+    ].join("\n");
+
+    function compile(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        console.warn("shader:", gl.getShaderInfoLog(s)); return null;
+      }
+      return s;
+    }
+    function init(w, h) {
+      W = w; H = h;
+      glCanvas = document.createElement("canvas");
+      glCanvas.width = w; glCanvas.height = h;
+      const attrs = { preserveDrawingBuffer: true, antialias: false, depth: false };
+      gl = glCanvas.getContext("webgl", attrs) || glCanvas.getContext("experimental-webgl", attrs);
+      if (!gl) { ok = false; return; }
+      const vs = compile(gl.VERTEX_SHADER, VS), fs = compile(gl.FRAGMENT_SHADER, FS);
+      if (!vs || !fs) { ok = false; return; }
+      prog = gl.createProgram();
+      gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { ok = false; return; }
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, "p");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform2f(gl.getUniformLocation(prog, "uRes"), w, h);
+      gl.uniform1f(gl.getUniformLocation(prog, "uStitch"), (CELL * SS) / 2.0); // ~2 stitches/cell
+      uColor = gl.getUniformLocation(prog, "uColor");
+      ok = true;
+    }
+    function rgb(hex) {
+      const n = parseInt(hex.replace("#", ""), 16);
+      return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255];
+    }
+    return {
+      get ok() { return ok !== false; },
+      // a board-sized colour sheet; cells sample from it so knit stays continuous
+      sheet(color, w, h) {
+        if (ok === null) init(w, h);
+        if (!ok) return null;
+        let c = cache.get(color);
+        if (c) return c;
+        const [r, g, b] = rgb(color);
+        gl.uniform3f(uColor, r, g, b);
+        gl.viewport(0, 0, W, H);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        c = document.createElement("canvas");
+        c.width = W; c.height = H;
+        c.getContext("2d").drawImage(glCanvas, 0, 0);
+        cache.set(color, c);
+        return c;
+      },
+    };
+  })();
+
+  const SHEET_W = COLS * CELL * SS, SHEET_H = ROWS * CELL * SS, CSS = CELL * SS;
+
+  // Draw one cell. Prefer the GPU sheet (continuous, shaded knit); the sheet is
+  // sampled at the cell's board position so neighbouring cells join seamlessly.
   function drawCell(c, x, y, color, ghost = false) {
     const px = x * CELL, py = y * CELL;
-    if (ghost) {
-      c.save();
-      c.globalAlpha = 0.22;
-      c.drawImage(Yarn.tile(color), px, py, CELL, CELL);
-      c.restore();
+    const sheet = Shader.sheet(color, SHEET_W, SHEET_H);
+    if (sheet) {
+      if (ghost) {
+        c.save(); c.globalAlpha = 0.2;
+        c.drawImage(sheet, x * CSS, y * CSS, CSS, CSS, px, py, CELL, CELL);
+        c.restore(); return;
+      }
+      c.drawImage(sheet, x * CSS, y * CSS, CSS, CSS, px, py, CELL, CELL);
       return;
+    }
+    // fallback: 2-D yarn tiles
+    if (ghost) {
+      c.save(); c.globalAlpha = 0.22;
+      c.drawImage(Yarn.tile(color), px, py, CELL, CELL);
+      c.restore(); return;
     }
     c.drawImage(Yarn.tile(color), px, py, CELL, CELL);
   }
@@ -1047,9 +1147,15 @@
     const w = (maxX - minX + 1) * cell, h = (maxY - minY + 1) * cell;
     const offX = (NW - w) / 2 - minX * cell;
     const offY = (NH - h) / 2 - minY * cell;
+    const sheet = Shader.sheet(nextPiece.color, SHEET_W, SHEET_H);
+    const sc = cell * SS;
     for (const [cx, cy] of nextPiece.cells) {
       const px = offX + cx * cell, py = offY + cy * cell;
-      nctx.drawImage(Yarn.tile(nextPiece.color), px, py, cell, cell);
+      if (sheet) {
+        nctx.drawImage(sheet, (cx + 1) * sc, (cy + 1) * sc, sc, sc, px, py, cell, cell);
+      } else {
+        nctx.drawImage(Yarn.tile(nextPiece.color), px, py, cell, cell);
+      }
     }
   }
 
@@ -1079,6 +1185,7 @@
     dropInterval = 1000; dropCounter = 0; lastTime = 0;
     bag = [];
     over = false; paused = false; running = true;
+    Object.values(COLORS).forEach(col => Shader.sheet(col, SHEET_W, SHEET_H)); // warm GPU sheets
     Sfx.resume(); // unlock/resume audio on the start gesture
     Music.setLevel(1);
     Music.start();
