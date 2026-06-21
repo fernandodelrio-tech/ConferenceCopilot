@@ -107,30 +107,33 @@
   .board-col { display: flex; flex-direction: column; align-items: center; }
   .board-stage { position: relative; touch-action: none; }
 
-  /* On-screen touch controls — hidden until a touch device is detected */
+  /* On-screen touch controls — hidden until a touch device is detected.
+     Large tap targets so they're comfortable on iPad / iPhone. */
   .touchpad {
     display: none;
-    width: 300px;
-    margin-top: 14px;
+    width: min(94vw, 460px);
+    margin-top: 16px;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    gap: 14px;
     touch-action: manipulation;
   }
   .tbtn {
     -webkit-user-select: none; user-select: none;
     -webkit-tap-highlight-color: transparent;
+    touch-action: none;
     cursor: pointer;
-    font-size: 24px;
+    font-size: 34px;
     font-weight: 800;
     color: #fff;
-    padding: 16px 0;
-    border-radius: 16px;
-    border: 2px dashed var(--cream);
+    min-height: 78px;
+    padding: 18px 0;
+    border-radius: 20px;
+    border: 3px dashed var(--cream);
     background: linear-gradient(180deg, #7fbf63, #5d9a44);
-    box-shadow: inset 0 2px 4px rgba(255,255,255,0.35), 0 4px 0 #4c7e38;
+    box-shadow: inset 0 3px 6px rgba(255,255,255,0.4), 0 6px 0 #4c7e38;
   }
-  .tbtn.wide { font-size: 18px; letter-spacing: 1px; }
-  .tbtn:active { transform: translateY(3px); box-shadow: inset 0 2px 4px rgba(255,255,255,0.35), 0 1px 0 #4c7e38; }
+  .tbtn.wide { font-size: 24px; letter-spacing: 1px; }
+  .tbtn:active { transform: translateY(4px); box-shadow: inset 0 3px 6px rgba(255,255,255,0.4), 0 2px 0 #4c7e38; }
   body.has-touch .touchpad { display: grid; }
 
   .title {
@@ -147,6 +150,7 @@
 
   /* Near-white knitted board; the canvas paints the wool, this is the frame */
   #board {
+    width: 300px; height: 600px;
     border: 3px dashed var(--thread);
     border-radius: 14px;
     background-color: #f4f0e6;
@@ -184,7 +188,7 @@
   .stat { font-size: 30px; font-weight: 800; color: #c0563f; }
   .stat.small { font-size: 22px; }
 
-  #next { display: block; margin: 0 auto; }
+  #next { display: block; margin: 0 auto; width: 120px; height: 120px; }
 
   .keys { font-size: 12px; line-height: 1.9; color: var(--ink); }
   .keys b { color: #c0563f; }
@@ -254,14 +258,16 @@
     100% { opacity: 0; transform: translate(-50%,-50%) scale(1.2); }
   }
 
-  /* Phones & tablets: stack the board over a compact panel, allow scroll */
+  /* Phones & tablets: stack the board over a compact panel, allow scroll,
+     scale the board up, and show big touch controls. */
   @media (max-width: 760px), (pointer: coarse) {
     html, body { overflow-y: auto; height: auto; min-height: 100%; }
     body { align-items: flex-start; }
     .wrap { flex-direction: column; align-items: center; gap: 14px; padding: 10px; }
-    .title { font-size: 24px; margin-bottom: 8px; }
-    .panel { width: 300px; flex-direction: row; flex-wrap: wrap; justify-content: center; }
-    .panel .card { flex: 1 1 86px; padding: 10px 12px; }
+    .title { font-size: 26px; margin-bottom: 8px; }
+    #board { width: min(92vw, 440px); height: auto; aspect-ratio: 1 / 2; }
+    .panel { width: min(94vw, 460px); flex-direction: row; flex-wrap: wrap; justify-content: center; }
+    .panel .card { flex: 1 1 96px; padding: 10px 12px; }
     .stat { font-size: 24px; }
     .keys { display: none; }            /* keyboard hints not needed on touch */
     .touchpad { display: grid; }        /* always show controls here */
@@ -393,14 +399,12 @@
   const COLS = 10, ROWS = 20, CELL = 30;
   const DPR = 2; // supersample the canvases for crisp knit detail
   const board = document.getElementById("board");
-  board.style.width = COLS * CELL + "px";
-  board.style.height = ROWS * CELL + "px";
+  // backing resolution is supersampled; the on-screen size is set in CSS so it
+  // can scale up on tablets/phones via media queries.
   board.width = COLS * CELL * DPR;
   board.height = ROWS * CELL * DPR;
   const ctx = board.getContext("2d");
   const nextCanvas = document.getElementById("next");
-  nextCanvas.style.width = nextCanvas.width + "px";
-  nextCanvas.style.height = nextCanvas.height + "px";
   nextCanvas.width *= DPR;
   nextCanvas.height *= DPR;
   const nctx = nextCanvas.getContext("2d");
@@ -1098,39 +1102,114 @@
   }
 
   const BOARD_W = COLS * CELL, BOARD_H = ROWS * CELL;
+  const RAD = CELL * 0.46;     // how rounded an exposed corner gets (plump bag edge)
+  const BEV = CELL * 0.46;     // width of the soft edge bevel
+
+  // Trace a cell outline, rounding only convex corners exposed to empty space
+  // so a multi-cell piece becomes one soft-edged shape (no internal rounding).
+  function cellPath(c, x, y, U, R, D, L) {
+    const px = x * CELL, py = y * CELL, w = CELL, h = CELL;
+    const tl = (!U && !L) ? RAD : 0, tr = (!U && !R) ? RAD : 0;
+    const br = (!D && !R) ? RAD : 0, bl = (!D && !L) ? RAD : 0;
+    c.moveTo(px + tl, py);
+    c.lineTo(px + w - tr, py);
+    if (tr) c.arcTo(px + w, py, px + w, py + tr, tr); else c.lineTo(px + w, py);
+    c.lineTo(px + w, py + h - br);
+    if (br) c.arcTo(px + w, py + h, px + w - br, py + h, br); else c.lineTo(px + w, py + h);
+    c.lineTo(px + bl, py + h);
+    if (bl) c.arcTo(px, py + h, px, py + h - bl, bl); else c.lineTo(px, py + h);
+    c.lineTo(px, py + tl);
+    if (tl) c.arcTo(px, py, px + tl, py, tl); else c.lineTo(px, py);
+    c.closePath();
+  }
+
+  // Soft puffy bevel on exposed faces: top/left catch light, bottom/right fall
+  // into shadow, so each outer edge rolls over like a stuffed knitted bag.
+  function edgeShade(c, x, y, U, R, D, L) {
+    const px = x * CELL, py = y * CELL;
+    let g;
+    if (!U) { g = c.createLinearGradient(0, py, 0, py + BEV);
+      g.addColorStop(0, "rgba(255,255,255,0.30)"); g.addColorStop(1, "rgba(255,255,255,0)");
+      c.fillStyle = g; c.fillRect(px, py, CELL, BEV); }
+    if (!L) { g = c.createLinearGradient(px, 0, px + BEV, 0);
+      g.addColorStop(0, "rgba(255,255,255,0.22)"); g.addColorStop(1, "rgba(255,255,255,0)");
+      c.fillStyle = g; c.fillRect(px, py, BEV, CELL); }
+    if (!D) { g = c.createLinearGradient(0, py + CELL, 0, py + CELL - BEV);
+      g.addColorStop(0, "rgba(40,28,16,0.40)"); g.addColorStop(1, "rgba(40,28,16,0)");
+      c.fillStyle = g; c.fillRect(px, py + CELL - BEV, CELL, BEV); }
+    if (!R) { g = c.createLinearGradient(px + CELL, 0, px + CELL - BEV, 0);
+      g.addColorStop(0, "rgba(40,28,16,0.34)"); g.addColorStop(1, "rgba(40,28,16,0)");
+      c.fillStyle = g; c.fillRect(px + CELL - BEV, py, BEV, CELL); }
+  }
+
+  // Draw one molded cell (rounded silhouette + bevel) sampling the knit sheet.
+  function moldCell(c, x, y, color, filled) {
+    const px = x * CELL, py = y * CELL;
+    const U = filled(x, y - 1), R = filled(x + 1, y), D = filled(x, y + 1), L = filled(x - 1, y);
+    const exposed = !U || !R || !D || !L;
+    const sheet = Shader.sheet(color, SHEET_W, SHEET_H);
+    if (exposed) {
+      c.save();
+      c.beginPath();
+      cellPath(c, x, y, U, R, D, L);
+      c.clip();
+      if (sheet) c.drawImage(sheet, x * CSS, y * CSS, CSS, CSS, px, py, CELL, CELL);
+      else c.drawImage(Yarn.tile(color), px, py, CELL, CELL);
+      edgeShade(c, x, y, U, R, D, L);
+      c.restore();
+    } else {
+      if (sheet) c.drawImage(sheet, x * CSS, y * CSS, CSS, CSS, px, py, CELL, CELL);
+      else c.drawImage(Yarn.tile(color), px, py, CELL, CELL);
+    }
+  }
+
+  // A single soft drop shadow cast by the whole silhouette of a set of cells.
+  function shadowPass(cells, filled, blur, oy, alpha) {
+    ctx.save();
+    ctx.shadowColor = "rgba(45,33,22," + alpha + ")";
+    ctx.shadowBlur = blur; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = oy;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    for (const [x, y] of cells) {
+      if (y < 0) continue;
+      cellPath(ctx, x, y, filled(x, y - 1), filled(x + 1, y), filled(x, y + 1), filled(x - 1, y));
+    }
+    ctx.fill();
+    ctx.restore();
+  }
+
   function draw() {
     ctx.setTransform(SS, 0, 0, SS, 0, 0);
     ctx.clearRect(0, 0, BOARD_W, BOARD_H);
     // near-white knitted wool backing behind everything
     ctx.drawImage(Yarn.backing(BOARD_W, BOARD_H, "#f4f0e6"), 0, 0, BOARD_W, BOARD_H);
 
-    // settled blocks, each lifted off the board with a soft contact shadow
-    ctx.save();
-    ctx.shadowColor = "rgba(70,55,40,0.3)";
-    ctx.shadowBlur = 5;
-    ctx.shadowOffsetY = 3;
-    for (let y = 0; y < ROWS; y++) {
-      for (let x = 0; x < COLS; x++) {
-        if (grid[y][x]) drawCell(ctx, x, y, grid[y][x]);
-      }
-    }
-    ctx.restore();
+    // settled blocks
+    const sFilled = (x, y) => x >= 0 && x < COLS && y >= 0 && y < ROWS && !!grid[y][x];
+    const sCells = [];
+    for (let y = 0; y < ROWS; y++)
+      for (let x = 0; x < COLS; x++)
+        if (grid[y][x]) sCells.push([x, y]);
+    if (sCells.length) shadowPass(sCells, sFilled, 8, 6, 0.34);
+    for (const [x, y] of sCells) moldCell(ctx, x, y, grid[y][x], sFilled);
 
     if (current) {
       // ghost — a faint woolly preview of where it lands
       const gy = ghostY();
-      for (const [cx, cy] of current.cells) {
-        if (gy + cy >= 0) drawCell(ctx, current.x + cx, gy + cy, current.color, true);
-      }
-      // active piece, lifted slightly with a soft contact shadow
+      const gCells = current.cells.map(([cx, cy]) => [current.x + cx, gy + cy]);
+      const gSet = new Set(gCells.map(([a, b]) => a + "," + b));
+      const gFilled = (x, y) => gSet.has(x + "," + y);
       ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.35)";
-      ctx.shadowBlur = 6;
-      ctx.shadowOffsetY = 4;
-      for (const [cx, cy] of current.cells) {
-        if (current.y + cy >= 0) drawCell(ctx, current.x + cx, current.y + cy, current.color);
-      }
+      ctx.globalAlpha = 0.18;
+      for (const [x, y] of gCells) if (y >= 0) moldCell(ctx, x, y, current.color, gFilled);
       ctx.restore();
+
+      // active piece, lifted off the board with a strong drop shadow
+      const aCells = current.cells.map(([cx, cy]) => [current.x + cx, current.y + cy]);
+      const aSet = new Set(aCells.map(([a, b]) => a + "," + b));
+      const aFilled = (x, y) => aSet.has(x + "," + y);
+      shadowPass(aCells, aFilled, 12, 9, 0.42);
+      for (const [x, y] of aCells) if (y >= 0) moldCell(ctx, x, y, current.color, aFilled);
     }
   }
 
@@ -1295,11 +1374,13 @@
 
   // swipe / tap gestures directly on the board
   const stage = document.querySelector(".board-stage");
-  const STEP = 24;
-  let sx = null, sy = null, st = 0, lastX = 0, lastY = 0, moved = false;
+  // one "step" is ~0.8 of a displayed cell, so it scales with the board size
+  function stepPx() { return Math.max(16, (board.clientWidth / COLS) * 0.8); }
+  let sx = null, sy = null, st = 0, lastX = 0, lastY = 0, moved = false, STEP = 24;
   stage.addEventListener("pointerdown", (e) => {
     if (!running || over || paused) return;
     Sfx.resume();
+    STEP = stepPx();
     sx = lastX = e.clientX; sy = lastY = e.clientY; st = Date.now(); moved = false;
     try { stage.setPointerCapture(e.pointerId); } catch (_) {}
   });
