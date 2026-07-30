@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#14171a" />
+<link rel="icon" href="data:," />
+<title>ASCENDANT — The Ascendant Works</title>
+<style>
+  /* Typography per §3.4: a plain face for every number and HUD readout. Ornate
+     display faces are unreadable at Deck 800p and routinely lack extended-Latin
+     coverage, which would break localisation later. */
+  :root {
+    --iron-dark: #14171a;
+    --iron: #22282d;
+    --brass: #b98a3c;
+    --brass-lit: #e8c887;
+    --brass-dim: #6d5326;
+    --verdigris: #3f7d6e;
+    --ember: #ff8c3a;
+    --ui: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--iron-dark);
+    color: var(--brass-lit);
+    font-family: var(--ui);
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  /* Safe areas: iPhone 16 in landscape puts the Dynamic Island on one side and the
+     home indicator at the bottom. Nothing interactive may sit in either. */
+  #app {
+    position: fixed;
+    inset: 0;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  #stage { display: block; width: 100%; height: 100%; }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    background: radial-gradient(ellipse at 50% 40%, rgba(40,30,18,0.94), rgba(10,12,14,0.97));
+    overflow-y: auto;
+    z-index: 5;
+  }
+  .screen[hidden] { display: none; }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(28px, 7vw, 62px);
+    letter-spacing: 0.34em;
+    text-indent: 0.34em;
+    color: var(--brass-lit);
+    text-shadow: 0 0 26px rgba(255,140,58,0.35);
+  }
+  .subtitle { margin: 0; color: var(--verdigris); letter-spacing: 0.2em; font-size: clamp(10px, 2.4vw, 14px); }
+  h2 { margin: 0 0 6px; font-size: clamp(18px, 4vw, 30px); letter-spacing: 0.2em; }
+
+  button {
+    font-family: var(--ui);
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    color: var(--brass-lit);
+    background: linear-gradient(180deg, #3a2f18, #241d10);
+    border: 2px solid var(--brass-dim);
+    border-radius: 4px;
+    /* 48px minimum touch target — thumb-sized on a 6.1" phone (§10). */
+    min-height: 48px;
+    min-width: 190px;
+    padding: 12px 22px;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled), button:focus-visible { border-color: var(--brass-lit); background: linear-gradient(180deg, #4a3c1e, #2c2414); }
+  button:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  button:disabled { opacity: 0.38; cursor: not-allowed; }
+
+  .rowed { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+
+  #level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 10px;
+    width: min(940px, 100%);
+  }
+  .level-card {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+    min-width: 0; text-align: left; padding: 12px 14px;
+  }
+  .lv-num { color: var(--verdigris); font-size: 12px; letter-spacing: 0.2em; }
+  .lv-name { font-size: 16px; }
+  .lv-chapter { font-size: 11px; opacity: 0.6; }
+  .lv-best { font-size: 11px; color: var(--ember); opacity: 0.85; }
+  .level-card.locked .lv-best { color: #888; }
+
+  .panel {
+    border: 2px solid var(--brass-dim);
+    border-radius: 6px;
+    background: rgba(18,20,23,0.85);
+    padding: 16px 20px;
+    width: min(520px, 100%);
+  }
+  .opt { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 44px; font-size: 13px; }
+  .opt input[type="checkbox"] { width: 24px; height: 24px; accent-color: var(--brass); }
+  .opt input[type="range"] { flex: 1; max-width: 200px; accent-color: var(--brass); }
+  .hint { font-size: 11px; opacity: 0.55; line-height: 1.6; max-width: 560px; text-align: center; }
+  .stat { display: flex; justify-content: space-between; font-size: 14px; padding: 5px 0; border-bottom: 1px solid rgba(185,138,60,0.2); }
+
+  /* In-play buttons live in the frame, never over the playfield, and never in the
+     bottom corners where thumbs rest (§3.6). */
+  #hud-buttons {
+    position: absolute;
+    top: max(8px, env(safe-area-inset-top));
+    right: max(8px, env(safe-area-inset-right));
+    display: flex; gap: 8px; z-index: 4;
+  }
+  #hud-buttons button { min-width: 56px; min-height: 48px; padding: 8px 12px; font-size: 13px; }
+  #btn-swap { min-width: 72px; }
+
+  #rotate-notice { display: none; }
+  /* Landscape-locked on phone-sized screens: a portrait playfield cannot hold
+     these lanes without changing the game (§3.5). */
+  @media (max-width: 820px) and (orientation: portrait) {
+    #rotate-notice {
+      display: flex; position: absolute; inset: 0; z-index: 20;
+      align-items: center; justify-content: center; text-align: center;
+      background: var(--iron-dark); font-size: 16px; padding: 30px; letter-spacing: 0.1em;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="stage" aria-label="Game playfield" role="img"></canvas>
+
+  <div id="hud-buttons" hidden>
+    <button id="btn-swap" aria-label="Swap loaded colour">SWAP</button>
+    <button id="btn-pause" aria-label="Pause">❚❚</button>
+  </div>
+
+  <section id="screen-title" class="screen">
+    <h1>ASCENDANT</h1>
+    <p class="subtitle">THE ASCENDANT WORKS</p>
+    <div class="rowed">
+      <button id="btn-play">EXPEDITION</button>
+      <button id="btn-perpetual">PERPETUAL</button>
+      <button id="btn-overpressure">OVERPRESSURE</button>
+    </div>
+    <div class="panel">
+      <h2 style="font-size:14px">CONTROLS</h2>
+      <p class="hint" style="text-align:left">
+        <b>Touch</b> — drag anywhere to aim, release to fire. Tap to fire at a point.
+        Two-finger tap or SWAP to change the loaded globe.<br />
+        <b>Gamepad</b> — right stick aims, A or R2 fires, X swaps, L2 for precision aim, Start pauses.<br />
+        <b>Keyboard</b> — mouse aims, Space fires, X swaps, Esc pauses.
+      </p>
+    </div>
+    <div class="panel">
+      <h2 style="font-size:14px">SETTINGS</h2>
+      <label class="opt"><span>Sound</span><input type="checkbox" id="opt-sound" /></label>
+      <label class="opt"><span>Reduce motion &amp; screen shake</span><input type="checkbox" id="opt-reduce-motion" /></label>
+      <label class="opt"><span>Relaxed pace <small id="opt-relaxed-value">1.00x</small></span>
+        <input type="range" id="opt-relaxed" min="0.5" max="1" step="0.05" /></label>
+      <label class="opt"><span>Debug overlay</span><input type="checkbox" id="opt-debug" /></label>
+      <p class="hint" style="text-align:left">
+        Relaxed pace slows the chain. It is an accessibility option, kept separate from
+        the tuned default so it never muddies fidelity testing.
+      </p>
+    </div>
+  </section>
+
+  <section id="screen-levels" class="screen" hidden>
+    <h2>SELECT A WORKING</h2>
+    <div id="level-grid"></div>
+    <button id="btn-levels-back">BACK</button>
+  </section>
+
+  <section id="screen-pause" class="screen" hidden>
+    <h2>HELD</h2>
+    <div class="rowed">
+      <button id="btn-resume">RESUME</button>
+      <button id="btn-quit">ABANDON</button>
+    </div>
+  </section>
+
+  <section id="screen-result" class="screen" hidden>
+    <h2 id="result-title">PRESSURE HELD</h2>
+    <div class="panel" id="result-body"></div>
+    <div class="rowed">
+      <button id="btn-next">NEXT WORKING</button>
+      <button id="btn-retry">RETRY</button>
+      <button id="btn-result-menu">MENU</button>
+    </div>
+  </section>
+
+  <div id="rotate-notice">Rotate to landscape — the works run sideways.</div>
+</div>
+
+<script type="module">
+  import { boot } from './platform/shell.js';
+  boot().catch((err) => {
+    document.body.innerHTML =
+      `<pre style="color:#e8c887;padding:24px;white-space:pre-wrap">Failed to start.\n\n${err && err.stack ? err.stack : err}\n\nThis build must be served over HTTP (ES modules + fetch). Try:\n  python3 -m http.server 8000</pre>`;
+  });
+</script>
+</body>
+</html>

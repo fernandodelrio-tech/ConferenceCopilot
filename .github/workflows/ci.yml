@@ -1,0 +1,56 @@
+# CI per plan §5. The unit/behavioural/determinism/profile suite has no
+# dependencies at all, so it runs anywhere Node runs.
+name: ci
+on: [push, pull_request]
+
+jobs:
+  sim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      # No install step: the sim suite is dependency-free by design.
+      - name: Tests (purity, rules, behavioural, determinism, profile bands, monte-carlo)
+        run: npm test
+      - name: Content is reproducible from its generators
+        run: |
+          npm run content
+          git diff --exit-code -- content/ \
+            || (echo "content/ is stale — re-run 'npm run content' and commit"; exit 1)
+
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: npm ci || npm install
+      - run: npx playwright install --with-deps chromium
+      - run: npm run serve & sleep 2
+      - name: Verify on all three target viewports
+        run: CHROMIUM_PATH= npm run verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: artifacts/
+
+  # Cross-platform determinism (plan §3.2) needs a Linux + macOS/iOS matrix
+  # comparing per-frame state hashes. Linux and macOS are wired up here; the
+  # iOS-simulator leg needs the native shell that does not exist yet.
+  determinism-matrix:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Replay hash
+        run: node tools/simcli.js hash --level 7 --seed 42 --ticks 20000 | tee hash-${{ matrix.os }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hash-${{ matrix.os }}
+          path: hash-${{ matrix.os }}.txt

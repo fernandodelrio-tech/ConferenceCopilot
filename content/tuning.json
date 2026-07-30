@@ -1,0 +1,282 @@
+{
+  "_meta": {
+    "note": "Every constant carries a `source`. Per plan §2.4 no magic numbers live in code.",
+    "sourceLegend": {
+      "DESIGN-ESTIMATE": "Chosen by design judgement. NOT measured against REF. Phase 0 (§2.2) has not been executed — see docs/IMPLEMENTATION_STATUS.md. Until each of these is replaced by a frame-counted measurement, the §0.2 fidelity tolerances are UNVERIFIED.",
+      "MEASURED": "Frame-counted from a REF capture; carries a spec id."
+    },
+    "referenceBox": [
+      1600,
+      1000
+    ],
+    "units": "reference-box units; speeds are units/second; ticks are 1/120s"
+  },
+  "global": {
+    "tickHz": {
+      "v": 120,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "ballRadius": {
+      "v": 20,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "shotSpeed": {
+      "v": 1500,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "fireCooldownTicks": {
+      "v": 16,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "catchUpSpeed": {
+      "v": 260,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "popDelayTicks": {
+      "v": 8,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "minMatch": {
+      "v": 3,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "reverseSpeed": {
+      "v": 110,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "reverseTicks": {
+      "v": 420,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "governorMultiplier": {
+      "v": 0.4,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "governorTicks": {
+      "v": 780,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "sightlineTicks": {
+      "v": 1200,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "fulminateRadius": {
+      "v": 110,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "arcSpan": {
+      "v": 4,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "scoreBase": {
+      "v": 100,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "comboCap": {
+      "v": 8,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "comboWindowTicks": {
+      "v": 150,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "gapBonus": {
+      "v": 500,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "clearBonus": {
+      "v": 10000,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "coinScore": {
+      "v": 1000,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "coinIntervalTicks": {
+      "v": 900,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "coinLifeTicks": {
+      "v": 660,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "coinRadius": {
+      "v": 26,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "extraLifeEvery": {
+      "v": 50000,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "startLives": {
+      "v": 3,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "overpressureSpeedScale": {
+      "v": 1.3,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "overpressureColorBump": {
+      "v": 1,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "perpetualRampPerMinute": {
+      "v": 0.14,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "powerupCascadeDepthCap": {
+      "v": 4,
+      "source": "DESIGN-ESTIMATE"
+    },
+    "pipeCapacityBalls": {
+      "v": 10,
+      "source": "DESIGN-ESTIMATE"
+    }
+  },
+  "_levelColumns": "chainSpeed, colors, gaugeTarget, powerupChance, initialBalls",
+  "levels": [
+    {
+      "id": 1,
+      "chainSpeed": 24,
+      "colors": 4,
+      "gaugeTarget": 71,
+      "powerupChance": 0.05,
+      "initialBalls": 14,
+      "derivedFrom": "feedRate=0.6/s targetDuration=95s"
+    },
+    {
+      "id": 2,
+      "chainSpeed": 26,
+      "colors": 4,
+      "gaugeTarget": 81,
+      "powerupChance": 0.05,
+      "initialBalls": 16,
+      "derivedFrom": "feedRate=0.65/s targetDuration=100s"
+    },
+    {
+      "id": 3,
+      "chainSpeed": 28,
+      "colors": 5,
+      "gaugeTarget": 92,
+      "powerupChance": 0.06,
+      "initialBalls": 16,
+      "derivedFrom": "feedRate=0.7/s targetDuration=105s"
+    },
+    {
+      "id": 4,
+      "chainSpeed": 30,
+      "colors": 5,
+      "gaugeTarget": 103,
+      "powerupChance": 0.06,
+      "initialBalls": 18,
+      "derivedFrom": "feedRate=0.75/s targetDuration=110s"
+    },
+    {
+      "id": 5,
+      "chainSpeed": 32,
+      "colors": 5,
+      "gaugeTarget": 115,
+      "powerupChance": 0.06,
+      "initialBalls": 18,
+      "derivedFrom": "feedRate=0.8/s targetDuration=115s"
+    },
+    {
+      "id": 6,
+      "chainSpeed": 34,
+      "colors": 5,
+      "gaugeTarget": 128,
+      "powerupChance": 0.07,
+      "initialBalls": 20,
+      "derivedFrom": "feedRate=0.85/s targetDuration=120s"
+    },
+    {
+      "id": 7,
+      "chainSpeed": 36,
+      "colors": 6,
+      "gaugeTarget": 141,
+      "powerupChance": 0.07,
+      "initialBalls": 20,
+      "derivedFrom": "feedRate=0.9/s targetDuration=125s"
+    },
+    {
+      "id": 8,
+      "chainSpeed": 38,
+      "colors": 6,
+      "gaugeTarget": 154,
+      "powerupChance": 0.07,
+      "initialBalls": 22,
+      "derivedFrom": "feedRate=0.95/s targetDuration=130s"
+    },
+    {
+      "id": 9,
+      "chainSpeed": 40,
+      "colors": 6,
+      "gaugeTarget": 169,
+      "powerupChance": 0.08,
+      "initialBalls": 22,
+      "derivedFrom": "feedRate=1/s targetDuration=135s"
+    },
+    {
+      "id": 10,
+      "chainSpeed": 42.4,
+      "colors": 6,
+      "gaugeTarget": 186,
+      "powerupChance": 0.08,
+      "initialBalls": 24,
+      "derivedFrom": "feedRate=1.06/s targetDuration=140s"
+    },
+    {
+      "id": 11,
+      "chainSpeed": 44.8,
+      "colors": 6,
+      "gaugeTarget": 203,
+      "powerupChance": 0.08,
+      "initialBalls": 24,
+      "derivedFrom": "feedRate=1.12/s targetDuration=145s"
+    },
+    {
+      "id": 12,
+      "chainSpeed": 48,
+      "colors": 6,
+      "gaugeTarget": 225,
+      "powerupChance": 0.09,
+      "initialBalls": 26,
+      "derivedFrom": "feedRate=1.2/s targetDuration=150s"
+    }
+  ],
+  "palette": {
+    "_note": "§0.3 ball palette caveat — six maximally distinguishable hues. Readability outranks divergence. Each hue is paired with an always-on glyph so colour is never the only channel.",
+    "colors": [
+      {
+        "key": "crimson",
+        "hex": "#e0453c",
+        "glyph": "spiral"
+      },
+      {
+        "key": "brass",
+        "hex": "#f0b429",
+        "glyph": "cross"
+      },
+      {
+        "key": "verdant",
+        "hex": "#48b05e",
+        "glyph": "dot-triad"
+      },
+      {
+        "key": "cobalt",
+        "hex": "#3d7fe0",
+        "glyph": "chevron"
+      },
+      {
+        "key": "violet",
+        "hex": "#a662d6",
+        "glyph": "ring"
+      },
+      {
+        "key": "bone",
+        "hex": "#e8e2d2",
+        "glyph": "bar"
+      }
+    ]
+  }
+}
