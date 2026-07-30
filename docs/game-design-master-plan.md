@@ -1,16 +1,16 @@
-# TIDEWRIGHT — Master Plan
+# ASCENDANT — Master Plan
 
-**A marble-shooter in the lineage of the genre's classics, built clean.**
+**A steampunk marble-shooter in the lineage of the genre's classics, built clean.**
 
-**Working title:** `TIDEWRIGHT`
+**Working title:** `ASCENDANT`  *(was `TIDEWRIGHT` in v2 — a tidal name no longer fits a machine-city with no water in it)*
 **Targets:** iPad Pro (M4), iPhone 16, Steam Deck OLED
-**Doc owner:** TBD · **Status:** Draft v2 · **Last updated:** 2026-07-30
+**Doc owner:** TBD · **Status:** Draft v3 · **Last updated:** 2026-07-30
 
 > **Naming discipline starts with this file.** The genre-defining title this project draws from
 > is referenced in internal specs as **"REF"** and nowhere else. It does not appear in the repo,
 > in code, in commit messages, in asset filenames, in the tracker, or in any internal codename.
 > Internal documents naming a competitor are discoverable and read badly in a dispute, and a
-> project codenamed after the thing it resembles is an own goal. Hence `TIDEWRIGHT`, and hence
+> project codenamed after the thing it resembles is an own goal. Hence `ASCENDANT`, and hence
 > this file is no longer named after REF either.
 
 ---
@@ -60,24 +60,31 @@ budget reflects it, and it is the single biggest schedule impact of the non-infr
 "Similar but not identical" is not a vibe — it is this table. Every asset class gets an explicit,
 recorded, reviewed divergence decision.
 
-| Asset | REF (functional role) | TIDEWRIGHT | Divergence rationale |
+| Asset | REF (functional role) | ASCENDANT | Divergence rationale |
 |---|---|---|---|
-| **Setting** | Ancient jungle temple; carved stone and gold | **Sunken brass observatory** — a flooded deep-water survey station. Verdigris copper, riveted glass, deep teal water, bioluminescence | Different era, culture, material, palette, mood. No shared iconography |
-| **Shooter** | Stone frog idol that spits balls | **Articulated brass diving-helm turret** with a visible chambered next-shot and a machined aim vane | Keeps the functional read (rotating head, unmistakable aim direction, visible next ball). Not an animal, not stone, not an idol |
-| **Projectiles** | Glossy coloured marbles | **Glass pressure-floats**, each with a distinct engraved glyph (spiral / cross / dot-triad / chevron / ring / bar) | Sphere-in-a-colour is functional and unavoidable; distinctiveness comes from material treatment and the always-on glyph system |
-| **Lane** | Carved stone grooves in a temple floor | **Brass current-channels** with flowing water and visible fill markings | Same functional legibility, entirely different object |
-| **Entry / exit** | Spawn hole → skull-mouth exit | **Pressure valve → bilge whirlpool**, with a rising water-level tell | The loss state must be maximally legible; the skull is REF's expression, the whirlpool is ours |
-| **Power-ups** | Bomb, lightning, reverse, slow, laser sight | **Burst, Arc, Ebb, Drift, Sight** — icons in a brass-instrument language (pressure gauges, valve wheels, sounding lines) | Mechanics identical, names and iconography independent. No borrowed bolt or bomb glyph |
-| **Modes** | Campaign, endless, post-campaign hard mode | **Expedition, Undertow, Deepwater** *(pending trademark clearance)* | Generic mode concepts, original names |
-| **Callouts** | Spoken barks including a distinctive title-word shout | Original callout vocabulary, written fresh, themed to salvage and depth | Distinctive barks are protectable *and* are REF's brand. Never reused |
-| **Music** | REF's soundtrack | Original score: low brass, hydrophone textures, tension layer rising with water level | Clean-room, see §0.4 |
-| **UI** | REF's frames, gauge, fonts | Instrument-panel language: brushed metal, etched scales, a filling sight-glass gauge | Function preserved (progress always readable), ornament independent |
+| **Setting** | Ancient jungle temple; carved stone and gold | **The Ascendant Works** — a vertical Victorian-industrial machine-city of boiler decks, clockworks and airship yards. Riveted brass, cast iron, verdigris, coal smoke, gaslight, aether-glass | Different era, culture, material, palette, mood. No shared iconography |
+| **Shooter** | Stone frog idol that spits balls | **Brass pneumatic turret** — a riveted pressure vessel with a rotating barrel, a glass breech showing the chambered next shot, a machined aim vane, and a steam exhaust puff on each fire | Keeps the functional read (rotating head, unmistakable aim direction, visible next ball). Not an animal, not stone, not an idol |
+| **Projectiles** | Glossy coloured marbles | **Gauge-globes** — brass-caged glass spheres, each with a distinct engraved glyph (spiral / cross / dot-triad / chevron / ring / bar) | Sphere-in-a-colour is functional and unavoidable; distinctiveness comes from material treatment and the always-on glyph system |
+| **Lane** | Carved stone grooves in a temple floor | **Open-topped brass rail channel** — sleepers, etched distance graduations, a faint conveyor motion | Same functional legibility, entirely different object. Deliberately *not* an enclosed pneumatic tube (§3.4) |
+| **Entry / exit** | Spawn hole → skull-mouth exit | **Escapement gate → furnace intake**, with a boiler pressure needle climbing toward the redline as the loss tell | The loss state must be maximally legible; the skull is REF's expression, the redlining gauge is ours — and a needle reads faster than a mouth |
+| **Power-ups** | Bomb, lightning, reverse, slow, laser sight | **Fulminate, Arc, Reverse, Governor, Sightline** — icons in an instrument language (pressure gauges, valve wheels, a centrifugal governor, surveying optics) | Mechanics identical, names and iconography independent. No borrowed bolt or bomb glyph |
+| **Modes** | Campaign, endless, post-campaign hard mode | **Expedition, Perpetual, Overpressure** *(pending trademark clearance)* | Generic mode concepts, original names |
+| **Callouts** | Spoken barks including a distinctive title-word shout | Original callout vocabulary, written fresh, in the register of an engine-room foreman | Distinctive barks are protectable *and* are REF's brand. Never reused |
+| **Music** | REF's soundtrack | Original score: low brass, mechanical percussion (ratchets, pistons, escapements), fairground calliope and music-box motifs, tension layer rising with boiler pressure | Clean-room, see §0.4 |
+| **UI** | REF's frames, gauge, fonts | Instrument-panel language: etched brass plates, riveted bezels, a filling boiler pressure gauge | Function preserved (progress always readable), ornament independent |
 
 **Ball palette caveat — do not over-diverge.** Six maximally distinguishable hues is a
 *functional* requirement and the set of good ones is small, so our palette will land near REF's.
 That is fine: colour alone isn't protectable expression, and distinctiveness comes from material
 rendering and glyphs. **Never degrade colour readability in the name of divergence.** This is the
 one place where trying harder to look different would make the game worse.
+
+**Why steampunk helps the legal position.** Victorian industrial is about as far from
+Mesoamerican temple as a setting can get while still supporting the genre's functional needs — a
+mechanical shooter, a channelled track, a gauge that fills, an intake that punishes failure all
+have obvious period-appropriate forms. The divergence is structural rather than cosmetic, which
+is exactly what makes it defensible. The cost is a real production risk, not a legal one: see
+§3.4's restraint rule and the corresponding row in §13.
 
 ### 0.4 Clean-room process (structural, not advisory)
 
@@ -94,9 +101,9 @@ Two tracks, deliberately separated:
   REF and signs off in writing that it diverges, with rationale. The creators never see that
   comparison. Failing assets go back to the clean room with a revised brief.
 
-Further safeguards: trademark clearance on `TIDEWRIGHT` and all mode names before lock; store
+Further safeguards: trademark clearance on `ASCENDANT` and all mode names before lock; store
 metadata never names REF nor says "like REF"; captures live in a private access-controlled bucket
-(`gs://tw-ref/`, `.gitignore`d, plus a CI secret-scan rule failing the build if a capture or REF's
+(`gs://asc-ref/`, `.gitignore`d, plus a CI secret-scan rule failing the build if a capture or REF's
 actual name lands in the repo); legal review is a hard blocker at M6 **and** before art production.
 
 ### 0.5 Target devices (locked)
@@ -121,7 +128,7 @@ frame-budget and battery constraint at 90Hz. Optimise against those two and the 
 
 Ships when all of these hold simultaneously **on all three devices**:
 
-- [ ] All modes implemented: Expedition (full roster), Undertow (endless), Deepwater (hard).
+- [ ] All modes implemented: Expedition (full roster), Perpetual (endless), Overpressure (hard).
 - [ ] Every level completable; win and lose states correct.
 - [ ] §0.2 tolerances pass on 100% of sampled levels.
 - [ ] Persona gates P1–P9 all PASS on the same build (§7).
@@ -200,14 +207,14 @@ ball; fire-rate gating (verify whether it's "one shot in flight" or time-based);
 from the spawn pool as colours are eliminated; spawn weighting; multi-lane layouts with
 overlapping segments — z-order and cross-lane collision rules.
 
-**Power-ups** (spawn rate, duration, stacking, visual tell, level scaling): Burst, Arc, Ebb,
-Drift, Sight. Confirm the set is complete.
+**Power-ups** (spawn rate, duration, stacking, visual tell, level scaling): Fulminate, Arc,
+Reverse, Governor, Sightline. Confirm the set is complete.
 
 **Scoring:** base pop; combo/chain multipliers and callout tiers; gap-shot bonus; coin pickups;
 bonus-target spawns and values; board-clear bonus; extra-life thresholds; end-of-level formula.
 
 **Meta:** Expedition progression and unlock structure; chapter grouping and inter-level screens;
-Undertow scaling curve; Deepwater difficulty delta; score tables; per-level stats.
+Perpetual scaling curve; Overpressure difficulty delta; score tables; per-level stats.
 
 ### 2.4 Also produced in Phase 0
 
@@ -272,21 +279,59 @@ one decision cuts repro time more than anything else in the plan.
 
 *v1 specified carved stone, jade and temple interiors. That is REF's own setting. Struck.*
 
-**Sunken brass observatory.** A flooded deep-water survey station: verdigris copper, riveted brass,
-thick glass, deep teal water, shafts of surface light, bioluminescent drift. Cold and mechanical
-where REF is warm and ancient. Mood: quiet pressure.
+**The Ascendant Works — Victorian industrial steampunk.** A vertical machine-city climbed from
+its foundations to its spires: riveted brass and blackened cast iron, verdigris and oil sheen,
+coal smoke and gaslight, aether-glass glowing where the engineering gets speculative. Warm
+metal, cold air. Cluttered, purposeful, *lived-in machinery* — never a clean sci-fi interior, and
+never fantasy. Mood: magnificent contraption under pressure.
 
-- **Balls are the hardest art problem, and the phone sets the bar.** Six colours distinguishable at
-  ~24 physical px on a 6.1" screen, over every backdrop, in motion, for colourblind players.
-  Solution: colour **plus** an always-on engraved glyph (spiral / cross / dot-triad / chevron /
-  ring / bar). Not a toggle — legibility and accessibility are the same problem here.
-- **Backdrops must never compete with the lane.** Enforce a measured contrast floor between every
-  ball colour and every backdrop region a ball can pass over, as an **automated check on the
-  atlases** — not an eyeball judgement in review.
-- Asset list: balls (6 base + 5 power-up overlays), shooter turret (rotation atlas + chamber), lane
-  channel decals, entry valve and exit whirlpool with water-level tell, 6–8 backdrops, coins, bonus
-  targets, VFX (pop, chain escalation, Burst, Arc, gauge fill), full UI kit, icons and store art
-  for both stores.
+**Chapters double as backdrops**, giving the roster a natural climb: Boiler Deck → Clockworks →
+Pneumatic Exchange → Aether Observatory → Airship Yards → Spire Foundry. Escalating altitude and
+escalating difficulty read as the same progression, which is free narrative for zero mechanical
+cost.
+
+### The restraint rule (read this before drawing anything)
+
+**Steampunk's failure mode is visual noise, and this genre cannot afford any.** The aesthetic
+rewards dense greebling — rivets, pipework, gauges, gears, exhaust — and every one of those is
+high-frequency luminance detail directly competing with the one thing the player must read
+instantly: which colour is which ball. On a 6.1" phone at ~24px per ball, a busy brass backdrop
+will lose us the game. So the theme is **zonally rationed**:
+
+| Zone | Detail budget | Content |
+|---|---|---|
+| **Lane band** (anywhere a ball can travel, plus one ball-diameter margin) | **Minimal.** Low-frequency, desaturated, high-contrast-against-all-six-hues | Flat machined plate, soft gradients, no rivets, no pipework, no moving background parts |
+| **Playfield surround** | Moderate | Structural forms, large silhouettes, slow parallax |
+| **Chrome and frame** (outer thirds, HUD bezel) | **Full steampunk.** This is where the theme spends its budget | Rivets, gauges, brass filigree, pipework, working gear animations |
+
+Two automated checks in CI enforce this rather than trusting review:
+1. **Contrast floor** — every one of the six ball colours against every backdrop region a ball can
+   pass over (already planned in v2).
+2. **Detail-frequency ceiling** — fail the atlas if local luminance variance inside the lane band
+   exceeds a threshold. This is the check that stops the theme eating the gameplay, and it is new
+   with the steampunk direction.
+
+**VFX corollary:** steam and smoke are the theme's signature and its biggest occlusion hazard.
+Rule — steam vents *away* from the playfield, and anything drawn over the lane band must be
+additive/light-emitting (sparks, glow, heat shimmer), never opaque particles. A gorgeous smoke
+plume that hides a ball for four frames is a Sev-2 bug, not art.
+
+### Remaining art notes
+
+- **Balls are still the hardest problem, and the phone still sets the bar.** Six colours
+  distinguishable at ~24 physical px, over every backdrop, in motion, for colourblind players.
+  Colour **plus** an always-on engraved glyph (spiral / cross / dot-triad / chevron / ring / bar).
+  The brass cage must be a thin bezel only — it cannot eat the coloured glass area, which is the
+  whole signal.
+- **Typography:** a Victorian display face for headings and chapter titles; a clean, plain face
+  for every number, HUD readout and body string. Decorative type at Deck 800p or in a phone HUD
+  is unreadable, and ornate faces routinely lack extended-Latin coverage — which would break six
+  localisations at M5. Check glyph coverage *before* licensing a display face.
+- Asset list: balls (6 base + 5 power-up overlays), pneumatic turret (rotation atlas + glass
+  breech + exhaust puff), lane channel and sleeper decals, escapement gate, furnace intake with
+  redlining pressure needle, 6 chapter backdrops (+1–2 spare), coins, bonus targets, VFX (pop,
+  chain escalation, Fulminate, Arc, gauge fill, sparks, heat shimmer), full UI kit, icons and
+  store art for both stores.
 - Author at **2× Deck native (2560×1600)**: iPad Pro takes it near-native, iPhone and Deck
   downsample. Atlases with mip-safe padding.
 - Every asset carries an originality-review record (§0.4) before it ships.
@@ -332,9 +377,18 @@ keyboard prompt. Suspend/resume mid-level with no state loss — auto-save on ev
 
 ### 3.7 Audio design
 
-Original score: per-chapter loops with a tension layer that rises as water level approaches the
-exit. SFX: fire, insert, pop tiers (3 / 4 / 5+), combo escalation stinger, each power-up, gauge
-fill, win, loss. Original callout vocabulary (§0.3). Music ducks under callouts. Mix verified on
+Original score: per-chapter loops built from low brass, mechanical percussion (ratchets, pistons,
+escapements as rhythm), and fairground calliope or music-box motifs for the lighter chapters —
+with a tension layer that rises as the boiler pressure needle climbs toward the redline. SFX:
+pneumatic fire *thunk* plus exhaust hiss, glass insert click, pop tiers (3 / 4 / 5+) as
+escalating shatter-and-clank, combo stinger, each power-up, gauge fill, win, loss.
+
+**One acoustic trap the theme creates:** continuous steam hiss is broadband noise, and it sits
+directly on top of the transients the player needs for shot and pop feedback. Keep ambient hiss
+low, band-limited, and out of the frequency range the core SFX occupy — and mix it *last*, after
+gameplay SFX are locked, so it can never mask them. Verify on the smallest speaker (iPhone 16).
+
+Original callout vocabulary (§0.3). Music ducks under callouts. Mix verified on
 **Deck OLED speakers, iPhone 16 speakers and iPad Pro speakers** — on device, not headphones.
 Composer works clean-room (§0.4).
 
@@ -357,7 +411,7 @@ Each milestone ends with a **playable build on all three physical devices** plus
 | **M1** | Vertical slice | One level end-to-end: lane, spawn, aim, fire, insert, match, pop, compaction, win, lose. Placeholder art. Both touch schemes + gamepad | A designer plays it and it *feels* like REF on all three devices |
 | **M2** | Full core mechanics | Gap combos, chain scoring, colour retirement, multi-lane overlaps, all 5 power-ups, coins, bonus targets, full scoring | Behavioural suite (§6.3) green; §0.2 tolerances pass on the slice |
 | **M3** | Content complete | Level editor shipped; full original roster authored to profile bands; chapters; Expedition progression; inter-level screens | 100% of checklist rows at "implemented + profile-band pass" |
-| **M4** | Modes + meta | Undertow, Deepwater, score tables, per-level stats, save/load, settings, iCloud + Steam Cloud | All modes completable; save survives `kill -9`; iPhone↔iPad sync correct |
+| **M4** | Modes + meta | Perpetual, Overpressure, score tables, per-level stats, save/load, settings, iCloud + Steam Cloud | All modes completable; save survives `kill -9`; iPhone↔iPad sync correct |
 | **M5** | Art/audio complete + polish | Final assets (originality-reviewed), VFX, juice pass, localisation (EN + 6), onboarding | Zero placeholders; localisation QA pass; 100% originality sign-off |
 | **M6** | Platform hardening | Perf to budget on iPhone + Deck, Deck Verified audit, App Store audit both device classes, store assets, **legal sign-off**, Steamworks + Game Center | §9 budgets met; both checklists clean; legal cleared |
 | **M7** | Beta | Steam playtest + TestFlight (separate iPhone and iPad cohorts), telemetry, crash reporting | Crash-free ≥99.5% per device; no open Sev-1/2 |
@@ -377,7 +431,7 @@ lead plus rotating persona testers). Longer than v1 for two concrete reasons: or
   to close the last 5% of feel. Measured-room tool only, never shipped.
 - **Debug overlay:** lane control points, ball indices, collision radii, gap state, spawn pool,
   active tuning row, frame-time graph, and the **current aspect-fit box** (§3.5).
-- **Headless sim CLI:** `tw-sim --level 7 --seed 42 --replay r.json --assert-hash …`
+- **Headless sim CLI:** `asc-sim --level 7 --seed 42 --replay r.json --assert-hash …`
 - **Every fixed bug gets a replay-based regression test.** No exceptions. This corpus is what makes
   §8's loops terminate instead of oscillating.
 - **Trunk-based, feature-flagged, CI on every push:** typecheck, lint (incl. sim-purity and
@@ -402,7 +456,7 @@ difficulty curve must match its intended slot. Original geometry, equivalent exp
 ### 6.3 Behavioural suite
 Table-driven rule tests in the headless sim: given a board state and a shot, assert the exact
 resulting board, score delta and event sequence. Every §2.3 mechanic, including the nasty ones:
-simultaneous multi-gap collapse, insertion into a gap, a pop during Ebb, a power-up expiring
+simultaneous multi-gap collapse, insertion into a gap, a pop during Reverse, a power-up expiring
 mid-chain-reaction, colour retirement racing a pop. **This suite is where the fidelity claim
 actually lives.**
 
@@ -585,6 +639,8 @@ REF captures never enter this repo (§0.4).
 | Level authoring underestimated | High | High | Editor is M3-blocking; 3–5 days/level budgeted |
 | iOS WebView audio latency hurts feel | High | Medium | Native SFX bridge, spiked at M0; explicit ADR-0001 revisit trigger |
 | Ball legibility fails on the 6.1" phone | High | Medium | Phone sets the art bar (§1, §3.4); automated contrast check; P9 gate |
+| **Steampunk visual density eats ball legibility** | High | **High** | §3.4 zonal restraint rule; CI detail-frequency ceiling on the lane band; additive-only VFX over the lane; P7/P9 gates every milestone |
+| Ornate display typeface breaks localisation or 800p legibility | Medium | Medium | Plain face for all numerics/HUD; verify glyph coverage before licensing (§3.4) |
 | Three aspect ratios leak into difficulty differences | High | Medium | §3.5 hard rule: no gameplay geometry outside the 16:10 box; CI aspect-fit test |
 | iPhone thermal throttling in long sessions | Medium | Medium | 40% headroom target; 60-min soak in P8 from M2, not M6 |
 | Deck Verified rejection | Medium | Medium | Self-audit from M2; default Steam Input config early |
@@ -600,7 +656,8 @@ REF captures never enter this repo (§0.4).
 1. **Confirm ADR-0001** (TS + PixiJS) with the team in week 1 — or switch to Godot 4 now, not later.
 2. Legal counsel reviews the §0.3 divergence table and the §0.4 clean-room process **before any art
    is produced**.
-3. Trademark clearance on `TIDEWRIGHT` and the three mode names.
+3. Trademark clearance on `ASCENDANT` and the three mode names — `ASCENDANT` is a common word in
+   games and software, so expect this one to need a fallback; have two alternates ready.
 4. Stand up M0: repo skeleton, CI, sim/render/platform split, and the **iOS native-audio latency
    spike** — that spike is the one remaining thing that could invalidate the architecture.
 5. Start Phase 0: build `tools/framestep/`, then measure the four core speeds and extract level 1's
