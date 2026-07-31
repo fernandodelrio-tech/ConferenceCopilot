@@ -7,8 +7,13 @@
 let manifest = null;
 const images = new Map();
 
+// The single-file offline build (tools/bundle.mjs) predefines
+// globalThis.__ASCENDANT_ASSETS as { manifest, images: { name -> data URI } }.
+// Data URIs are same-origin, so unlike file:// image loads they never taint a
+// canvas — which matters because the bloom pass reads back from one.
 export async function loadAssets(basePath = '') {
-  manifest = await fetch(`${basePath}assets/manifest.json`).then((r) => r.json());
+  const inline = globalThis.__ASCENDANT_ASSETS;
+  manifest = inline ? inline.manifest : await fetch(`${basePath}assets/manifest.json`).then((r) => r.json());
   const names = Object.keys(manifest.assets);
 
   await Promise.all(
@@ -21,7 +26,7 @@ export async function loadAssets(basePath = '') {
             resolve();
           };
           img.onerror = () => reject(new Error(`asset failed to load: ${name}`));
-          img.src = `${basePath}${manifest.assets[name].file}`;
+          img.src = inline ? inline.images[name] : `${basePath}${manifest.assets[name].file}`;
         }),
     ),
   );

@@ -17,6 +17,7 @@ import { createVfx, feedEvents, updateVfx } from '../render/vfx.js';
 import { createInput } from './input.js';
 import { createAudio } from './audio.js';
 import * as storage from './storage.js';
+import { getJson } from './content.js';
 
 const TICK_HZ = 120;
 const DT = 1 / TICK_HZ;
@@ -28,9 +29,9 @@ export async function boot() {
   const ctx = canvas.getContext('2d', { alpha: false });
 
   const [tuning, trig, index, assetInfo] = await Promise.all([
-    fetch('content/tuning.json').then((r) => r.json()),
-    fetch('content/trig.json').then((r) => r.json()),
-    fetch('content/lanes/index.json').then((r) => r.json()),
+    getJson('content/tuning.json'),
+    getJson('content/trig.json'),
+    getJson('content/lanes/index.json'),
     loadAssets(),
   ]);
   initTrig(trig);
@@ -38,7 +39,7 @@ export async function boot() {
   const levelCache = new Map();
   const loadLevel = async (id) => {
     if (!levelCache.has(id)) {
-      levelCache.set(id, await fetch(`content/lanes/${String(id).padStart(2, '0')}.json`).then((r) => r.json()));
+      levelCache.set(id, await getJson(`content/lanes/${String(id).padStart(2, '0')}.json`));
     }
     return levelCache.get(id);
   };

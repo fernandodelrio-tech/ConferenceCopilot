@@ -4,6 +4,7 @@ A steampunk marble-shooter. One build targets **iPad Pro M4**, **iPhone 16**, an
 **Steam Deck OLED**.
 
     npm run serve      # then open http://127.0.0.1:8123/game.html
+    npm run bundle     # build dist/ascendant.html — one file, no server needed
     npm test           # 63 tests, zero dependencies
     npm run verify     # loads the real game in Chromium at all three viewports
     npm run content    # regenerate lanes, trig table and derived tuning
@@ -12,6 +13,16 @@ A steampunk marble-shooter. One build targets **iPad Pro M4**, **iPhone 16**, an
     npm run calibrate  # palette optimisation loop (bake -> measure -> optimise)
     npm run sheet      # contact sheet for visual review
     npm run bot -- --level 7 --seed 3    # headless bot play
+
+## Playing it without a server
+
+`npm run bundle` produces **`dist/ascendant.html`**: a single ~3.7 MB file with every
+module, all content JSON and all 24 baked PNGs inlined. Open it directly — double-click,
+drag into a browser, AirDrop it to an iPad, copy it to a Deck. No server, no install,
+no network; `npm run verify:offline` asserts it makes zero external requests.
+
+The served version at `game.html` is the one to develop against: it loads real modules
+and real files, so edits are a refresh away rather than a rebuild.
 
 ## Layout
 
@@ -23,6 +34,7 @@ A steampunk marble-shooter. One build targets **iPad Pro M4**, **iPhone 16**, an
     content/     lanes, difficulty profiles, tuning.json, trig table
     tools/       lane generator, tuning deriver, headless sim CLI, browser verifier
     tests/       purity, rules, behavioural, determinism, profile bands, monte-carlo
+    dist/        single-file offline build (generated)
     docs/        the master plan, and the implementation status ledger
 
 `sim/` is a pure function of `(state, inputs)` at a fixed 120Hz. It may not import
