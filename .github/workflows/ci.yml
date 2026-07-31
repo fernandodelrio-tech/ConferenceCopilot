@@ -11,7 +11,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
       # No install step: the sim suite is dependency-free by design.
-      - name: Tests (purity, rules, behavioural, determinism, profile bands, monte-carlo)
+      - name: Tests (purity, rules, behavioural, determinism, profile bands, art manifest)
         run: npm test
       - name: Content is reproducible from its generators
         run: |
@@ -30,6 +30,10 @@ jobs:
       - run: npm run serve & sleep 2
       - name: Verify on all three target viewports
         run: CHROMIUM_PATH= npm run verify
+      - name: Art quality gates (docs/graphics-protocol.md §4)
+        run: CHROMIUM_PATH= npm run gates
+      - name: Contact sheet for review
+        run: CHROMIUM_PATH= npm run sheet
       - uses: actions/upload-artifact@v4
         if: always()
         with:

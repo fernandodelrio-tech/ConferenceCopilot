@@ -245,38 +245,40 @@
     }
   ],
   "palette": {
-    "_note": "§0.3 ball palette caveat — six maximally distinguishable hues. Readability outranks divergence. Each hue is paired with an always-on glyph so colour is never the only channel.",
+    "_note": "Six ball colours, optimised by tools/palette.mjs to maximise the worst-case pairwise CIE76 separation across normal, protan, deutan and tritan vision, subject to a contrast floor against the track bed and aesthetic bounds on chroma and lightness. Hand-picked colours failed art gate G3: hue is the channel dichromats lose, so the palette is spread in lightness too. Each colour additionally carries an always-on engraved glyph, so colour is never the only channel (plan §3.4, §10).",
     "colors": [
       {
-        "key": "crimson",
-        "hex": "#e0453c",
+        "key": "azure",
+        "hex": "#72aded",
         "glyph": "spiral"
       },
       {
-        "key": "brass",
-        "hex": "#f0b429",
+        "key": "verdigris",
+        "hex": "#00b487",
         "glyph": "cross"
       },
       {
-        "key": "verdant",
-        "hex": "#48b05e",
+        "key": "gold",
+        "hex": "#e6dd55",
         "glyph": "dot-triad"
       },
       {
-        "key": "cobalt",
-        "hex": "#3d7fe0",
+        "key": "amber",
+        "hex": "#d88401",
         "glyph": "chevron"
       },
       {
-        "key": "violet",
-        "hex": "#a662d6",
+        "key": "coral",
+        "hex": "#ea5636",
         "glyph": "ring"
       },
       {
         "key": "bone",
-        "hex": "#e8e2d2",
+        "hex": "#a1ffd3",
         "glyph": "bar"
       }
-    ]
+    ],
+    "_optimisedBy": "tools/palettesearch.mjs — hill-climb on measured rendered faces",
+    "_worstDeltaE": 20.2
   }
 }

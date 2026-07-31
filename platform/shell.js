@@ -9,7 +9,10 @@
 import { initTrig } from '../sim/trig.js';
 import { createGame, step, hashState, pressureFraction } from '../sim/sim.js';
 import { computeFit } from '../render/fit.js';
-import { drawFrame, buildLanePaths } from '../render/draw.js';
+import { drawFrame } from '../render/draw.js';
+import { loadAssets } from '../render/assets.js';
+import { buildStaticLayer } from '../render/staticlayer.js';
+import { createPost } from '../render/post.js';
 import { createVfx, feedEvents, updateVfx } from '../render/vfx.js';
 import { createInput } from './input.js';
 import { createAudio } from './audio.js';
@@ -24,10 +27,11 @@ export async function boot() {
   const canvas = document.getElementById('stage');
   const ctx = canvas.getContext('2d', { alpha: false });
 
-  const [tuning, trig, index] = await Promise.all([
+  const [tuning, trig, index, assetInfo] = await Promise.all([
     fetch('content/tuning.json').then((r) => r.json()),
     fetch('content/trig.json').then((r) => r.json()),
     fetch('content/lanes/index.json').then((r) => r.json()),
+    loadAssets(),
   ]);
   initTrig(trig);
 
@@ -46,7 +50,10 @@ export async function boot() {
     save: storage.load(),
     screen: 'title',
     game: null,
-    paths: null,
+    staticLayer: null,
+    post: createPost(),
+    dpr: 1,
+    assetInfo,
     vfx: createVfx(),
     prevDist: new Map(),
     runLives: null,
@@ -63,6 +70,7 @@ export async function boot() {
 
   function resize() {
     const dpr = Math.min(DPR_CAP, window.devicePixelRatio || 1);
+    app.dpr = dpr;
     const rect = canvas.getBoundingClientRect();
     const w = Math.max(1, Math.round(rect.width));
     const h = Math.max(1, Math.round(rect.height));
@@ -128,7 +136,9 @@ export async function boot() {
       lives: app.runLives,
       relaxed: app.save.settings.relaxed,
     });
-    app.paths = buildLanePaths(level);
+    // Composite the level's static layer once (§ render/staticlayer.js). Slightly
+    // above 1:1 so it stays sharp when the iPad scales the box up.
+    app.staticLayer = buildStaticLayer(app.game, 1.6);
     app.prevDist.clear();
     app.vfx = createVfx();
     resize();
@@ -222,12 +232,18 @@ export async function boot() {
     if (app.game) {
       drawFrame(ctx, app.game, app.fit, {
         palette,
-        paths: app.paths,
+        staticLayer: app.staticLayer,
+        post: app.post,
+        dpr: app.dpr,
         vfx: app.vfx,
         alpha: Math.max(0, Math.min(1, acc / DT)),
         prevDist: app.prevDist,
         time: app.time,
         debug: app.save.settings.debug,
+        quality: {
+          bloom: app.save.settings.effects !== false,
+          grain: app.save.settings.effects !== false,
+        },
       });
       if (app.save.settings.debug) {
         ctx.save();
@@ -291,6 +307,7 @@ export async function boot() {
   };
   bindToggle('opt-sound', 'sound', (v) => audio.setEnabled(v));
   bindToggle('opt-reduce-motion', 'reduceMotion');
+  bindToggle('opt-effects', 'effects');
   bindToggle('opt-debug', 'debug');
 
   const relaxed = document.getElementById('opt-relaxed');

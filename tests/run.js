@@ -4,5 +4,6 @@ import './rules.test.js';
 import './sim.test.js';
 import './determinism.test.js';
 import './profiles.test.js';
+import './art.test.js';
 import { run } from './harness.js';
 run();

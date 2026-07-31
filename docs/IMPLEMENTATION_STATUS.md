@@ -38,7 +38,8 @@ mechanics, ready for Phase 0 to replace the estimates — not as a fidelity clai
 | **M2 core mechanics** — insertion, compaction, gap-collapse chain combos, colour retirement, 5 powerups, coins, full scoring, multi-lane levels | **Done** | `sim/sim.js`, `sim/rules.js` |
 | **M3 content** — 12 original levels across 6 chapters, generated + profile-checked | **Done (data)**, editor **not** built | `content/lanes/`, `tools/genlanes.js` |
 | **M4 modes + meta** — Expedition, Perpetual, Overpressure, lives, extra lives, high scores, save/load, settings | **Done** | `platform/shell.js`, `platform/storage.js` |
-| **M5 art/audio** — procedural steampunk render, synthesised audio, VFX | **Partial** — original and thematically complete, but procedural, not authored assets | `render/`, `platform/audio.js` |
+| **M5 art/audio** — baked asset pipeline, steampunk render, synthesised audio, VFX | **Partial** — original, coherent and gated, but procedurally authored rather than hand-made | `art/`, `assets/`, `render/`, `platform/audio.js` |
+| **Graphics production protocol** — pipeline, quality bar, five blocking gates | **Done** | `docs/graphics-protocol.md`, `tools/artgates.mjs` |
 | **§6.1–6.4 validation** — constant tests, profile bands, behavioural tables, Monte-Carlo | **Done** | `tests/` (63 tests) |
 | **§3.5 multi-aspect** — one content set, 4:3 / 19.5:9 / 16:10 | **Done**, asserted in tests *and* in the browser | `render/fit.js`, `tools/verify.mjs` |
 | **§3.6 input** — touch (drag-aim + tap-fire + two-finger swap), gamepad (stick aim, A/R2, X, L2 precision), keyboard | **Done** | `platform/input.js` |
@@ -64,6 +65,26 @@ Run the checks: `npm test` (63 tests) and `npm run verify` (Chromium, 3 viewport
   performance evidence.
 - **Legal review and trademark clearance** (§0.4, §3.8) — hard blockers in the plan.
 - **Store submission** (§11) — no App Store Connect or Steamworks access.
+
+### Graphics: what exists now
+
+The first pass drew everything with runtime gradients and stroked paths. That has
+been replaced by a real pipeline: a physically-motivated shading library
+(`art/lib/shade.js`), procedural bakers per asset class (`art/bakers.js`), an offline
+bake step that writes PNGs, and a renderer that only blits. Balls carry sphere
+normals, key/fill/rim lighting, an environment probe, a refracted interior and a
+three-pass bevelled engraving. Levels pre-composite their backdrop, track, sleepers
+and furniture into one static layer. The frame gets emissive-buffer bloom, contact
+shadows, a furnace key light, vignette and grain.
+
+Five blocking gates (`npm run gates`) measure contrast, backdrop interference,
+colour-vision separation, small-size legibility and texture budget on real pixels.
+They have already caught: a corridor narrower than a ball, a tonemap that silently
+destroyed the palette's colourblind separation, and two of my own measurement bugs.
+
+Still procedural, though. See §6 of the protocol: this is a strong coherent look
+produced without artists, and it is not a substitute for an art team, a clean-room
+originality review, hand illustration, character work or animation.
 
 ### Not done, but doable
 - **Native shells.** No Capacitor iOS project, no Electron/Steamworks Linux build.

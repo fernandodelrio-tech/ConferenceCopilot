@@ -1,71 +1,370 @@
-// Canvas2D renderer — The Ascendant Works.
+// Frame composition — The Ascendant Works.
 //
-// Reads sim state, owns interpolation and every visual decision. Never writes to
+// Reads sim state, owns interpolation and every visual decision; never writes to
 // sim state (plan §3.1).
 //
-// The zonal restraint rule from §3.4 is structural here, not a guideline the artist
-// has to remember: the lane is drawn as an opaque machined plate laid OVER the
-// backdrop, so no backdrop detail can ever sit behind a ball. All the rivets,
-// filigree and gauge work live in drawChrome(), which only ever paints outside the
-// 16:10 box.
+// Pipeline per frame:
+//   1. blit the pre-composited static level layer (backdrop + track + furniture)
+//   2. dynamic pass — shadows, balls, shots, turret, coins, VFX
+//      ...simultaneously accumulating anything that EMITS light into a separate
+//      emissive buffer
+//   3. bloom the emissive buffer back over the frame
+//   4. chrome and HUD (never bloomed — UI must stay crisp)
+//   5. vignette and grain
+//
+// The §3.4 zonal restraint rule is structural rather than remembered: the track is
+// an opaque textured plate composited over the backdrop in staticlayer.js, so no
+// backdrop detail can sit behind a ball, and every high-frequency flourish lives in
+// drawChrome() which only paints outside the 16:10 box.
 
-import { pointAt, tangentAt } from '../sim/lane.js';
-import { drawGlyph } from './glyphs.js';
+import { pointAt } from '../sim/lane.js';
 import { drawVfx } from './vfx.js';
 import { gaugeFraction, pressureFraction } from '../sim/sim.js';
+import { asset, ballFor, powerupFor } from './assets.js';
+import { resizePost, beginEmissive, drawBloom, drawVignette, drawGrain } from './post.js';
 
-const IRON_DARK = '#14171a';
-const IRON = '#22282d';
-const PLATE = '#2b3238';
 const BRASS = '#b98a3c';
 const BRASS_LIT = '#e8c887';
 const BRASS_DIM = '#6d5326';
 const VERDIGRIS = '#3f7d6e';
 const EMBER = '#ff8c3a';
 
-const CHAPTER_TINT = [
-  ['#2a1f18', '#141a1e'], // Boiler Deck — soot and firelight
-  ['#1d2430', '#12161c'], // Clockworks
-  ['#182a2a', '#101718'], // Pneumatic Exchange
-  ['#221a30', '#12101c'], // Aether Observatory
-  ['#1b2530', '#0f1418'], // Airship Yards
-  ['#2e1c17', '#160f0e'], // Spire Foundry
-];
+// Baked sphere occupies 92% of its sprite; see art/bakers.js.
+const SPRITE_SPAN = 0.92;
+const ballDrawSize = (R) => (2 * R) / SPRITE_SPAN;
 
-// ------------------------------------------------------------------- backdrop
+// ---------------------------------------------------------------- dynamic pass
 
-export function drawBackdrop(ctx, fit, chapter) {
-  const [top, bottom] = CHAPTER_TINT[(chapter - 1) % CHAPTER_TINT.length];
-  const g = ctx.createLinearGradient(0, 0, 0, fit.viewH);
-  g.addColorStop(0, top);
-  g.addColorStop(1, bottom);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, fit.viewW, fit.viewH);
-
-  // Large, low-contrast structural silhouettes. Big shapes only — high-frequency
-  // detail belongs in the chrome, never behind the playfield.
+// Contact shadows. Balls sitting in a channel with no shadow read as stickers; a
+// soft offset ellipse under each one is what seats them in the track.
+function drawShadows(ctx, game, positions) {
+  const R = game.T.ballRadius;
   ctx.save();
-  ctx.globalAlpha = 0.5;
-  const cx = fit.viewW * 0.5;
-  const cy = fit.viewH * 0.5;
-  const R = Math.max(fit.viewW, fit.viewH);
-  for (const [ox, oy, rad] of [[-0.42, -0.3, 0.34], [0.46, 0.34, 0.42], [0.1, -0.52, 0.26]]) {
-    ctx.beginPath();
-    ctx.arc(cx + ox * R, cy + oy * R, rad * R * 0.5, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.022)';
-    ctx.lineWidth = R * 0.05;
-    ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  for (let ci = 0; ci < positions.length; ci++) {
+    for (const p of positions[ci]) {
+      ctx.beginPath();
+      ctx.ellipse(p.x + R * 0.20, p.y + R * 0.26, R * 0.94, R * 0.80, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
 
+// Interpolated world positions for every visible ball, computed once and reused by
+// the shadow, ball and lighting passes.
+function visiblePositions(game, alpha, prevDist) {
+  const R = game.T.ballRadius;
+  const out = [];
+  for (let ci = 0; ci < game.state.chains.length; ci++) {
+    const balls = game.state.chains[ci].balls;
+    const lane = game.geom[ci];
+    const list = [];
+    for (let i = 0; i < balls.length; i++) {
+      const b = balls[i];
+      if (b.dist < -R) continue;
+      const prev = prevDist.get(b.id);
+      const d = prev === undefined ? b.dist : prev + (b.dist - prev) * alpha;
+      const p = pointAt(lane, d, { x: 0, y: 0 });
+      list.push({ x: p.x, y: p.y, ball: b });
+    }
+    out.push(list);
+  }
+  return out;
+}
+
+function drawBalls(ctx, emis, game, palette, positions, time) {
+  const R = game.T.ballRadius;
+  const size = ballDrawSize(R);
+  const half = size / 2;
+
+  // Cheap dynamic lighting: the furnace throat is a warm key light, so balls
+  // approaching it pick up its glow. It costs one additive draw for the few balls
+  // actually near the intake, and it makes the threat legible at a glance.
+  const intakes = game.geom.map((lane) => pointAt(lane, lane.length, { x: 0, y: 0 }));
+  const reach = R * 9;
+
+  for (let ci = 0; ci < positions.length; ci++) {
+    const intake = intakes[ci];
+    for (const p of positions[ci]) {
+      const c = palette[p.ball.color] || palette[0];
+      const img = ballFor(c.glyph);
+      if (img) ctx.drawImage(img, p.x - half, p.y - half, size, size);
+
+      const d = Math.hypot(p.x - intake.x, p.y - intake.y);
+      if (d < reach) {
+        const k = Math.pow(1 - d / reach, 2.2);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = k * 0.6;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R * 1.1);
+        g.addColorStop(0, 'rgba(255,150,60,0.9)');
+        g.addColorStop(1, 'rgba(255,90,20,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, R * 1.1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      if (p.ball.powerup) {
+        const ring = powerupFor(p.ball.powerup);
+        if (ring) {
+          const pulse = 0.6 + 0.4 * Math.sin(time * 5 + p.ball.id);
+          for (const target of [ctx, emis]) {
+            if (!target) continue;
+            target.save();
+            target.globalCompositeOperation = 'lighter';
+            target.globalAlpha = pulse;
+            target.drawImage(ring, p.x - half, p.y - half, size, size);
+            target.restore();
+          }
+        }
+      }
+    }
+  }
+}
+
+function drawIntakeGlow(ctx, emis, game, time) {
+  const R = game.T.ballRadius;
+  const threat = pressureFraction(game);
+
+  for (let ci = 0; ci < game.geom.length; ci++) {
+    const lane = game.geom[ci];
+    const p = pointAt(lane, lane.length, { x: 0, y: 0 });
+    const flicker = 0.88 + 0.12 * Math.sin(time * 11 + ci) * Math.sin(time * 7.3);
+    const radius = R * (2.2 + threat * 1.6);
+
+    for (const target of [ctx, emis]) {
+      if (!target) continue;
+      target.save();
+      target.globalCompositeOperation = 'lighter';
+      const g = target.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius);
+      const i = (0.42 + threat * 0.78) * flicker;
+      g.addColorStop(0, `rgba(255,170,80,${i})`);
+      g.addColorStop(0.45, `rgba(255,96,26,${i * 0.55})`);
+      g.addColorStop(1, 'rgba(255,60,10,0)');
+      target.fillStyle = g;
+      target.beginPath();
+      target.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      target.fill();
+      target.restore();
+    }
+
+    // Boiler needle: the loss tell (§0.3). Drawn last so it stays legible on top
+    // of its own glow.
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 2.0, Math.PI * 0.75, Math.PI * 0.75 + Math.PI * 1.5);
+    ctx.stroke();
+    ctx.strokeStyle = '#d0402c';
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 2.0, Math.PI * 0.75 + Math.PI * 1.2, Math.PI * 0.75 + Math.PI * 1.5);
+    ctx.stroke();
+
+    const a = Math.PI * 0.75 + Math.PI * 1.5 * threat;
+    ctx.strokeStyle = threat > 0.8 ? '#ff5a3c' : BRASS_LIT;
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * R * 1.9, Math.sin(a) * R * 1.9);
+    ctx.stroke();
+    ctx.fillStyle = BRASS;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawTurret(ctx, emis, game, palette, time) {
+  const s = game.state;
+  const [x, y] = game.level.shooter;
+  const R = game.T.ballRadius;
+  const a = s.turret.angle;
+  const body = asset('turret-body');
+  const barrel = asset('turret-barrel');
+
+  // Barrel under the body so the housing overlaps its root. It has to extend well
+  // clear of the housing: at the first sizing the body covered all but a stub and
+  // the turret read as a featureless lump with no aim direction — which is the one
+  // thing this silhouette exists to communicate.
+  if (barrel) {
+    const len = R * 5.4;
+    const h = (barrel.height / barrel.width) * len;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(len * 0.55, h * 0.34, len * 0.42, h * 0.30, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.drawImage(barrel, -R * 0.5, -h / 2, len, h);
+    ctx.restore();
+  }
+
+  if (body) {
+    const size = R * 4.1;
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(x + R * 0.3, y + R * 0.4, size * 0.5, size * 0.44, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.drawImage(body, x - size / 2, y - size / 2, size, size);
+  }
+
+  // Chambered next shot behind a glass breech.
+  const nextC = palette[s.turret.next] || palette[0];
+  const nextImg = ballFor(nextC.glyph);
+  const bx = x - Math.cos(a) * R * 1.35;
+  const by = y - Math.sin(a) * R * 1.35;
+  ctx.save();
+  ctx.fillStyle = 'rgba(8,10,11,0.9)';
+  ctx.beginPath();
+  ctx.arc(bx, by, R * 0.82, 0, Math.PI * 2);
+  ctx.fill();
+  if (nextImg) {
+    const ns = ballDrawSize(R * 0.6);
+    ctx.drawImage(nextImg, bx - ns / 2, by - ns / 2, ns, ns);
+  }
+  ctx.strokeStyle = 'rgba(232,200,135,0.75)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(bx, by, R * 0.82, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // Loaded globe at the muzzle, plus a muzzle ember that feeds the bloom.
+  const cur = palette[s.turret.current] || palette[0];
+  const curImg = ballFor(cur.glyph);
+  const mx = x + Math.cos(a) * R * 2.6;
+  const my = y + Math.sin(a) * R * 2.6;
+
+  const heat = Math.max(0, 1 - s.turret.cooldown / Math.max(1, game.T.fireCooldownTicks));
+  for (const target of [ctx, emis]) {
+    if (!target) continue;
+    target.save();
+    target.globalCompositeOperation = 'lighter';
+    target.globalAlpha = 0.35 + (1 - heat) * 0.65;
+    const g = target.createRadialGradient(mx, my, 0, mx, my, R * 1.8);
+    g.addColorStop(0, 'rgba(255,190,110,0.65)');
+    g.addColorStop(1, 'rgba(255,120,40,0)');
+    target.fillStyle = g;
+    target.beginPath();
+    target.arc(mx, my, R * 1.8, 0, Math.PI * 2);
+    target.fill();
+    target.restore();
+  }
+
+  if (curImg) {
+    const size = ballDrawSize(R);
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath();
+    ctx.ellipse(mx + R * 0.2, my + R * 0.26, R * 0.94, R * 0.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.drawImage(curImg, mx - size / 2, my - size / 2, size, size);
+  }
+}
+
+function drawShots(ctx, emis, game, palette) {
+  const R = game.T.ballRadius;
+  const size = ballDrawSize(R);
+  for (const shot of game.state.shots) {
+    const c = palette[shot.color] || palette[0];
+    const img = ballFor(c.glyph);
+
+    // Motion streak behind the shot — reads as speed without motion blur.
+    const m = Math.hypot(shot.vx, shot.vy) || 1;
+    const ux = shot.vx / m;
+    const uy = shot.vy / m;
+    for (const target of [ctx, emis]) {
+      if (!target) continue;
+      target.save();
+      target.globalCompositeOperation = 'lighter';
+      const g = target.createLinearGradient(shot.x - ux * R * 3.4, shot.y - uy * R * 3.4, shot.x, shot.y);
+      g.addColorStop(0, 'rgba(255,190,120,0)');
+      g.addColorStop(1, 'rgba(255,205,140,0.4)');
+      target.strokeStyle = g;
+      target.lineWidth = R * 0.9;
+      target.lineCap = 'round';
+      target.beginPath();
+      target.moveTo(shot.x - ux * R * 3.4, shot.y - uy * R * 3.4);
+      target.lineTo(shot.x, shot.y);
+      target.stroke();
+      target.restore();
+    }
+
+    if (img) ctx.drawImage(img, shot.x - size / 2, shot.y - size / 2, size, size);
+  }
+}
+
+function drawCoins(ctx, emis, game, time) {
+  const R = game.T.coinRadius;
+  for (const coin of game.state.coins) {
+    const wobble = Math.abs(Math.cos(time * 2.2 + coin.id));
+    ctx.save();
+    ctx.translate(coin.x, coin.y);
+    ctx.scale(0.3 + wobble * 0.7, 1);
+    const g = ctx.createRadialGradient(-R * 0.3, -R * 0.35, R * 0.1, 0, 0, R);
+    g.addColorStop(0, '#fff3c4');
+    g.addColorStop(0.55, '#f0c14b');
+    g.addColorStop(1, '#8a6a1e');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#5e4713';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.restore();
+
+    if (emis && wobble > 0.75) {
+      emis.save();
+      emis.globalCompositeOperation = 'lighter';
+      emis.globalAlpha = (wobble - 0.75) * 3;
+      const g2 = emis.createRadialGradient(coin.x, coin.y, 0, coin.x, coin.y, R * 2.4);
+      g2.addColorStop(0, 'rgba(255,225,140,0.7)');
+      g2.addColorStop(1, 'rgba(255,200,80,0)');
+      emis.fillStyle = g2;
+      emis.beginPath();
+      emis.arc(coin.x, coin.y, R * 2.4, 0, Math.PI * 2);
+      emis.fill();
+      emis.restore();
+    }
+  }
+}
+
+function drawSightline(ctx, game) {
+  const s = game.state;
+  if (s.sightlineTicks <= 0) return;
+  const [x, y] = game.level.shooter;
+  const a = s.turret.angle;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = 'rgba(255,224,131,0.32)';
+  ctx.setLineDash([14, 12]);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + Math.cos(a) * game.T.ballRadius * 3, y + Math.sin(a) * game.T.ballRadius * 3);
+  ctx.lineTo(x + Math.cos(a) * 2600, y + Math.sin(a) * 2600);
+  ctx.stroke();
+  ctx.restore();
+}
+
 // --------------------------------------------------------------------- chrome
-// Full steampunk detail budget: this only draws in the slack outside the box.
 
 export function drawChrome(ctx, fit) {
   ctx.save();
-
-  // Bezel around the playfield.
   ctx.strokeStyle = BRASS_DIM;
   ctx.lineWidth = Math.max(3, fit.scale * 7);
   ctx.strokeRect(fit.x, fit.y, fit.w, fit.h);
@@ -73,317 +372,27 @@ export function drawChrome(ctx, fit) {
   ctx.lineWidth = Math.max(1, fit.scale * 2);
   ctx.strokeRect(fit.x + 2, fit.y + 2, fit.w - 4, fit.h - 4);
 
-  // Rivets along the bezel — the one place high-frequency detail is welcome.
   const step = Math.max(28, fit.w / 26);
   ctx.fillStyle = 'rgba(232,200,135,0.5)';
+  const rivet = (x, y) => {
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fill();
+  };
   for (let x = fit.x + step / 2; x < fit.x + fit.w; x += step) {
-    rivet(ctx, x, fit.y + 5);
-    rivet(ctx, x, fit.y + fit.h - 5);
+    rivet(x, fit.y + 5);
+    rivet(x, fit.y + fit.h - 5);
   }
   for (let y = fit.y + step / 2; y < fit.y + fit.h; y += step) {
-    rivet(ctx, fit.x + 5, y);
-    rivet(ctx, fit.x + fit.w - 5, y);
+    rivet(fit.x + 5, y);
+    rivet(fit.x + fit.w - 5, y);
   }
   ctx.restore();
 }
 
-function rivet(ctx, x, y) {
-  ctx.beginPath();
-  ctx.arc(x, y, 2, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-// ----------------------------------------------------------------- lane plate
-
-export function buildLanePaths(level) {
-  return level.lanes.map((lane) => {
-    const p = new Path2D();
-    p.moveTo(lane.points[0][0], lane.points[0][1]);
-    for (let i = 1; i < lane.points.length; i++) p.lineTo(lane.points[i][0], lane.points[i][1]);
-    return p;
-  });
-}
-
-export function drawLanes(ctx, game, paths) {
-  const R = game.T.ballRadius;
-
-  for (const path of paths) {
-    // Opaque machined plate — this is the restraint rule made literal.
-    ctx.strokeStyle = IRON_DARK;
-    ctx.lineWidth = R * 2.9;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke(path);
-
-    ctx.strokeStyle = PLATE;
-    ctx.lineWidth = R * 2.45;
-    ctx.stroke(path);
-
-    // Rail edges.
-    ctx.strokeStyle = 'rgba(185,138,60,0.30)';
-    ctx.lineWidth = 2;
-    ctx.stroke(path);
-  }
-}
-
-export function drawLaneFurniture(ctx, game) {
-  for (let ci = 0; ci < game.geom.length; ci++) {
-    const lane = game.geom[ci];
-    const R = game.T.ballRadius;
-
-    // Escapement gate.
-    const gate = pointAt(lane, 0, { x: 0, y: 0 });
-    ctx.save();
-    ctx.translate(gate.x, gate.y);
-    ctx.fillStyle = IRON_DARK;
-    ctx.beginPath();
-    ctx.arc(0, 0, R * 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = BRASS;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(a) * R * 0.8, Math.sin(a) * R * 0.8);
-      ctx.lineTo(Math.cos(a) * R * 1.4, Math.sin(a) * R * 1.4);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // Furnace intake, with a needle that climbs to the redline as the chain nears.
-    const out = pointAt(lane, lane.length, { x: 0, y: 0 });
-    const threat = pressureFraction(game);
-    ctx.save();
-    ctx.translate(out.x, out.y);
-    ctx.beginPath();
-    ctx.arc(0, 0, R * 2.1, 0, Math.PI * 2);
-    ctx.fillStyle = '#0d0f11';
-    ctx.fill();
-    const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, R * 2.1);
-    glow.addColorStop(0, `rgba(255,120,40,${0.35 + threat * 0.6})`);
-    glow.addColorStop(1, 'rgba(255,80,20,0)');
-    ctx.fillStyle = glow;
-    ctx.fill();
-    ctx.strokeStyle = BRASS;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Redline arc + needle.
-    ctx.beginPath();
-    ctx.arc(0, 0, R * 1.6, Math.PI * 0.75, Math.PI * 0.75 + Math.PI * 1.5);
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, R * 1.6, Math.PI * 0.75 + Math.PI * 1.2, Math.PI * 0.75 + Math.PI * 1.5);
-    ctx.strokeStyle = '#d0402c';
-    ctx.stroke();
-
-    const a = Math.PI * 0.75 + Math.PI * 1.5 * threat;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(a) * R * 1.5, Math.sin(a) * R * 1.5);
-    ctx.strokeStyle = threat > 0.8 ? '#ff5a3c' : BRASS_LIT;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.restore();
-  }
-}
-
-// ----------------------------------------------------------------------- balls
-
-const POWERUP_MARK = {
-  fulminate: '#ff6b3d',
-  arc: '#7fd4ff',
-  reverse: '#9ad76b',
-  governor: '#c9a0ff',
-  sightline: '#ffe083',
-};
-
-function drawBall(ctx, x, y, colorHex, glyph, r, powerup, t) {
-  // Glass body.
-  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
-  g.addColorStop(0, mix(colorHex, '#ffffff', 0.55));
-  g.addColorStop(0.55, colorHex);
-  g.addColorStop(1, mix(colorHex, '#000000', 0.45));
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Brass cage — a thin bezel only. It must never eat the coloured glass area,
-  // which is the signal the player is actually reading.
-  ctx.strokeStyle = BRASS_DIM;
-  ctx.lineWidth = Math.max(1.2, r * 0.13);
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(232,200,135,0.5)';
-  ctx.lineWidth = Math.max(0.8, r * 0.06);
-  ctx.stroke();
-
-  // Engraved glyph — always on (§3.4, §10).
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.strokeStyle = 'rgba(12,14,16,0.72)';
-  drawGlyph(ctx, glyph, r);
-  ctx.restore();
-
-  // Specular.
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.beginPath();
-  ctx.ellipse(x - r * 0.32, y - r * 0.38, r * 0.22, r * 0.15, -0.6, 0, Math.PI * 2);
-  ctx.fill();
-
-  if (powerup) {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const pulse = 0.55 + 0.45 * Math.sin(t * 6);
-    ctx.strokeStyle = POWERUP_MARK[powerup] || '#fff';
-    ctx.globalAlpha = pulse;
-    ctx.lineWidth = Math.max(1.5, r * 0.18);
-    ctx.beginPath();
-    ctx.arc(x, y, r * 1.16, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-  }
-}
-
-export function drawBalls(ctx, game, palette, alpha, prevDist, t) {
-  const R = game.T.ballRadius;
-  const scratch = { x: 0, y: 0 };
-
-  for (let ci = 0; ci < game.state.chains.length; ci++) {
-    const balls = game.state.chains[ci].balls;
-    const lane = game.geom[ci];
-    for (let i = 0; i < balls.length; i++) {
-      const b = balls[i];
-      if (b.dist < -R) continue; // inside the feed pipe
-      // Interpolate between sim ticks so 90Hz and 120Hz displays stay smooth.
-      const prev = prevDist.get(b.id);
-      const d = prev === undefined ? b.dist : prev + (b.dist - prev) * alpha;
-      const p = pointAt(lane, d, scratch);
-      const c = palette[b.color] || palette[0];
-      drawBall(ctx, p.x, p.y, c.hex, c.glyph, R, b.powerup, t);
-    }
-  }
-}
-
-// ---------------------------------------------------------------------- turret
-
-export function drawTurret(ctx, game, palette, t) {
-  const s = game.state;
-  const [x, y] = game.level.shooter;
-  const R = game.T.ballRadius;
-  const a = s.turret.angle;
-
-  ctx.save();
-  ctx.translate(x, y);
-
-  // Pressure vessel.
-  const body = ctx.createRadialGradient(-R * 0.5, -R * 0.6, R * 0.2, 0, 0, R * 2.2);
-  body.addColorStop(0, '#8e6f38');
-  body.addColorStop(0.6, BRASS_DIM);
-  body.addColorStop(1, '#3a2d16');
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 2.1, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = BRASS_LIT;
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
-
-  for (let i = 0; i < 10; i++) {
-    const ra = (i / 10) * Math.PI * 2;
-    ctx.fillStyle = 'rgba(240,215,160,0.55)';
-    ctx.beginPath();
-    ctx.arc(Math.cos(ra) * R * 1.72, Math.sin(ra) * R * 1.72, 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Barrel + aim vane.
-  ctx.save();
-  ctx.rotate(a);
-  ctx.fillStyle = '#4a3a1c';
-  ctx.fillRect(0, -R * 0.62, R * 3.0, R * 1.24);
-  ctx.strokeStyle = BRASS_LIT;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(0, -R * 0.62, R * 3.0, R * 1.24);
-  ctx.fillStyle = BRASS;
-  ctx.fillRect(R * 2.5, -R * 0.85, R * 0.4, R * 1.7);
-  ctx.restore();
-
-  // Chambered next shot, visible through the glass breech.
-  const nextC = palette[s.turret.next] || palette[0];
-  ctx.save();
-  ctx.translate(-R * 1.05, 0);
-  ctx.fillStyle = '#101315';
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 0.72, 0, Math.PI * 2);
-  ctx.fill();
-  drawBall(ctx, 0, 0, nextC.hex, nextC.glyph, R * 0.55, null, t);
-  ctx.strokeStyle = 'rgba(232,200,135,0.7)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 0.72, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.restore();
-
-  // Loaded ball riding at the muzzle.
-  const cur = palette[s.turret.current] || palette[0];
-  drawBall(ctx, x + Math.cos(a) * R * 2.2, y + Math.sin(a) * R * 2.2, cur.hex, cur.glyph, R, null, t);
-}
-
-export function drawSightline(ctx, game) {
-  const s = game.state;
-  if (s.sightlineTicks <= 0) return;
-  const [x, y] = game.level.shooter;
-  const a = s.turret.angle;
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.strokeStyle = 'rgba(255,224,131,0.35)';
-  ctx.setLineDash([14, 12]);
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x + Math.cos(a) * game.T.ballRadius * 2.4, y + Math.sin(a) * game.T.ballRadius * 2.4);
-  ctx.lineTo(x + Math.cos(a) * 2600, y + Math.sin(a) * 2600);
-  ctx.stroke();
-  ctx.restore();
-}
-
-// ---------------------------------------------------------------- shots, coins
-
-export function drawShots(ctx, game, palette, t) {
-  const R = game.T.ballRadius;
-  for (const shot of game.state.shots) {
-    const c = palette[shot.color] || palette[0];
-    drawBall(ctx, shot.x, shot.y, c.hex, c.glyph, R, null, t);
-  }
-}
-
-export function drawCoins(ctx, game, t) {
-  const R = game.T.coinRadius;
-  for (const coin of game.state.coins) {
-    const wobble = Math.abs(Math.cos(t * 2.2 + coin.id));
-    ctx.save();
-    ctx.translate(coin.x, coin.y);
-    ctx.scale(0.35 + wobble * 0.65, 1);
-    ctx.fillStyle = '#f0c14b';
-    ctx.beginPath();
-    ctx.arc(0, 0, R, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#8a6a1e';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.restore();
-  }
-}
-
-// -------------------------------------------------------------------- the HUD
+// ------------------------------------------------------------------------ HUD
 // Placed into whichever slack the device gives us (§3.5): the top band on a 4:3
-// iPad, the side columns on a 19.5:9 iPhone, and an overlay strip on a 16:10 Deck
-// where there is no slack at all.
+// iPad, side columns on a 19.5:9 iPhone, an overlay strip on a 16:10 Deck.
 
 export function hudLayout(fit) {
   if (fit.slackY >= 96) return 'band';
@@ -409,17 +418,22 @@ export function drawHud(ctx, game, fit, opts = {}) {
 
   ctx.save();
   if (box.overlay) {
-    ctx.fillStyle = 'rgba(10,12,14,0.62)';
+    const g = ctx.createLinearGradient(0, box.y, 0, box.y + box.h);
+    g.addColorStop(0, 'rgba(8,10,12,0.86)');
+    g.addColorStop(1, 'rgba(8,10,12,0.30)');
+    ctx.fillStyle = g;
     ctx.fillRect(box.x, box.y, box.w, box.h);
-    ctx.strokeStyle = 'rgba(185,138,60,0.4)';
+    ctx.strokeStyle = 'rgba(185,138,60,0.45)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(box.x, box.y, box.w, box.h);
+    ctx.beginPath();
+    ctx.moveTo(box.x, box.y + box.h);
+    ctx.lineTo(box.x + box.w, box.y + box.h);
+    ctx.stroke();
   }
 
   ctx.textBaseline = 'middle';
   const midY = box.vertical ? box.y + 26 * scale : box.y + box.h / 2;
 
-  // Score + level.
   ctx.fillStyle = BRASS_LIT;
   ctx.font = fs(20);
   ctx.textAlign = 'left';
@@ -429,13 +443,11 @@ export function drawHud(ctx, game, fit, opts = {}) {
   ctx.font = fs(12);
   ctx.fillText(`${game.level.chapterName.toUpperCase()} — ${game.level.name}`, box.x + pad, midY + 20 * scale);
 
-  // Lives.
   ctx.textAlign = 'right';
   ctx.fillStyle = BRASS_LIT;
   ctx.font = fs(14);
   ctx.fillText(`◈ ${s.lives}`, box.x + box.w - pad, midY);
 
-  // Boiler gauge.
   const gw = box.vertical ? box.w - pad * 2 : Math.min(300 * scale, box.w * 0.34);
   const gx = box.vertical ? box.x + pad : box.x + box.w / 2 - gw / 2;
   const gy = box.vertical ? midY + 52 * scale : midY - 7 * scale;
@@ -457,7 +469,6 @@ export function drawHud(ctx, game, fit, opts = {}) {
     ctx.fillRect(gx + (gw * i) / 10, gy, 1, gh);
   }
 
-  // Active effects.
   const badges = [];
   if (s.governorTicks > 0) badges.push(['GOVERNOR', '#c9a0ff']);
   if (s.reverseTicks > 0) badges.push(['REVERSE', '#9ad76b']);
@@ -470,17 +481,16 @@ export function drawHud(ctx, game, fit, opts = {}) {
     ctx.fillStyle = colour;
     ctx.fillText(label, bx, by);
   });
-
   ctx.restore();
 
-  // Combo callout, centred over the playfield.
   if (s.callout) {
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const a = Math.min(1, s.calloutTicks / 30);
-    ctx.globalAlpha = a;
+    ctx.globalAlpha = Math.min(1, s.calloutTicks / 30);
     ctx.font = `${Math.round(46 * scale)}px ui-monospace, Menlo, monospace`;
+    ctx.shadowColor = 'rgba(255,120,40,0.9)';
+    ctx.shadowBlur = 24 * scale;
     ctx.fillStyle = EMBER;
     ctx.fillText(s.callout, fit.x + fit.w / 2, fit.y + fit.h * 0.22);
     ctx.restore();
@@ -503,7 +513,7 @@ function drawDebugOverlay(ctx, game, fit, scale) {
   ctx.font = `${Math.round(11 * scale)}px ui-monospace, monospace`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
   ctx.fillRect(fit.x + 6, fit.y + 6, 250 * scale, lines.length * 14 * scale + 8);
   ctx.fillStyle = '#7fd4ff';
   lines.forEach((l, i) => ctx.fillText(l, fit.x + 12, fit.y + 12 + i * 14 * scale));
@@ -513,46 +523,74 @@ function drawDebugOverlay(ctx, game, fit, scale) {
 // ------------------------------------------------------------------ full frame
 
 export function drawFrame(ctx, game, fit, ui) {
-  const { palette, paths, vfx, alpha, prevDist, time, debug } = ui;
+  const { palette, staticLayer, vfx, alpha, prevDist, time, debug, post, dpr = 1, quality = {} } = ui;
 
-  drawBackdrop(ctx, fit, game.level.chapter);
+  const pxW = Math.round(fit.viewW * dpr);
+  const pxH = Math.round(fit.viewH * dpr);
+  resizePost(post, pxW, pxH);
+  const emis = quality.bloom === false ? null : beginEmissive(post);
 
-  ctx.save();
+  ctx.fillStyle = '#07080a';
+  ctx.fillRect(0, 0, fit.viewW, fit.viewH);
+
   const shake = vfx.shake;
   const sx = shake ? (((time * 91) % 2) - 1) * shake : 0;
   const sy = shake ? (((time * 57) % 2) - 1) * shake : 0;
+
+  // Both the visible frame and the emissive buffer use the same world transform;
+  // the emissive one additionally carries the device-pixel ratio.
+  const applyWorld = (target, scaleExtra = 1) => {
+    target.setTransform(scaleExtra, 0, 0, scaleExtra, 0, 0);
+    target.translate(fit.x + sx, fit.y + sy);
+    target.scale(fit.scale, fit.scale);
+  };
+
+  ctx.save();
   ctx.translate(fit.x + sx, fit.y + sy);
   ctx.scale(fit.scale, fit.scale);
-
   ctx.beginPath();
   ctx.rect(0, 0, game.level.box[0], game.level.box[1]);
   ctx.clip();
 
-  drawLanes(ctx, game, paths);
-  drawLaneFurniture(ctx, game);
-  drawCoins(ctx, game, time);
+  if (emis) {
+    emis.save();
+    applyWorld(emis, dpr);
+    emis.beginPath();
+    emis.rect(0, 0, game.level.box[0], game.level.box[1]);
+    emis.clip();
+  }
+
+  if (staticLayer) {
+    ctx.drawImage(staticLayer.canvas, 0, 0, staticLayer.w, staticLayer.h);
+  }
+
+  const positions = visiblePositions(game, alpha, prevDist);
+
+  drawIntakeGlow(ctx, emis, game, time);
+  drawCoins(ctx, emis, game, time);
   drawSightline(ctx, game);
-  drawBalls(ctx, game, palette, alpha, prevDist, time);
-  drawShots(ctx, game, palette, time);
-  drawTurret(ctx, game, palette, time);
+  drawShadows(ctx, game, positions);
+  drawBalls(ctx, emis, game, palette, positions, time);
+  drawShots(ctx, emis, game, palette);
+  drawTurret(ctx, emis, game, palette, time);
+
   drawVfx(ctx, vfx);
+  if (emis) {
+    drawVfx(emis, vfx);
+    emis.restore();
+  }
 
   ctx.restore();
 
+  if (emis) drawBloom(ctx, post, quality.bloomStrength ?? 1);
+
   drawChrome(ctx, fit);
   drawHud(ctx, game, fit, { debug });
-}
 
-// ---------------------------------------------------------------------- colour
+  // These two reset to identity, so they are sized in DEVICE pixels, not CSS ones.
+  drawVignette(ctx, pxW, pxH, quality.vignette ?? 0.8);
+  if (quality.grain !== false) drawGrain(ctx, asset('grain'), pxW, pxH, time, 0.045);
 
-function mix(hex, other, amount) {
-  const a = parseHex(hex);
-  const b = parseHex(other);
-  const c = a.map((v, i) => Math.round(v + (b[i] - v) * amount));
-  return `rgb(${c[0]},${c[1]},${c[2]})`;
-}
-
-function parseHex(hex) {
-  if (hex.startsWith('rgb')) return hex.match(/\d+/g).slice(0, 3).map(Number);
-  return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  // Restore the caller's DPR transform, which the post passes reset.
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }

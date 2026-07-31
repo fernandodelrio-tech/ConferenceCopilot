@@ -1,0 +1,125 @@
+{
+  "generated": "tools/measurefaces.mjs",
+  "slots": [
+    {
+      "slot": 0,
+      "glyph": "spiral",
+      "source": "#a063c6",
+      "measured": [
+        165,
+        114,
+        180
+      ],
+      "predicted": [
+        209,
+        131,
+        238
+      ],
+      "residual": [
+        -44.45,
+        -16.75,
+        -58.15
+      ]
+    },
+    {
+      "slot": 1,
+      "glyph": "cross",
+      "source": "#c1b55a",
+      "measured": [
+        207,
+        200,
+        109
+      ],
+      "predicted": [
+        237,
+        230,
+        118
+      ],
+      "residual": [
+        -30.25,
+        -29.87,
+        -8.99
+      ]
+    },
+    {
+      "slot": 2,
+      "glyph": "dot-triad",
+      "source": "#d42f84",
+      "measured": [
+        205,
+        68,
+        146
+      ],
+      "predicted": [
+        244,
+        65,
+        171
+      ],
+      "residual": [
+        -39.42,
+        3.1,
+        -24.84
+      ]
+    },
+    {
+      "slot": 3,
+      "glyph": "chevron",
+      "source": "#f4987a",
+      "measured": [
+        228,
+        182,
+        146
+      ],
+      "predicted": [
+        251,
+        198,
+        158
+      ],
+      "residual": [
+        -22.95,
+        -16.25,
+        -12.24
+      ]
+    },
+    {
+      "slot": 4,
+      "glyph": "ring",
+      "source": "#a26c14",
+      "measured": [
+        180,
+        127,
+        41
+      ],
+      "predicted": [
+        212,
+        142,
+        31
+      ],
+      "residual": [
+        -31.93,
+        -15.2,
+        9.6
+      ]
+    },
+    {
+      "slot": 5,
+      "glyph": "bar",
+      "source": "#55a1ae",
+      "measured": [
+        110,
+        196,
+        206
+      ],
+      "predicted": [
+        114,
+        209,
+        222
+      ],
+      "residual": [
+        -3.59,
+        -13.49,
+        -16.07
+      ]
+    }
+  ]
+}

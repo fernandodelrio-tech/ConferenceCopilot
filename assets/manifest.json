@@ -1,0 +1,149 @@
+{
+  "generated": "tools/bake.mjs",
+  "assets": {
+    "ball-spiral": {
+      "file": "assets/generated/ball-spiral.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 47237
+    },
+    "ball-cross": {
+      "file": "assets/generated/ball-cross.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 40325
+    },
+    "ball-dot-triad": {
+      "file": "assets/generated/ball-dot-triad.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 42225
+    },
+    "ball-chevron": {
+      "file": "assets/generated/ball-chevron.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 40445
+    },
+    "ball-ring": {
+      "file": "assets/generated/ball-ring.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 41487
+    },
+    "ball-bar": {
+      "file": "assets/generated/ball-bar.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 39850
+    },
+    "powerup-fulminate": {
+      "file": "assets/generated/powerup-fulminate.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 46494
+    },
+    "powerup-arc": {
+      "file": "assets/generated/powerup-arc.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 47915
+    },
+    "powerup-reverse": {
+      "file": "assets/generated/powerup-reverse.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 48334
+    },
+    "powerup-governor": {
+      "file": "assets/generated/powerup-governor.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 48129
+    },
+    "powerup-sightline": {
+      "file": "assets/generated/powerup-sightline.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 48139
+    },
+    "turret-body": {
+      "file": "assets/generated/turret-body.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 199052
+    },
+    "turret-barrel": {
+      "file": "assets/generated/turret-barrel.png",
+      "width": 384,
+      "height": 160,
+      "bytes": 42111
+    },
+    "sleeper": {
+      "file": "assets/generated/sleeper.png",
+      "width": 96,
+      "height": 176,
+      "bytes": 9112
+    },
+    "gate": {
+      "file": "assets/generated/gate.png",
+      "width": 256,
+      "height": 256,
+      "bytes": 60668
+    },
+    "intake": {
+      "file": "assets/generated/intake.png",
+      "width": 320,
+      "height": 320,
+      "bytes": 78419
+    },
+    "grain": {
+      "file": "assets/generated/grain.png",
+      "width": 256,
+      "height": 256,
+      "bytes": 85720
+    },
+    "plate": {
+      "file": "assets/generated/plate.png",
+      "width": 256,
+      "height": 256,
+      "bytes": 9209
+    },
+    "backdrop-boiler-deck": {
+      "file": "assets/generated/backdrop-boiler-deck.png",
+      "width": 880,
+      "height": 550,
+      "bytes": 272711
+    },
+    "backdrop-clockworks": {
+      "file": "assets/generated/backdrop-clockworks.png",
+      "width": 880,
+      "height": 550,
+      "bytes": 305587
+    },
+    "backdrop-pneumatic-exchange": {
+      "file": "assets/generated/backdrop-pneumatic-exchange.png",
+      "width": 880,
+      "height": 550,
+      "bytes": 321989
+    },
+    "backdrop-aether-observatory": {
+      "file": "assets/generated/backdrop-aether-observatory.png",
+      "width": 880,
+      "height": 550,
+      "bytes": 323013
+    },
+    "backdrop-airship-yards": {
+      "file": "assets/generated/backdrop-airship-yards.png",
+      "width": 880,
+      "height": 550,
+      "bytes": 322544
+    },
+    "backdrop-spire-foundry": {
+      "file": "assets/generated/backdrop-spire-foundry.png",
+      "width": 880,
+      "height": 550,
+      "bytes": 272572
+    }
+  }
+}

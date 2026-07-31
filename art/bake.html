@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>bake</title></head>
+<body>
+<script type="module">
+  import { bakeAll } from './bakers.js';
+  window.__bake = async () => {
+    const tuning = await fetch('../content/tuning.json').then((r) => r.json());
+    const assets = bakeAll(tuning.palette.colors);
+    return assets.map((a) => ({
+      name: a.name,
+      width: a.canvas.width,
+      height: a.canvas.height,
+      dataUrl: a.canvas.toDataURL('image/png'),
+    }));
+  };
+  window.__bakeReady = true;
+</script>
+</body></html>

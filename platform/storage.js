@@ -12,6 +12,7 @@ const DEFAULTS = {
   settings: {
     sound: true,
     reduceMotion: false,
+    effects: true,   // bloom + film grain; off saves GPU on the Deck's battery
     relaxed: 1,    // chain speed multiplier; 1 = the tuned default
     debug: false,
   },

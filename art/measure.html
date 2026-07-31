@@ -1,0 +1,25 @@
+<!-- Measurement harness for tools/measurefaces.mjs and tools/palettesearch.mjs.
+     Reports each baked ball's rendered face colour, which is the ground truth the
+     palette is optimised against (docs/graphics-protocol.md §3). -->
+<!DOCTYPE html><html><body><script type="module">
+import { loadAssets, asset, ballFor } from '../render/assets.js';
+const tuning = await fetch('../content/tuning.json').then(r=>r.json());
+await loadAssets('../');
+const sc=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+function faceMean(img){
+  const S=64,c=sc(S,S),x=c.getContext('2d');x.drawImage(img,0,0,S,S);
+  const d=x.getImageData(0,0,S,S).data;let r=0,g=0,b=0,n=0;
+  for(let y=0;y<S;y++)for(let px=0;px<S;px++){
+    const u=(px-S/2)/(S*0.46),v=(y-S/2)/(S*0.46);
+    if(Math.hypot(u,v)>0.62)continue;const i=(y*S+px)*4;if(d[i+3]<200)continue;
+    r+=d[i];g+=d[i+1];b+=d[i+2];n++;}
+  return [r/n|0,g/n|0,b/n|0];
+}
+const rows = tuning.palette.colors.map(c=>({key:c.key, src:c.hex, rendered:'#'+faceMean(ballFor(c.glyph)).map(v=>v.toString(16).padStart(2,'0')).join('')}));
+const p=asset('plate'),pc=sc(p.width,p.height),px=pc.getContext('2d');
+px.drawImage(p,0,0);const pd=px.getImageData(0,0,p.width,p.height).data;
+const L=[];for(let i=0;i<pd.length;i+=4)L.push(0.2126*pd[i]+0.7152*pd[i+1]+0.0722*pd[i+2]);
+const m=L.reduce((a,x)=>a+x,0)/L.length;
+const sd=Math.sqrt(L.reduce((a,x)=>a+(x-m)**2,0)/L.length);
+window.__diag={rows, plate:{mean:+m.toFixed(1), sd:+sd.toFixed(1)}};
+</script></body></html>
