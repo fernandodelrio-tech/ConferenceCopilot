@@ -1303,7 +1303,11 @@ function bindBrief(root, s) {
   $$('.bf-ta', root).forEach(t => { const fit = () => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; }; fit(); t.oninput = fit; });
   const form = $('#askForm', root);
   form?.addEventListener('submit', e => { e.preventDefault(); reviseBrief(s, $('#askInput', form).value); });
-  $$('[data-ask]', root).forEach(b => b.onclick = () => reviseBrief(s, b.dataset.ask));
+  // A suggestion chip is one tap, so it asks before sending the notes to Claude; a typed request is already deliberate.
+  $$('[data-ask]', root).forEach(b => b.onclick = async () => {
+    if (settings.apiKey && !await confirmSheet('Change the brief?', `Copilot will ask Claude to “${b.dataset.ask.charAt(0).toLowerCase() + b.dataset.ask.slice(1)}”, sending the brief and your notes with your API key. You can undo the change.`, 'Change Brief', false)) return;
+    reviseBrief(s, b.dataset.ask);
+  });
 }
 
 function renderNote(n) {
@@ -1901,7 +1905,17 @@ Ground everything in the notes. Don't add facts, numbers or claims that the note
 async function generateBrief(s) {
   const notes = liveNotes(s).sort((a, b) => a.ts - b.ts);
   if (!notes.length) return;
-  if ((s.brief?.editedAt || s.brief?.revisedAt) && !await confirmSheet('Rewrite the brief?', 'Copilot will write a new brief from all your notes, replacing your edits. You can undo this.', 'Rewrite Brief', false)) return;
+  if (ui.busyBrief === s.id) return;
+  // A brief is never written without asking: with a key it sends every note of the session to Claude.
+  if (s.brief?.editedAt || s.brief?.revisedAt) {
+    if (!await confirmSheet('Rewrite the brief?', `Copilot will write a new brief from all your notes${settings.apiKey ? ', sending them to Claude,' : ''} replacing your edits. You can undo this.`, 'Rewrite Brief', false)) return;
+  } else if (settings.apiKey) {
+    const count = (t) => notes.filter(n => n.type === t).length;
+    const parts = [[count('text'), 'typed note'], [count('photo'), 'photo'], [count('video'), 'video'], [count('audio'), 'recording'], [count('doc'), 'document']]
+      .filter(([n]) => n).map(([n, w]) => `${n} ${w}${n === 1 ? '' : 's'}`);
+    const list = parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts.at(-1) : parts[0];
+    if (!await confirmSheet(s.brief ? 'Update the brief?' : 'Create the brief?', `This sends ${list} to Claude using your API key${s.brief ? ' and replaces the current brief. You can undo this.' : s.attended ? '.' : ', then marks the session attended.'}`, s.brief ? 'Update Brief' : 'Create Brief', false)) return;
+  }
   ui.editingBrief = null;
   ui.busyBrief = s.id; if (ui.selected === s.id) renderDetail(); else updateComposer();
   try {
