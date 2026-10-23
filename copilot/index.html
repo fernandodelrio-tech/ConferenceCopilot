@@ -222,7 +222,7 @@ svg{display:block;flex:none}
 .sb-item .ct.ok svg{width:15px;height:15px}
 @media (min-width:760px){#syncBtn2 span{display:none}}
 .sb-item .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ic-today{background:#F56300} .ic-all{background:#6E6E73} .ic-todo{background:#0071E3} .ic-done{background:#1E9E47} .ic-note{background:#8E44C9} .ic-wrap{background:#0071E3} .ic-conf{background:#1D1D1F}
+.ic-today{background:#F56300} .ic-all{background:#6E6E73} .ic-todo{background:#0071E3} .ic-done{background:#1E9E47} .ic-note{background:#8E44C9} .ic-wrap{background:#0071E3} .ic-conf{background:#1D1D1F} .ic-map{background:#0A84A0}
 /* Day icon: a tiny calendar page */
 .sb-item .ic.cal-ic{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--sep-2);display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden;padding:0}
 .cal-ic small{display:block;width:100%;background:#F2363A;color:#fff;font-size:.5rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:9px;text-align:center}
@@ -616,6 +616,48 @@ body.cal-mode #sortBtn{display:none}
 .f-row.col label{padding-top:9px;font-size:.8rem;color:var(--text-2)}
 .f-row.col input{text-align:left;padding-top:4px}
 .f-row .val{margin-left:auto;color:var(--text-2);font-size:.9333rem;text-align:right}
+.d-loc{display:inline-flex;align-items:center;gap:5px;color:inherit;font:inherit;padding:2px 8px 2px 6px;margin:-2px -8px -2px -6px;border-radius:8px;text-align:left}
+.d-loc:hover{background:var(--fill)}
+.d-loc em{font-style:normal;font-size:.75rem;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 8px;margin-left:4px;white-space:nowrap}
+.sheet.map-sheet{max-width:min(1180px,96vw);height:90vh;height:90dvh;max-height:none}
+.map-sheet .sheet-b{display:flex;flex-direction:column;flex:1;min-height:0}
+#mapBody{display:flex;flex-direction:column;flex:1;min-height:0;gap:10px}
+.mp-for{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--accent-soft)}
+.mp-for .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--accent);color:#fff;flex:none}
+.mp-for .ic svg{width:16px;height:16px}
+.mp-for div{flex:1;min-width:0;display:flex;flex-direction:column}
+.mp-for b{font-weight:600;font-size:.9333rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-for small{color:var(--text-2);font-size:.8rem}
+.mp-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mp-bar .spacer{flex:1}
+.mp-name{font-weight:600}
+.mp-tabs{max-width:100%;overflow-x:auto}
+.mp-tabs{display:inline-flex;gap:2px;margin-top:0}
+.mp-tabs button{white-space:nowrap;padding:0 12px;min-height:28px}
+.mp-bar .btn svg{width:14px;height:14px}
+.mp-rooms{display:flex;flex-wrap:wrap;gap:6px;max-height:112px;overflow:auto}
+.mp-rooms .kind-chip svg{width:13px;height:13px;vertical-align:-2px}
+.mp-view{position:relative;flex:1;min-height:260px;overflow:hidden;border-radius:12px;background:var(--fill);border:1px solid var(--sep);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.mp-view.armed{cursor:crosshair}
+.mp-canvas{position:absolute;left:0;top:0;transform-origin:0 0;--inv:1}
+.mp-canvas img{width:100%;height:100%;display:block;pointer-events:none;background:#fff}
+.mp-pin{position:absolute;transform:translate(-50%,-100%) scale(var(--inv));transform-origin:50% 100%;display:flex;flex-direction:column;align-items:center;gap:2px;padding:0;cursor:pointer}
+.mp-pin i{order:2;width:14px;height:14px;border-radius:50%;background:#0A84A0;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.mp-pin span{order:1;font-size:12px;font-weight:600;line-height:1.2;color:#1D1D1F;background:rgba(255,255,255,.94);border-radius:6px;padding:2px 7px;box-shadow:0 1px 3px rgba(0,0,0,.25);white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.mp-pin.ai i{background:#8E44C9}
+.mp-pin.on{z-index:2}
+.mp-pin.on i{width:20px;height:20px;background:var(--red);animation:pinPulse 1.6s ease-out infinite}
+.mp-pin.on span{background:var(--red);color:#fff;font-size:14px;padding:4px 10px}
+@keyframes pinPulse{0%{box-shadow:0 0 0 0 rgba(215,0,21,.55)}70%{box-shadow:0 0 0 16px rgba(215,0,21,0)}100%{box-shadow:0 0 0 0 rgba(215,0,21,0)}}
+.mp-view.editing .mp-pin{cursor:move}
+.mp-zoom{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;background:var(--win);box-shadow:var(--shadow-2,0 2px 8px rgba(0,0,0,.2));border:1px solid var(--sep)}
+.mp-zoom button{width:36px;height:36px;display:grid;place-items:center;font-size:1.1rem;color:var(--text)}
+.mp-zoom button+button{border-top:1px solid var(--sep)}
+.mp-zoom svg{width:16px;height:16px}
+.mp-hint{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:var(--win);border:1px solid var(--sep);border-radius:10px;padding:8px 12px;font-size:.85rem;color:var(--text-2);box-shadow:0 2px 8px rgba(0,0,0,.12);max-width:90%;text-align:center}
+.mp-search{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.mp-search svg{width:13px;height:13px}
+@media (max-width:759px){.sheet.map-sheet{height:93dvh}.mp-rooms{max-height:84px}}
 .bl-row{display:flex;align-items:center;position:relative}
 .bl-row+.bl-row::before{content:"";position:absolute;top:0;left:50px;right:0;height:1px;background:var(--sep)}
 .bl-open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:9px 4px 9px 12px;text-align:left;color:var(--text)}
@@ -846,7 +888,7 @@ const LS = {
 };
 
 /* ---------- App state ---------- */
-const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, updatedAt: 0 });
+const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, maps: {}, updatedAt: 0 });
 let state = emptyState();
 let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
@@ -1049,6 +1091,7 @@ function renderSidebar() {
   html += item('all', VIEWS.all, all.length) + item('todo', VIEWS.todo, count(VIEWS.todo.test)) + item('attended', VIEWS.attended, count(VIEWS.attended.test));
   const nInf = count(VIEWS.informal.test);
   if (nInf) html += item('informal', VIEWS.informal, nInf);
+  if (all.some(x => x.room)) html += `<button class="sb-item" data-maps><span class="ic ic-map">${I.pin}</span><span class="tx">Venue Maps</span><span class="ct">${mapsArr().length || ''}</span></button>`;
   const ds = days();
   if (ds.length) {
     html += `<div class="sb-group">Days</div>`;
@@ -1069,6 +1112,7 @@ function renderSidebar() {
   $$('[data-v]', $('#sbNav')).forEach(b => b.onclick = () => setView(b.dataset.v));
   $$('[data-wrap]', $('#sbNav')).forEach(b => b.onclick = () => { const w = b.dataset.wrap; w === 'conf' ? openWrap('conf') : openWrap('day', w.slice(4)); });
   $('[data-lib]', $('#sbNav'))?.addEventListener('click', openLibrary);
+  $('[data-maps]', $('#sbNav'))?.addEventListener('click', () => openMaps());
 }
 
 function renderList() {
@@ -1204,7 +1248,7 @@ function renderDetail() {
   const meta = [
     s.date ? `<span>${I.calendar}${esc(fmtDate(s.date, { weekday: 'short', month: 'short', day: 'numeric' }))}</span>` : '',
     s.start ? `<span>${I.clock}${esc(fmtTime(s.start))}${s.end ? '–' + esc(fmtTime(s.end)) : ''}</span>` : '',
-    s.room ? `<span>${I.pin}${esc(s.room)}</span>` : '',
+    s.room ? `<button class="d-loc" id="dLoc" title="Show on the venue map">${I.pin}${esc(s.room)}<em>${pinsFor(s.room).some(w => w.pin) ? 'Map' : mapsArr().length ? 'Pin on map' : 'Add map'}</em></button>` : '',
   ].join('');
   const busy = ui.busyBrief === s.id;
   $('#detailTitle').textContent = s.title || '';
@@ -1231,6 +1275,7 @@ function renderDetail() {
   $('#dDesc', det)?.addEventListener('click', () => { ui.descOpen = !ui.descOpen; renderDetail(); });
   $$('[data-way]', det).forEach(w => w.onclick = () => ({ photo: () => $('#photoBtn').click(), video: () => $('#videoBtn').click(), file: () => $('#attachBtn').click(), rec: () => $('#micBtn').click() })[w.dataset.way]());
   $$('[data-kind]', det).forEach(b => b.onclick = () => setKind(s, b.dataset.kind));
+  $('#dLoc', det)?.addEventListener('click', () => openMaps({ sessionId: s.id }));
   $('#suggestTitle', det)?.addEventListener('click', () => suggestTitle(s));
   bindNotes(det, s);
   hydrateMedia(det);
@@ -2466,6 +2511,13 @@ async function uploadPendingMedia() {
       n.driveId = r.id; n.updatedAt = now(); s.updatedAt = now(); state.updatedAt = now();
     }
   }
+  for (const m of mapsArr()) {
+    if (!m.mediaId || m.driveId) continue;
+    const blob = await DB.get('media', m.mediaId).catch(() => null); if (!blob) continue;
+    setSync('busy', 'Uploading floor plan…');
+    const r = await resumableUpload({ name: `Floor plan — ${(m.name || 'venue').replace(/[\\/:*?"<>|]+/g, '').slice(0, 60)}.jpg`, parents: [drive.folderId], appProperties: { ccMedia: m.mediaId } }, blob);
+    m.driveId = r.id; m.updatedAt = now(); state.updatedAt = now();
+  }
   while (pendingTrash.length) {
     const id = pendingTrash[0];
     try { await gfetch(`https://www.googleapis.com/drive/v3/files/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) }); } catch (e) { if (e.auth) throw e; }
@@ -2508,6 +2560,13 @@ function mergeStates(a, b) {
   out.dayBriefs = { ...(a.dayBriefs || {}) };
   for (const [d, r] of Object.entries(b.dayBriefs || {})) out.dayBriefs[d] = newer(out.dayBriefs[d], r);
   out.confBrief = newer(a.confBrief, b.confBrief);
+  // Floor plans: newest edit wins per plan; a deleted plan stays deleted
+  out.maps = {};
+  for (const id of new Set([...Object.keys(a.maps || {}), ...Object.keys(b.maps || {})])) {
+    const x = a.maps?.[id], y = b.maps?.[id], m = !x ? y : !y ? x : (y.updatedAt || 0) > (x.updatedAt || 0) ? y : x;
+    if (out.deleted[id] && out.deleted[id] >= (m.updatedAt || 0)) continue;
+    out.maps[id] = { ...m, driveId: m.driveId || x?.driveId || y?.driveId };
+  }
   // A deleted wrap-up or takeaways stays deleted on every device unless a newer one was written after it.
   out.briefDeleted = { ...(a.briefDeleted || {}) };
   for (const [k, t] of Object.entries(b.briefDeleted || {})) out.briefDeleted[k] = Math.max(out.briefDeleted[k] || 0, t);
@@ -2794,6 +2853,306 @@ function openWrap(kind, key) {
   };
   paint();
 }
+/* =========================================================
+   Venue maps: the user's own floor plans, with the agenda's rooms pinned on them
+   ========================================================= */
+// "Live: Hemisphere Ballroom, WDW Dolphin | Remote: Swan Ballroom 6, WDW Swan" → rooms with their building
+const BUILDING_RE = /\b(hotel|resort|wdw|center|centre|convention|airport|campus|venue)\b/i;
+// Short forms of a building named in full elsewhere in the agenda ("Yacht & Beach" for "Disney's Yacht & Beach Resort")
+let bldCache = { n: -1, list: [] };
+function knownBuildings() {
+  const ss = sessionsArr(); if (bldCache.n === ss.length) return bldCache.list;
+  const set = new Set();
+  for (const s of ss) for (const p of (s.room || '').split('|')) { const seg = p.split(',').map(x => x.trim()); if (seg.length > 1 && BUILDING_RE.test(seg.at(-1))) set.add(normLoc(seg.at(-1))); }
+  return (bldCache = { n: ss.length, list: [...set] }).list;
+}
+function locParts(loc) {
+  return (loc || '').split(/\s*\|\s*/).map(p => p.trim()).filter(Boolean).map(p => {
+    const live = /^live\s*:/i.test(p);
+    const seg = p.replace(/^(live|remote|in[- ]person|virtual|overflow)\s*:\s*/i, '').split(/\s*,\s*/).filter(Boolean);
+    const last = seg.length > 1 ? normLoc(seg.at(-1)) : '';
+    const building = last && (BUILDING_RE.test(seg.at(-1)) || knownBuildings().some(b => b.includes(last))) ? seg.pop() : '';
+    return { room: seg.join(', '), building, live };
+  }).filter(p => p.room);
+}
+const normLoc = (t) => ' ' + (t || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+const mapsArr = () => Object.values(state.maps || {}).sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt));
+// Every room named in the agenda, most used first
+function agendaRooms() {
+  const m = new Map();
+  for (const s of sessionsArr()) for (const p of locParts(s.room)) {
+    const k = normLoc(p.room), x = m.get(k) || { room: p.room, building: p.building, n: 0 };
+    x.n++; m.set(k, x);
+  }
+  return [...m.values()].sort((a, b) => b.n - a.n || a.room.localeCompare(b.room));
+}
+// The pins for a session's location: per room, the pin whose name appears first in it (rooms are written specific to general)
+function pinsFor(loc) {
+  const out = [];
+  for (const part of locParts(loc)) {
+    const hay = normLoc(part.room + ' ' + part.building);
+    let best = null;
+    for (const map of mapsArr()) for (const pin of Object.values(map.pins || {})) {
+      const i = hay.indexOf(normLoc(pin.label));
+      if (i < 0) continue;
+      if (!best || i < best.i || (i === best.i && pin.label.length > best.pin.label.length)) best = { i, map, pin, part };
+    }
+    out.push(best || { part });
+  }
+  return out;
+}
+const hasMapFor = (s) => s?.room && mapsArr().length > 0;
+
+async function pdfLib() {
+  if (window.pdfjsLib) return window.pdfjsLib;
+  await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = res; sc.onerror = () => rej(new Error('Could not load the PDF reader. Check the connection, or add a screenshot of the plan instead.')); document.head.appendChild(sc); });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  return window.pdfjsLib;
+}
+// A floor plan file → one or more images (each page of a PDF is usually a level)
+async function planImages(file) {
+  const base = (file.name || 'Floor plan').replace(/\.[a-z0-9]+$/i, '');
+  if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
+    const lib = await pdfLib();
+    const doc = await lib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const out = [];
+    for (let i = 1; i <= Math.min(doc.numPages, 12); i++) {
+      const page = await doc.getPage(i), v1 = page.getViewport({ scale: 1 });
+      const scale = Math.min(4, 2600 / Math.max(v1.width, v1.height));
+      const vp = page.getViewport({ scale }), c = document.createElement('canvas');
+      c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+      await page.render({ canvasContext: g, viewport: vp }).promise;
+      out.push({ name: doc.numPages > 1 ? `${base} · page ${i}` : base, blob: await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9)), w: c.width, h: c.height });
+    }
+    return out;
+  }
+  const blob = await resizeImage(file, 4096, 0.9);
+  const bmp = await createImageBitmap(blob); const r = { name: base, blob, w: bmp.width, h: bmp.height }; bmp.close?.();
+  return [r];
+}
+async function addPlanFiles(files) {
+  const made = [];
+  for (const f of files) {
+    try {
+      for (const im of await planImages(f)) {
+        const id = uid(), mediaId = uid();
+        await DB.put('media', mediaId, im.blob);
+        state.maps = state.maps || {};
+        state.maps[id] = { id, name: im.name, mediaId, mime: 'image/jpeg', w: im.w, h: im.h, pins: {}, createdAt: now(), order: mapsArr().length, updatedAt: now() };
+        made.push(id);
+      }
+    } catch (e) { console.warn('plan', e); toast(e.message || `Couldn’t read ${f.name}`, false, 5000); }
+  }
+  if (made.length) { touch(); toast(made.length === 1 ? 'Floor plan added' : `${made.length} floor plans added`); }
+  return made;
+}
+function deleteMap(id) {
+  const m = state.maps?.[id]; if (!m) return;
+  DB.del('media', m.mediaId).catch(() => {});
+  if (m.driveId) { pendingTrash.push(m.driveId); LS.set('cc.trash', pendingTrash); }
+  state.deleted[id] = now(); delete state.maps[id]; touch();
+}
+const MAP_ROOMS_SCHEMA = { type: 'object', additionalProperties: false, required: ['rooms'], properties: { rooms: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['label', 'found', 'x', 'y'], properties: { label: { type: 'string' }, found: { type: 'boolean' }, x: { type: 'number' }, y: { type: 'number' } } } } } };
+async function findRoomsOnMap(map, rooms) {
+  const blob = await getMediaBlob(map); if (!blob) throw new Error('This floor plan hasn’t synced to this device yet.');
+  const img = await resizeImage(blob, 1568, 0.85);
+  const r = await claude({
+    system: 'You locate rooms on a venue floor plan image. Only report a room when its name, or an unmistakable label for it, is printed on the plan. Never guess a position for a room you cannot read.',
+    content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: await blobToB64(img) } },
+      { type: 'text', text: `Rooms from the attendee's agenda:\n${rooms.map(r => '- ' + r).join('\n')}\n\nFor each room above, return label (copied exactly from the list), found (true only if the room is labelled on this plan), and x, y: the centre of that room as fractions of the image width and height, from 0 to 1 measured from the top-left corner (0 and 0 when not found). A room written with a number or letter (Salon 5, Hall A, Upper Peninsula 3) is found only if that exact part is labelled.` }],
+    schema: MAP_ROOMS_SCHEMA, maxTokens: 6000, effort: 'medium',
+  });
+  const fresh = state.maps?.[map.id]; if (!fresh) return 0;
+  let n = 0;
+  for (const x of r.rooms || []) {
+    if (!x.found || !rooms.includes(x.label) || !(x.x >= 0 && x.x <= 1 && x.y >= 0 && x.y <= 1)) continue;
+    if (Object.values(fresh.pins).some(p => normLoc(p.label) === normLoc(x.label))) continue;
+    const id = uid(); fresh.pins[id] = { id, label: x.label, x: x.x, y: x.y, ai: true }; n++;
+  }
+  fresh.updatedAt = now(); touch();
+  return n;
+}
+
+function openMaps({ sessionId = null, mapId = null } = {}) {
+  const ses = sessionId ? S(sessionId) : null;
+  const wantNow = () => ses ? pinsFor(ses.room) : [];
+  let want = wantNow();
+  const hit = want.find(w => w.pin);
+  const v = { map: mapId || hit?.map.id || mapsArr()[0]?.id || null, edit: false, arm: null, scale: 1, tx: 0, ty: 0, fitted: false };
+  // A session whose room isn't pinned yet: offer to pin it straight away
+  if (ses && !hit && want[0] && mapsArr().length) { v.edit = true; v.arm = want[0].part.room; }
+  const sh = openSheet({ title: 'Venue Maps', left: 'Close', right: 'Add Plan', cls: 'wide map-sheet', body: `<div id="mapBody"></div>`, onClose: () => render(),
+    onRight: () => pick() });
+  const body = $('#mapBody', sh.el);
+  const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*,application/pdf', multiple: true, hidden: true });
+  sh.el.appendChild(input);
+  const pick = () => { input.value = ''; input.click(); };
+  // After a plan is added for a session that isn't pinned yet, go straight to pinning its room
+  const added = (ids) => { if (!ids.length) return; v.map = ids[0]; v.fitted = false; const w = wantNow(); if (ses && w[0] && !w.some(x => x.pin)) { v.edit = true; v.arm = w[0].part.room; } paint(); };
+  input.onchange = async () => added(await addPlanFiles([...input.files]));
+  body.addEventListener('dragover', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); e.stopPropagation(); } });
+  body.addEventListener('drop', async e => { const f = [...(e.dataTransfer?.files || [])]; if (!f.length) return; e.preventDefault(); e.stopPropagation(); added(await addPlanFiles(f)); });
+
+  const empty = () => {
+    const all = [...new Set(agendaRooms().map(r => r.building).filter(Boolean))];
+    const blds = all.filter(b => !all.some(o => o !== b && normLoc(o).includes(normLoc(b)))).slice(0, 3);
+    body.innerHTML = `<div class="wr-ready"><div class="empty-art">${I.pin}</div><h2>Add the venue’s floor plans</h2>
+      <p class="muted">Add a screenshot, a photo of the printed map or the venue’s PDF floor plan. Then pin your agenda’s rooms on it, and every session shows where it is.</p>
+      <button class="btn btn-primary" id="mpAdd">${I.plus} Add Floor Plan</button>
+      <p class="f-cap" style="margin-top:18px">Where to find one: the conference app’s Venue or Maps page (take a screenshot), the printed program, or the venue’s meetings page.${blds.length ? ' Search for:' : ''}</p>
+      ${blds.length ? `<div class="mp-search">${blds.map(b => `<a class="btn btn-sm btn-gray" target="_blank" rel="noopener" href="https://www.google.com/search?q=${encodeURIComponent(`${b} meeting space floor plan`)}">${I.search || ''} ${esc(b)}</a>`).join('')}</div>` : ''}</div>`;
+    $('#mpAdd', body).onclick = pick;
+  };
+
+  const paint = () => {
+    const maps = mapsArr(); want = wantNow();
+    sh.setRight('Add Plan', true);
+    if (!maps.length) return empty();
+    if (!state.maps[v.map]) { v.map = maps[0].id; v.fitted = false; }
+    const map = state.maps[v.map];
+    const rooms = agendaRooms();
+    const pinnedKeys = new Set(maps.flatMap(m => Object.values(m.pins || {}).map(p => normLoc(p.label))));
+    const isPinned = (r) => pinnedKeys.has(normLoc(r.room)) || pinsFor(r.room + (r.building ? ', ' + r.building : ''))[0]?.pin;
+    const left = rooms.filter(r => !isPinned(r));
+    const sessLine = ses ? (() => {
+      const w = want.find(x => x.pin && x.map.id === map.id) || want.find(x => x.pin);
+      const where = locParts(ses.room).map(p => p.room).join(' · ');
+      return `<div class="mp-for"><span class="ic">${I.pin}</span><div><b>${esc(ses.title)}</b><small>${esc(where || ses.room)}${w ? (w.map.id === map.id ? '' : ` · pinned on ${esc(w.map.name)}`) : ' · not pinned yet'}</small></div>${w && w.map.id !== map.id ? `<button class="btn btn-sm btn-tinted" data-go-map="${w.map.id}">Show</button>` : ''}</div>`;
+    })() : '';
+    body.innerHTML = `${sessLine}
+      <div class="mp-bar">
+        ${maps.length > 1 ? `<div class="seg mp-tabs">${maps.map(m => `<button data-map="${m.id}" class="${m.id === map.id ? 'on' : ''}">${esc(m.name)}</button>`).join('')}</div>` : `<b class="mp-name">${esc(map.name)}</b>`}
+        <div class="spacer"></div>
+        <button class="btn btn-sm ${v.edit ? 'btn-primary' : 'btn-gray'}" id="mpEdit">${I.pin} ${v.edit ? 'Done Pinning' : 'Pin Rooms'}</button>
+        <button class="tb-btn" id="mpMore" aria-label="Floor plan options">${I.more}</button>
+      </div>
+      ${v.edit ? `<div class="mp-pinbar">
+          <p class="f-cap" style="margin:0 0 8px">${v.arm ? `Tap the map where <b>${esc(v.arm)}</b> is.` : 'Choose a room, then tap where it is on the map. Drag a pin to move it, or tap it to rename or remove it.'}</p>
+          <div class="mp-rooms">${left.map(r => `<button class="kind-chip" data-arm="${esc(r.room)}" aria-pressed="${v.arm === r.room}">${esc(r.room)}</button>`).join('')}
+            <button class="kind-chip" id="mpCustom">${I.plus} Other place…</button>
+            ${settings.apiKey && left.length ? `<button class="kind-chip qn-suggest" id="mpFind">${I.sparkles} Find Rooms</button>` : ''}</div>
+          ${!left.length && rooms.length ? `<p class="f-cap" style="margin:8px 0 0">All ${rooms.length} rooms in your agenda are pinned.</p>` : ''}
+        </div>` : ''}
+      <div class="mp-view ${v.edit ? 'editing' : ''} ${v.arm ? 'armed' : ''}" id="mpView">
+        <div class="mp-canvas" id="mpCanvas" style="width:${map.w}px;height:${map.h}px">
+          <img id="mpImg" alt="${esc(map.name)}" draggable="false">
+          ${Object.values(map.pins || {}).map(p => {
+            const on = want.some(w => w.pin?.id === p.id);
+            return `<button class="mp-pin ${on ? 'on' : ''} ${p.ai ? 'ai' : ''}" data-pin="${p.id}" style="left:${p.x * 100}%;top:${p.y * 100}%" title="${esc(p.label)}${p.ai ? ' (placed by Claude: drag it if it’s off)' : ''}"><i></i><span>${esc(p.label)}</span></button>`;
+          }).join('')}
+        </div>
+        <div class="mp-zoom"><button id="mpIn" aria-label="Zoom in">${I.plus}</button><button id="mpOut" aria-label="Zoom out">−</button><button id="mpFit" aria-label="Fit">⤢</button></div>
+        ${map.pins && Object.keys(map.pins).length === 0 && !v.edit ? `<div class="mp-hint">No rooms pinned on this plan yet. Choose <b>Pin Rooms</b> to add them.</div>` : ''}
+      </div>`;
+    bind(map);
+  };
+
+  const bind = (map) => {
+    const view = $('#mpView', body), canvas = $('#mpCanvas', body), img = $('#mpImg', body);
+    getMediaBlob(map).then(b => { if (!b) { view.insertAdjacentHTML('beforeend', `<div class="mp-hint">${map.driveId ? 'Connect Google Drive in Settings to load this plan here.' : 'This plan is on another device and hasn’t synced yet.'}</div>`); return; } img.src = URL.createObjectURL(b); });
+    const apply = () => { canvas.style.transform = `translate(${v.tx}px,${v.ty}px) scale(${v.scale})`; canvas.style.setProperty('--inv', 1 / v.scale); };
+    const fit = () => { const r = view.getBoundingClientRect(); const s = Math.min(r.width / map.w, r.height / map.h) * 0.96; v.scale = s; v.tx = (r.width - map.w * s) / 2; v.ty = (r.height - map.h * s) / 2; apply(); };
+    const zoomAt = (f, cx, cy) => { const ns = Math.min(8, Math.max(0.05, v.scale * f)); const k = ns / v.scale; v.tx = cx - (cx - v.tx) * k; v.ty = cy - (cy - v.ty) * k; v.scale = ns; apply(); };
+    const center = () => { const r = view.getBoundingClientRect(); return [r.width / 2, r.height / 2]; };
+    requestAnimationFrame(() => {
+      if (!v.fitted) {
+        fit(); v.fitted = true;
+        const p = want.find(w => w.pin && w.map.id === map.id)?.pin;
+        if (p) { const r = view.getBoundingClientRect(); const s = Math.max(v.scale, Math.min(v.scale * 1.8, 1.2)); v.scale = s; v.tx = r.width / 2 - p.x * map.w * s; v.ty = r.height / 2 - p.y * map.h * s; apply(); }
+      } else apply();
+    });
+    $('#mpIn', body).onclick = () => zoomAt(1.4, ...center());
+    $('#mpOut', body).onclick = () => zoomAt(1 / 1.4, ...center());
+    $('#mpFit', body).onclick = fit;
+    view.addEventListener('wheel', e => { e.preventDefault(); const r = view.getBoundingClientRect(); if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * (Math.abs(e.deltaY) < 20 ? 0.01 : 0.0025)), e.clientX - r.left, e.clientY - r.top); else { v.tx -= e.deltaX; v.ty -= e.deltaY; apply(); } }, { passive: false });
+    view.addEventListener('dblclick', e => { if (e.target.closest('.mp-pin,.mp-zoom')) return; const r = view.getBoundingClientRect(); zoomAt(1.8, e.clientX - r.left, e.clientY - r.top); });
+    // Pan with one finger or the mouse, pinch with two; a tap places the armed room
+    const pts = new Map(); let start = null, moved = false, dragPin = null, downPin = null;
+    view.addEventListener('pointerdown', e => {
+      if (e.target.closest('.mp-zoom')) return;
+      const pinEl = e.target.closest('.mp-pin');
+      view.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = false;
+      // Pointer capture retargets later events to the view, so remember which pin the press started on
+      downPin = pinEl; dragPin = v.edit && pinEl ? pinEl : null;
+      start = { tx: v.tx, ty: v.ty, scale: v.scale, x: e.clientX, y: e.clientY, d: 0, mid: null };
+      if (pts.size === 2) { const [a, b] = [...pts.values()]; start.d = Math.hypot(a[0] - b[0], a[1] - b[1]); const r = view.getBoundingClientRect(); start.mid = [(a[0] + b[0]) / 2 - r.left, (a[1] + b[1]) / 2 - r.top]; dragPin = null; }
+    });
+    view.addEventListener('pointermove', e => {
+      if (!pts.has(e.pointerId) || !start) return;
+      pts.set(e.pointerId, [e.clientX, e.clientY]);
+      if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 5) moved = true;
+      if (pts.size === 2 && start.d) {
+        const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+        const ns = Math.min(8, Math.max(0.05, start.scale * d / start.d)), k = ns / start.scale;
+        v.scale = ns; v.tx = start.mid[0] - (start.mid[0] - start.tx) * k; v.ty = start.mid[1] - (start.mid[1] - start.ty) * k; apply(); return;
+      }
+      if (dragPin && moved) { const p = toMap(e); dragPin.style.left = p.x * 100 + '%'; dragPin.style.top = p.y * 100 + '%'; return; }
+      v.tx = start.tx + e.clientX - start.x; v.ty = start.ty + e.clientY - start.y; apply();
+    });
+    const toMap = (e) => { const r = canvas.getBoundingClientRect(); return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) }; };
+    const end = (e) => {
+      if (!pts.has(e.pointerId)) return;
+      pts.delete(e.pointerId);
+      if (pts.size) { const [p] = [...pts.values()]; start = { tx: v.tx, ty: v.ty, scale: v.scale, x: p[0], y: p[1], d: 0 }; return; }
+      const pinEl = downPin; downPin = null;
+      if (dragPin && moved) { const pin = map.pins[dragPin.dataset.pin]; Object.assign(pin, toMap(e), { ai: false }); map.updatedAt = now(); touch(); dragPin = null; return paint(); }
+      dragPin = null;
+      if (moved || e.type === 'pointercancel') return;
+      if (pinEl) return pinTap(map, pinEl.dataset.pin, pinEl);
+      if (v.edit && v.arm) {
+        const id = uid(), p = toMap(e); map.pins[id] = { id, label: v.arm, ...p }; map.updatedAt = now(); touch();
+        const next = agendaRooms().find(r => r.room !== v.arm && !pinsFor(r.room + (r.building ? ', ' + r.building : ''))[0]?.pin);
+        toast(`Pinned ${v.arm}`); v.arm = ses ? null : next?.room || null; paint();
+      }
+    };
+    view.addEventListener('pointerup', end); view.addEventListener('pointercancel', end);
+
+    $$('[data-map]', body).forEach(b => b.onclick = () => { v.map = b.dataset.map; v.fitted = false; paint(); });
+    $('[data-go-map]', body)?.addEventListener('click', (e) => { v.map = e.currentTarget.dataset.goMap; v.fitted = false; paint(); });
+    $('#mpEdit', body).onclick = () => { v.edit = !v.edit; if (!v.edit) v.arm = null; paint(); };
+    $$('[data-arm]', body).forEach(b => b.onclick = () => { v.arm = v.arm === b.dataset.arm ? null : b.dataset.arm; paint(); });
+    $('#mpCustom', body)?.addEventListener('click', async () => { const t = await promptSheet('Pin another place', 'Name, for example Registration or Restrooms', ''); if (t) { v.arm = t; paint(); } });
+    $('#mpFind', body)?.addEventListener('click', async () => {
+      const left = agendaRooms().filter(r => !pinsFor(r.room + (r.building ? ', ' + r.building : ''))[0]?.pin).map(r => r.room);
+      if (!await confirmSheet('Find rooms on this plan?', `This sends the floor plan image and the names of ${left.length} unpinned room${left.length === 1 ? '' : 's'} to Claude using your API key. Claude pins only the rooms it can read on the plan; you can drag any that are off.`, 'Find Rooms', false)) return;
+      const b = $('#mpFind', body); if (b) { b.disabled = true; b.innerHTML = '<span class="spin"></span> Finding…'; }
+      try { const n = await findRoomsOnMap(map, left); toast(n ? `Pinned ${n} room${n === 1 ? '' : 's'}. Drag any that are off.` : 'Claude couldn’t read any of your rooms on this plan.', false, 4500); }
+      catch (e) { toast(e.message || 'Couldn’t find rooms', false, 5000); if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings(); }
+      if (body.isConnected) paint();
+    });
+    $('#mpMore', body).onclick = (e) => openMenu(e.currentTarget, [
+      { label: 'Rename Plan…', icon: I.pencil, run: async () => { const t = await promptSheet('Rename floor plan', 'For example Dolphin · Lobby level', map.name); if (t) { map.name = t; map.updatedAt = now(); touch(); paint(); } } },
+      ...(mapsArr().length > 1 ? [{ label: 'Move Earlier', icon: I.sort || I.list, run: () => { const ms = mapsArr(), i = ms.findIndex(m => m.id === map.id); if (i > 0) { ms.splice(i - 1, 0, ms.splice(i, 1)[0]); ms.forEach((m, k) => { m.order = k; m.updatedAt = now(); }); touch(); paint(); } } }] : []),
+      { label: 'Add Another Plan…', icon: I.plus, run: pick },
+      { sep: true },
+      { label: 'Delete Plan…', icon: I.trash, danger: true, run: async () => { if (await confirmSheet('Delete this floor plan?', 'The plan and its pins are removed from all your devices. Your sessions and notes stay.', 'Delete')) { deleteMap(map.id); v.fitted = false; paint(); } } },
+    ]);
+  };
+  const pinTap = (map, id, el) => {
+    const pin = map.pins[id]; if (!pin) return;
+    const here = sessionsArr().filter(s => pinsFor(s.room).some(w => w.pin?.id === id)).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+    openMenu(el, [
+      ...here.slice(0, 6).map(s => ({ label: `${s.start ? fmtTime(s.start) + ' · ' : ''}${s.title}`, icon: s.attended ? I.check : I.circle, run: () => { sh.close(); setView('all'); select(s.id); } })),
+      ...(here.length ? [{ sep: true }] : []),
+      { label: 'Rename Pin…', icon: I.pencil, run: async () => { const t = await promptSheet('Rename pin', '', pin.label); if (t) { pin.label = t; map.updatedAt = now(); touch(); paint(); } } },
+      { label: 'Remove Pin', icon: I.trash, danger: true, run: () => { delete map.pins[id]; map.updatedAt = now(); touch(); paint(); } },
+    ]);
+  };
+  paint();
+}
+function promptSheet(title, placeholder, value) {
+  return new Promise(res => {
+    let done = false;
+    openSheet({
+      title, left: 'Cancel', right: 'Done', onClose: () => !done && res(''),
+      onRight: (s) => { done = true; const t = $('#psIn', s.el).value.trim(); s.close(); res(t); },
+      body: `<div class="grp"><div class="f-row"><input type="text" id="psIn" placeholder="${esc(placeholder)}" value="${esc(value || '')}" aria-label="${esc(title)}"></div></div>`,
+      onMount: (s) => { const i = $('#psIn', s.el); setTimeout(() => { i.focus(); i.select(); }, 60); i.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); done = true; const t = i.value.trim(); s.close(); res(t); } }; },
+    });
+  });
+}
+
 /* ---------- All briefings: one list of everything Copilot has written, to open or delete ---------- */
 function newerNotes(items, since) { return items.reduce((n, s) => n + liveNotes(s).filter(x => (x.ts || 0) > since).length, 0); }
 function briefingsAll() {
@@ -2865,6 +3224,8 @@ function addMenu(anchor) {
   openMenu(anchor, [
     { label: 'New Quick Note', icon: I.noteNew, run: newQuickNote },
     { label: 'Add Sessions…', icon: I.calendar, run: () => openImport() },
+    { sep: true },
+    { label: 'Venue Maps…', icon: I.pin, run: () => openMaps() },
   ]);
 }
 function exportMenu(anchor, rp) {
@@ -3167,6 +3528,7 @@ function sessionMenu(anchor, at) {
     ...(hasNotes ? [{ label: s.brief ? 'Update Brief' : 'Finish & Brief', icon: I.sparkles, kbd: '⌘↩', run: () => generateBrief(s) }] : []),
     ...(s.brief ? [{ label: 'Share Brief…', icon: I.share, run: () => shareBrief(s) }, { label: 'Save Brief to Google Docs', icon: I.doc, run: () => briefToDoc(s) }] : []),
     { sep: true },
+    ...(s.room ? [{ label: 'Show on Venue Map', icon: I.pin, run: () => openMaps({ sessionId: s.id }) }] : []),
     { label: 'Edit Session Details…', icon: I.pencil, run: () => openSessionForm(s) },
     ...(s.brief ? [{ label: 'Delete Brief…', icon: I.trash, run: () => confirmDeleteBriefing({ kind: 'session', key: s.id }) }] : []),
     { sep: true },
