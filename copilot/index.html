@@ -116,6 +116,14 @@ svg{display:block;flex:none}
 .sidebar{display:none;width:236px;flex:none;background:var(--side);border-right:1px solid var(--sep)}
 .list-pane{flex:1;background:var(--win)}
 .detail-pane{display:none;flex:1;background:var(--content)}
+#detailPane{position:relative}
+.drop-hint{position:absolute;inset:60px 14px 14px;z-index:30;display:none;place-items:center;border:2px dashed var(--accent);border-radius:18px;background:color-mix(in srgb,var(--content) 78%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);pointer-events:none}
+.drop-on .drop-hint{display:grid}
+.drop-hint>div{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:0 24px}
+.drop-hint .dh-ic{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);margin-bottom:6px}
+.drop-hint .dh-ic svg{width:26px;height:26px}
+.drop-hint b{font-size:1.15rem;font-weight:600;color:var(--text)}
+.drop-hint small{font-size:.9rem;color:var(--text-2);max-width:420px}
 @media (min-width:760px){
   .list-pane{flex:none;width:340px;border-right:1px solid var(--sep)}
   .detail-pane{display:flex}
@@ -729,6 +737,7 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
       <button id="moreBtn" class="tb-btn hidden" aria-label="Session options"></button>
     </header>
     <div id="detail" class="scroll"></div>
+    <div id="dropHint" class="drop-hint" aria-hidden="true"><div><span class="dh-ic"></span><b>Drop to add to your notes</b><small id="dropWhere"></small></div></div>
     <div id="composer" class="composer hidden">
       <div class="composer-in">
         <div id="dock" class="dock hidden"></div>
@@ -1209,7 +1218,7 @@ function renderDetail() {
     ${busy ? `<div class="sec-h"><h3>Brief</h3></div><div class="brief-pending"><span class="spin"></span>Reading your notes and writing the brief…</div>` : s.brief ? renderBrief(s) : ''}</div>
     <div class="sec-h notes-head"><h3>Notes</h3><small>${notes.length || ''}</small></div>
     <div class="notes">${notes.length ? notes.map(renderNote).join('') : `
-      <div class="notes-empty"><b>Capture the talk your way</b>Type below, add a photo of a slide, attach the deck or a handout, or record the speaker for a live transcript.
+      <div class="notes-empty"><b>Capture the talk your way</b>Type below, add a photo of a slide, attach the deck or a handout, or record the speaker for a live transcript.${isTouch ? '' : ' You can also drag files here.'}
         <div class="ways">
           <span><i>${I.text}</i>Type</span>
           <span data-way="photo" style="cursor:pointer"><i>${I.camera}</i>Photo</span>
@@ -3354,14 +3363,34 @@ function bindStatic() {
   $('#micBtn').onclick = () => rec.active ? stopRecording(true) : startRecording();
   paintMic();
 
-  // Drop photos or videos onto a session
-  const dp = $('#detailPane');
-  dp.addEventListener('dragover', e => { if (S(ui.selected) && e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
+  // Drop files (photos, videos, documents) anywhere on a session to add them as notes.
+  // dragenter is cancelled too, which Safari needs before it allows a drop.
+  const dp = $('#detailPane'), hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+  let dragDepth = 0;
+  const showDrop = (on) => {
+    const s = on && S(ui.selected);
+    if (s) $('#dropWhere').textContent = s.title || 'This session';
+    dp.classList.toggle('drop-on', !!s);
+    if (!on) dragDepth = 0;
+  };
+  $('#dropHint .dh-ic').innerHTML = I.clip;
+  dp.addEventListener('dragenter', e => { if (!S(ui.selected) || !hasFiles(e) || sheetStack.length) return; e.preventDefault(); dragDepth++; showDrop(true); });
+  dp.addEventListener('dragover', e => { if (!S(ui.selected) || !hasFiles(e) || sheetStack.length) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+  dp.addEventListener('dragleave', () => { if (--dragDepth <= 0) showDrop(false); });
+  addEventListener('dragend', () => showDrop(false));
   dp.addEventListener('drop', e => {
-    const files = [...e.dataTransfer.files];
-    if (!S(ui.selected) || !files.length) return;
+    showDrop(false);
+    const files = [...(e.dataTransfer?.files || [])];
+    if (!S(ui.selected) || !files.length || sheetStack.length) return;
     e.preventDefault();
+    if (files.length > 1) toast(`Adding ${files.length} files…`);
     onFiles(files);
+  });
+  // Paste a screenshot or a copied file into the note field to add it the same way
+  $('#noteInput').addEventListener('paste', e => {
+    const files = [...(e.clipboardData?.files || [])];
+    if (!files.length || !S(ui.selected)) return;
+    e.preventDefault(); onFiles(files);
   });
 
   // Keyboard: Mac conventions
