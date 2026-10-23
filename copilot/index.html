@@ -305,7 +305,7 @@ body.resizing iframe,body.resizing video{pointer-events:none}
 .t-brief{background:var(--purple-soft);color:var(--purple)}
 .t-notes{background:var(--fill);color:var(--text-2);font-weight:500}
 .t-done{background:var(--green-soft);color:var(--green)}
-.row.sel .tag{background:rgba(255,255,255,.2);color:var(--on-sel)}
+.row.sel .tag,.row.sel .qn-tag{background:rgba(255,255,255,.2);color:var(--on-sel)}
 .row.done:not(.sel) .row-title{color:var(--text-2)}
 
 .empty{text-align:center;padding:48px 20px;color:var(--text-2)}
@@ -342,6 +342,8 @@ body.resizing iframe,body.resizing video{pointer-events:none}
 .kinds{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
 .kind-chip{height:28px;padding:0 12px;border-radius:999px;font-size:.8rem;font-weight:500;color:var(--text-2);background:var(--fill);transition:background .15s,color .15s}
 .kind-chip:hover{color:var(--text)}
+.qn-suggest{margin-left:auto;display:inline-flex;align-items:center;gap:5px;color:var(--accent-ink);background:var(--accent-soft)}
+.qn-suggest svg{width:14px;height:14px}.qn-suggest .spin{width:12px;height:12px}
 .kind-chip[aria-pressed=true]{background:var(--accent);color:var(--on-accent)}
 .qn-tag{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;color:var(--purple);background:color-mix(in srgb,var(--purple) 12%,transparent);border-radius:999px;padding:2px 8px}
 .qn-tag svg{width:12px;height:12px}
@@ -1184,7 +1186,7 @@ function renderDetail() {
     ${meta ? `<div class="d-meta">${meta}</div>` : ''}
     <h1 class="d-title">${esc(s.title || 'Untitled session')}</h1>
     ${s.speaker ? `<div class="d-speaker">${s.informal ? 'With ' : ''}${esc(s.speaker)}</div>` : ''}
-    ${s.informal ? `<div class="kinds" role="group" aria-label="Kind of note">${Object.entries(KINDS).map(([k, v]) => `<button class="kind-chip" data-kind="${k}" aria-pressed="${s.kind === k}">${v}</button>`).join('')}</div>` : ''}
+    ${s.informal ? `<div class="kinds" role="group" aria-label="Kind of note">${Object.entries(KINDS).map(([k, v]) => `<button class="kind-chip" data-kind="${k}" aria-pressed="${s.kind === k}">${v}</button>`).join('')}${settings.apiKey && notes.length ? `<button class="kind-chip qn-suggest" id="suggestTitle" ${ui.busyTitle === s.id ? 'disabled' : ''}>${ui.busyTitle === s.id ? '<span class="spin"></span> Suggesting…' : `${I.sparkles} Suggest Title`}</button>` : ''}</div>` : ''}
     ${s.description ? `<div class="d-desc ${ui.descOpen ? '' : 'clamp'}" id="dDesc" title="${ui.descOpen ? '' : 'Show more'}">${esc(s.description)}</div>` : ''}
     <div class="d-status">${s.attended ? `<span class="tag t-done">${I.check} Attended</span>` : ''}${isLive(s) && !s.attended ? `<span class="tag t-live"><i></i> Happening now</span>` : ''}</div>
     ${busy ? `<div class="sec-h"><h3>Brief</h3></div><div class="brief-pending"><span class="spin"></span>Reading your notes and writing the brief…</div>` : s.brief ? renderBrief(s) : ''}</div>
@@ -1203,6 +1205,7 @@ function renderDetail() {
   $('#dDesc', det)?.addEventListener('click', () => { ui.descOpen = !ui.descOpen; renderDetail(); });
   $$('[data-way]', det).forEach(w => w.onclick = () => ({ photo: () => $('#photoBtn').click(), video: () => $('#videoBtn').click(), file: () => $('#attachBtn').click(), rec: () => $('#micBtn').click() })[w.dataset.way]());
   $$('[data-kind]', det).forEach(b => b.onclick = () => setKind(s, b.dataset.kind));
+  $('#suggestTitle', det)?.addEventListener('click', () => suggestTitle(s));
   bindNotes(det, s);
   hydrateMedia(det);
   updateComposer();
@@ -2586,19 +2589,21 @@ function scheduleAutoTitle(s) {
 function guessQuickNote(text) {
   const t = text.replace(/\s+/g, ' ').trim();
   const kind = /\bbooth\b|\bdemo\b|\bvendor\b|\bexpo\b/i.test(t) ? 'booth' : /\b(met|meeting|spoke|talked|chat(ted)?|conversation|coffee with|lunch with)\b/i.test(t) ? 'conversation' : /\bmeet-?up|roundtable|dinner|reception\b/i.test(t) ? 'meetup' : 'other';
-  const who = t.match(/\b(?:with|met|to)\s+([A-Z][\p{L}'.-]+(?:\s+[A-Z][\p{L}'.-]+){0,2})/u)?.[1] || '';
+  const who = (t.match(/\b(?:with|met|to)\s+([A-Z][\p{L}'.-]+(?:\s+[A-Z][\p{L}'.-]+){0,2})/u)?.[1] || '').replace(/[.'-]+$/, '');
   const company = t.match(/\b(?:at the|at)\s+([A-Z][\p{L}&'.-]+(?:\s+[A-Z][\p{L}&'.-]+){0,2})\s+booth/u)?.[1] || t.match(/\b([A-Z][\p{L}&'.-]+)\s+booth\b/u)?.[1] || '';
   const first = t.split(/(?<=[.!?])\s/)[0] || t;
   const title = company && kind === 'booth' ? `${company} booth` : who && kind === 'conversation' ? `Conversation with ${who}` : first.length > 60 ? first.slice(0, 57).replace(/\s+\S*$/, '') + '…' : first;
   return { title, kind, who: [who, company && kind !== 'booth' ? company : ''].filter(Boolean).join(', ') || (kind === 'booth' ? company : ''), where: '' };
 }
-async function autoTitleQuickNote(id) {
-  const s = S(id); if (!s?.informal || !s.autoTitle) return;
+// Titling on its own uses only the on-device guess; Claude is asked only from Suggest Title.
+async function autoTitleQuickNote(id, { ai = false } = {}) {
+  const s = S(id); if (!s?.informal || (!ai && !s.autoTitle)) return;
   const notes = liveNotes(s).sort((a, b) => a.ts - b.ts);
   const text = notes.map(n => [n.text, n.fileName].filter(Boolean).join(' ')).filter(Boolean).join('\n').slice(0, 12000);
   if (!text.trim()) return;
   let r = null;
-  if (settings.apiKey) {
+  if (ai && settings.apiKey) {
+    ui.busyTitle = id; if (ui.selected === id) renderDetail();
     try {
       r = await claude({
         system: 'You label an informal note an attendee took at a conference, outside the scheduled sessions: a vendor booth visit, a hallway conversation, a meetup. Use only what the note says.',
@@ -2606,15 +2611,26 @@ async function autoTitleQuickNote(id) {
         schema: { type: 'object', additionalProperties: false, required: ['title', 'kind', 'who', 'where'], properties: { title: { type: 'string' }, kind: { type: 'string', enum: ['booth', 'conversation', 'meetup', 'other'] }, who: { type: 'string' }, where: { type: 'string' } } },
         maxTokens: 1000, effort: 'low',
       });
-    } catch (e) { console.warn('auto-title', e); }
+    } catch (e) { toast(e.message || 'Could not suggest a title', false, 5000); if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings(); }
+    finally { ui.busyTitle = null; }
+    if (!r) { if (ui.selected === id) renderDetail(); return; }
   }
   r = r || guessQuickNote(text);
-  const fresh = S(id); if (!fresh?.autoTitle) return;
+  const fresh = S(id); if (!fresh || (!ai && !fresh.autoTitle)) return;
+  const guessed = fresh.autoTitle; // who and where so far came from the guess, not from the user
   fresh.title = (r.title || fresh.title).slice(0, 90);
+  // A title the user asked Claude for is kept: the on-device guess no longer replaces it.
+  if (ai) fresh.autoTitle = false;
   if (r.kind && KINDS[r.kind] && !fresh.kindSet) fresh.kind = r.kind;
-  if (r.who && !fresh.speaker) fresh.speaker = r.who;
-  if (r.where && !fresh.room) fresh.room = r.where;
+  if (r.who && (!fresh.speaker || (ai && guessed))) fresh.speaker = r.who;
+  if (r.where && (!fresh.room || (ai && guessed))) fresh.room = r.where;
   touch(fresh); renderList(); if (ui.selected === id) renderDetail();
+}
+async function suggestTitle(s) {
+  if (!settings.apiKey) { toast('Add a Claude key in Settings to suggest a title'); return openSettings(); }
+  if (ui.busyTitle) return;
+  if (!await confirmSheet('Suggest a title?', 'This sends the text of this quick note to Claude using your API key, then sets the title, who was involved and where.', 'Suggest Title', false)) return;
+  autoTitleQuickNote(s.id, { ai: true });
 }
 function setKind(s, k) { s.kind = k; s.kindSet = true; touch(s); renderDetail(); renderList(); }
 

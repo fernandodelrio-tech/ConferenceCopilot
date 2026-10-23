@@ -30,10 +30,11 @@ Conference Copilot turns the attendee's agenda into one notebook per session. Du
 - Notes: typed (with key-point star), photos, video (frame extracted for AI), audio recording with live browser speech recognition.
 - Brief: Claude API called from the browser with the user's own key (stored only on the device); on-device extractive fallback without a key. 
 - Sessions are marked attended when a brief is created; can be toggled manually.
-- Quick notes for informal moments (booth visits, hallway conversations, meetups): stamped with the date and time, titled automatically from what was written, tagged by kind.
+- Quick notes for informal moments (booth visits, hallway conversations, meetups): stamped with the date and time, titled on the device from what was written (Suggest Title asks Claude for a better one), tagged by kind.
 - End-of-day wrap-up per day and conference takeaways across everything; exported on the device as PDF (print), Word (.docx) or PowerPoint (.pptx), or saved to Google Docs.
 - Layout: the sidebar and the sessions column collapse independently; Focus mode gives the selected session the whole window (full screen on Mac).
 - Briefs can be shared, copied or saved as a Google Doc.
+- Nothing is sent to Claude without the user asking and confirming: briefs, wrap-ups, takeaways, one-tap brief changes and title suggestions each show what will be sent first.
 - No server. Local storage is IndexedDB; sync is Google Drive.
 - Live transcription depends on the browser's Web Speech API; recorded audio cannot be transcribed afterwards.
 
