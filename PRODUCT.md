@@ -37,7 +37,7 @@ Conference Copilot turns the attendee's agenda into one notebook per session. Du
 ## Brand Commitments
 
 - Apple design language (macOS / iOS Human Interface Guidelines feel): the user explicitly asked for it. System font (SF Pro via the platform stack) is part of that commitment.
-- Soft tones.
+- Colours and type modelled on apple.com: white and #F5F5F7 surfaces, near-black #1D1D1F ink, Apple blue #0071E3 accent (requested Oct 2026, replacing the earlier soft warm tones). SF Pro on Apple devices, Inter as the close match elsewhere.
 - Light, Dark and Auto (follow device) themes with an explicit switch.
 
 ## Product Principles
