@@ -33,6 +33,7 @@
   --red:#B04857; --red-soft:#F7E3E6;
   --purple:#6F55AB; --purple-soft:#ECE7F5;
   --teal:#2C7480; --teal-soft:#DFEDEF;
+  --now-bg:#FDEFE6; --now-bg-2:#FBE6D9; --now-line:rgba(201,110,60,.35); --now-ink:#9A4A1C;
   --shadow-1:0 1px 2px rgba(30,25,15,.06),0 1px 1px rgba(30,25,15,.04);
   --shadow-2:0 2px 6px rgba(30,25,15,.06),0 10px 28px rgba(30,25,15,.08);
   --shadow-3:0 10px 30px rgba(30,25,15,.14),0 30px 70px rgba(30,25,15,.16);
@@ -54,6 +55,7 @@
     --red:#F09AA6; --red-soft:rgba(240,154,166,.14);
     --purple:#BCA9EA; --purple-soft:rgba(188,169,234,.14);
     --teal:#86C7D1; --teal-soft:rgba(134,199,209,.14);
+    --now-bg:rgba(237,150,100,.16); --now-bg-2:rgba(237,150,100,.22); --now-line:rgba(237,160,110,.45); --now-ink:#F3B48E;
     --shadow-1:0 1px 2px rgba(0,0,0,.3);
     --shadow-2:0 2px 8px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.3);
     --shadow-3:0 12px 36px rgba(0,0,0,.45),0 30px 80px rgba(0,0,0,.4);
@@ -72,6 +74,7 @@
   --red:#F09AA6; --red-soft:rgba(240,154,166,.14);
   --purple:#BCA9EA; --purple-soft:rgba(188,169,234,.14);
   --teal:#86C7D1; --teal-soft:rgba(134,199,209,.14);
+  --now-bg:rgba(237,150,100,.16); --now-bg-2:rgba(237,150,100,.22); --now-line:rgba(237,160,110,.45); --now-ink:#F3B48E;
   --shadow-1:0 1px 2px rgba(0,0,0,.3);
   --shadow-2:0 2px 8px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.3);
   --shadow-3:0 12px 36px rgba(0,0,0,.45),0 30px 80px rgba(0,0,0,.4);
@@ -216,6 +219,25 @@ svg{display:block;flex:none}
 .day-h span:last-child{font-weight:500;color:var(--text-3)}
 .row{display:flex;gap:10px;width:100%;text-align:left;padding:9px 10px 10px 8px;border-radius:9px;position:relative;align-items:flex-start}
 @media (hover:hover){.row:hover{background:var(--fill)}}
+/* Happening now: a warm tint that reads apart from the blue selection */
+.row.live{background:var(--now-bg);box-shadow:inset 0 0 0 1px var(--now-line)}
+.row.live .row-title{color:var(--now-ink)}
+.row.live .row-time{color:var(--now-ink);font-weight:600}
+@media (hover:hover){.row.live:hover{background:var(--now-bg-2)}}
+.row.live+.row::after,.row.live::after{opacity:0}
+.row.sel.live{background:var(--sel);box-shadow:0 0 0 2px var(--now-line)}
+.row.sel.live .row-title,.row.sel.live .row-time{color:var(--on-sel)}
+.day-h span.now-pill{display:inline-flex;align-items:center;gap:5px;margin-left:8px;font-size:.7rem;font-weight:700;color:var(--now-ink);background:var(--now-bg);padding:2px 8px;border-radius:999px}
+.day-h .now-pill i{width:6px;height:6px;border-radius:50%;background:currentColor}
+/* Resizable session column */
+.col-resize{display:none;position:absolute;top:0;bottom:0;right:-5px;width:10px;z-index:7;cursor:col-resize;touch-action:none}
+.col-resize::after{content:"";position:absolute;top:0;bottom:0;left:4px;width:2px;background:transparent;transition:background .15s}
+.col-resize:hover::after,.col-resize:focus-visible::after,body.resizing .col-resize::after{background:var(--accent)}
+.col-resize:focus-visible{outline:none}
+body.resizing{cursor:col-resize;user-select:none;-webkit-user-select:none}
+body.resizing iframe,body.resizing video{pointer-events:none}
+@media (min-width:760px){.col-resize{display:block}}
+
 .row+.row::after{content:"";position:absolute;top:0;left:40px;right:10px;height:1px;background:var(--sep)}
 .row.sel+.row::after,.row.sel::after,.row:hover::after,.row:hover+.row::after{opacity:0}
 .row.sel{background:var(--sel);color:var(--on-sel)}
@@ -619,6 +641,7 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
     </div>
     <div id="list" class="scroll"></div>
     <div id="calendar" class="cal hidden"></div>
+    <div class="col-resize" id="colResize" role="separator" aria-orientation="vertical" aria-label="Resize the sessions column" tabindex="0" title="Drag to resize · double-click to reset"></div>
   </section>
 
   <section id="detailPane" class="detail-pane pane" aria-label="Session">
@@ -976,7 +999,7 @@ function renderList() {
   for (const [date, ss] of groups) {
     if (showDayHeads) {
       const att = ss.filter(s => s.attended).length;
-      html += `<div class="day-h"><span>${date ? esc(fmtDate(date)) : 'No date'}</span><span>${att ? `${att} of ${ss.length} attended` : ss.length}</span></div>`;
+      html += `<div class="day-h"><span>${date ? esc(fmtDate(date)) : 'No date'}${ss.some(x => isLive(x) && !x.attended) ? '<span class="now-pill"><i></i>Now</span>' : ''}</span><span>${att ? `${att} of ${ss.length} attended` : ss.length}</span></div>`;
     }
     for (const s of ss) html += rowHTML(s, !byTime);
   }
@@ -993,7 +1016,7 @@ function rowHTML(s, withDay = false) {
   const n = liveNotes(s).length, live = isLive(s) && !s.attended, recording = rec.active && rec.sessionId === s.id;
   const day = withDay && s.date ? fmtDate(s.date, s.start ? { weekday: 'short' } : { month: 'short', day: 'numeric' }) : '';
   const time = [day, s.start ? fmtTime(s.start) : ''].filter(Boolean).join(' ');
-  return `<div class="row ${s.id === ui.selected ? 'sel' : ''} ${s.attended ? 'done' : ''}" data-id="${s.id}" role="button" tabindex="-1" aria-current="${s.id === ui.selected}">
+  return `<div class="row ${s.id === ui.selected ? 'sel' : ''} ${s.attended ? 'done' : ''} ${live ? 'live' : ''}" data-id="${s.id}" role="button" tabindex="-1" aria-current="${s.id === ui.selected}">
     <span class="chk ${s.attended ? 'done' : live ? 'live' : ''}" role="checkbox" aria-checked="${!!s.attended}" title="${s.attended ? 'Attended — click to undo' : 'Mark as attended'}">${s.attended ? I.circleCheck : live ? I.circleLive : I.circle}</span>
     <div class="row-main">
       <div class="row-top"><div class="row-title">${esc(s.title || 'Untitled session')}</div>${time ? `<span class="row-time">${esc(time)}</span>` : ''}</div>
@@ -1289,7 +1312,41 @@ const hm2m = (hm) => { const [h, m] = String(hm).split(':').map(Number); return 
 function setMode(m) {
   ui.mode = m; LS.set('cc.mode', m);
   document.body.classList.toggle('cal-mode', m === 'calendar');
+  applyListWidth();
   renderList();
+}
+/* ---------- Resizable sessions column (Mac / iPad) ---------- */
+const listWKey = () => ui.mode === 'calendar' ? 'cc.calW' : 'cc.listW';
+function clampListW(w) {
+  const side = $('#sidebar').offsetWidth || 0;
+  return Math.round(Math.max(260, Math.min(w, innerWidth - side - 420)));
+}
+function applyListWidth() {
+  const lp = $('#listPane'), w = LS.get(listWKey(), null);
+  const on = w && matchMedia('(min-width:760px)').matches;
+  lp.style.width = on ? clampListW(w) + 'px' : ''; lp.style.flex = on ? 'none' : '';
+  $('#colResize').setAttribute('aria-valuenow', lp.offsetWidth);
+}
+function bindColResize() {
+  const h = $('#colResize'), lp = $('#listPane');
+  let startX = 0, startW = 0;
+  const move = (e) => { lp.style.width = clampListW(startW + e.clientX - startX) + 'px'; lp.style.flex = 'none'; };
+  const up = () => {
+    document.body.classList.remove('resizing');
+    removeEventListener('pointermove', move); removeEventListener('pointerup', up);
+    LS.set(listWKey(), lp.offsetWidth); applyListWidth();
+  };
+  h.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); startX = e.clientX; startW = lp.offsetWidth;
+    document.body.classList.add('resizing');
+    addEventListener('pointermove', move); addEventListener('pointerup', up);
+  });
+  h.addEventListener('dblclick', () => { try { localStorage.removeItem(listWKey()); } catch {} applyListWidth(); toast('Column width reset'); });
+  h.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault(); LS.set(listWKey(), clampListW(lp.offsetWidth + (e.key === 'ArrowRight' ? 24 : -24))); applyListWidth();
+  });
+  addEventListener('resize', applyListWidth);
 }
 function calLayout(events) {
   // Side-by-side columns for overlapping sessions, like Calendar
@@ -2725,6 +2782,7 @@ function bindStatic() {
   $('#docInput').onchange = (e) => onFiles([...e.target.files]);
   $('#sortBtn').innerHTML = I.sort; $('#sortBtn').onclick = (e) => sortMenu(e.currentTarget);
   $$('#modeSeg button').forEach(b => { b.innerHTML = b.dataset.mode === 'list' ? I.list : I.calendar; b.onclick = () => setMode(b.dataset.mode); });
+  bindColResize();
   new ResizeObserver(() => { if (ui.mode === 'calendar') { clearTimeout(calRT); calRT = setTimeout(renderCalendar, 80); } }).observe($('#listPane'));
   $('#photoInput').onchange = (e) => onPhotos([...e.target.files]);
   $('#videoInput').onchange = (e) => onVideo(e.target.files[0]);
@@ -2774,6 +2832,7 @@ async function boot() {
   if (ui.view === 'today' && !sessionsArr().some(VIEWS.today.test)) ui.view = 'all';
   if (ui.view.startsWith('day:') && !days().includes(ui.view.slice(4))) ui.view = 'all';
   document.body.classList.toggle('cal-mode', ui.mode === 'calendar');
+  applyListWidth();
   const m = location.hash.match(/s=([\w]+)/);
   if (m && S(m[1])) { ui.selected = m[1]; document.body.classList.add('show-detail'); }
   else if (matchMedia('(min-width:760px)').matches) { const list = filteredSessions(); ui.selected = (list.find(isLive) || list.find(s => !s.attended) || list[0])?.id || null; }
