@@ -149,6 +149,22 @@ svg{display:block;flex:none}
 .tb-prime.busy svg{animation:spin 1.3s linear infinite}
 .back{display:inline-flex;align-items:center;gap:1px;color:var(--accent);font-size:1.0625rem;height:34px;padding:0 8px 0 0}
 .back svg{width:22px;height:22px}
+/* iPhone writing mode: while the keyboard is up, the page becomes a note pad */
+.tb-mid{display:none;flex:1;min-width:0;text-align:center;font-weight:600;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+@media (max-width:759px){
+  .detail-pane .toolbar.scrolled .tb-mid,body.writing .tb-mid{display:block}
+  .detail-pane .toolbar.scrolled .spacer,body.writing #detailBar .spacer{display:none}
+  body.writing .d-top,body.writing .notes-head,body.writing .ways{display:none}
+  body.writing #detail{padding-top:8px}
+  body.writing .composer .tool,body.writing .composer .rec-btn{display:none}
+  body.writing .field{border-radius:18px;padding-left:14px}
+  body.writing .field textarea{font-size:17px!important;line-height:24px;min-height:72px;max-height:34vh;padding:10px 0}
+  body.writing .note{padding:10px 0}
+  body.writing .note-acts{display:none}
+  .note.just-added{animation:flash 1.2s var(--ease)}
+}
+@keyframes flash{from{background:var(--accent-soft)}}
+
 
 /* =========================================================
    Sidebar
@@ -590,6 +606,7 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
   <section id="detailPane" class="detail-pane pane" aria-label="Session">
     <header class="toolbar" id="detailBar">
       <button id="backBtn" class="back only-narrow"></button>
+      <div class="tb-mid only-narrow" id="detailTitle" aria-hidden="true"></div>
       <div class="spacer"></div>
       <button id="briefBtn" class="tb-prime hidden" title="Create brief  ⌘↩"></button>
       <button id="shareBtn" class="tb-btn hidden" aria-label="Share brief"></button>
@@ -1029,14 +1046,15 @@ function renderDetail() {
     s.room ? `<span>${I.pin}${esc(s.room)}</span>` : '',
   ].join('');
   const busy = ui.busyBrief === s.id;
-  det.innerHTML = `<div class="page">
+  $('#detailTitle').textContent = s.title || '';
+  det.innerHTML = `<div class="page"><div class="d-top">
     ${meta ? `<div class="d-meta">${meta}</div>` : ''}
     <h1 class="d-title">${esc(s.title || 'Untitled session')}</h1>
     ${s.speaker ? `<div class="d-speaker">${esc(s.speaker)}</div>` : ''}
     ${s.description ? `<div class="d-desc ${ui.descOpen ? '' : 'clamp'}" id="dDesc" title="${ui.descOpen ? '' : 'Show more'}">${esc(s.description)}</div>` : ''}
     <div class="d-status">${s.attended ? `<span class="tag t-done">${I.check} Attended</span>` : ''}${isLive(s) && !s.attended ? `<span class="tag t-live"><i></i> Happening now</span>` : ''}</div>
-    ${busy ? `<div class="sec-h"><h3>Brief</h3></div><div class="brief-pending"><span class="spin"></span>Reading your notes and writing the brief…</div>` : s.brief ? renderBrief(s) : ''}
-    <div class="sec-h"><h3>Notes</h3><small>${notes.length || ''}</small></div>
+    ${busy ? `<div class="sec-h"><h3>Brief</h3></div><div class="brief-pending"><span class="spin"></span>Reading your notes and writing the brief…</div>` : s.brief ? renderBrief(s) : ''}</div>
+    <div class="sec-h notes-head"><h3>Notes</h3><small>${notes.length || ''}</small></div>
     <div class="notes">${notes.length ? notes.map(renderNote).join('') : `
       <div class="notes-empty"><b>Capture the talk your way</b>Type below, add a photo of a slide, attach the deck or a handout, or record the speaker for a live transcript.
         <div class="ways">
@@ -1371,11 +1389,12 @@ function addNote(s, note) {
 function sendText() {
   const s = S(ui.selected); const ta = $('#noteInput'); const text = ta.value.trim();
   if (!s || !text) return;
-  addNote(s, { type: 'text', text, star: ui.composeStar });
+  const n = addNote(s, { type: 'text', text, star: ui.composeStar });
   ta.value = ''; ui.composeStar = false; autoGrow();
   renderDetail(); renderList(); scrollNotesEnd();
+  $(`.note[data-note="${n.id}"]`)?.classList.add('just-added');
 }
-function scrollNotesEnd() { const d = $('#detail'); requestAnimationFrame(() => d.scrollTo({ top: d.scrollHeight, behavior: 'smooth' })); }
+function scrollNotesEnd(smooth = true) { const d = $('#detail'); requestAnimationFrame(() => d.scrollTo({ top: d.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })); }
 
 /* ---------- Recording dock + live transcription ---------- */
 const rec = { active: false };
@@ -2582,6 +2601,18 @@ function bindStatic() {
   $('#detail').addEventListener('scroll', (e) => $('#detailBar').classList.toggle('scrolled', e.target.scrollTop > 4), { passive: true });
   const ta = $('#noteInput');
   ta.oninput = () => { autoGrow(); $('#sendBtn').disabled = !ta.value.trim(); };
+  // iPhone: typing turns the page into a note pad, with your latest notes right above what you type
+  const narrow = () => !matchMedia('(min-width:760px)').matches;
+  let blurT;
+  ta.addEventListener('focus', () => {
+    clearTimeout(blurT);
+    if (!narrow()) return;
+    document.body.classList.add('writing'); autoGrow();
+    scrollNotesEnd(false); setTimeout(() => scrollNotesEnd(false), 350);
+  });
+  ta.addEventListener('blur', () => { blurT = setTimeout(() => { document.body.classList.remove('writing'); autoGrow(); }, 120); });
+  // Buttons inside the field must not take focus away from it (that would close the keyboard)
+  ['#sendBtn', '#starToggle'].forEach(id => $(id).addEventListener('pointerdown', e => e.preventDefault()));
   ta.onkeydown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !isTouch && !e.isComposing) { e.preventDefault(); sendText(); }
     if (e.key === 'Escape') ta.blur();
@@ -2630,7 +2661,7 @@ function bindStatic() {
   });
 
   // Keep the composer above the on-screen keyboard on iOS
-  if (window.visualViewport && isTouch) visualViewport.addEventListener('resize', () => { $('#app').style.height = visualViewport.height + 'px'; window.scrollTo(0, 0); });
+  if (window.visualViewport && isTouch) visualViewport.addEventListener('resize', () => { $('#app').style.height = visualViewport.height + 'px'; window.scrollTo(0, 0); if (document.body.classList.contains('writing')) scrollNotesEnd(false); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && drive.connected && tokenValid()) syncNow(false); });
   setInterval(() => { if (!sheetStack.length && !menuEl && document.visibilityState === 'visible') { renderList(); renderSync(); } }, 60000);
   addEventListener('beforeunload', (e) => { if (rec.active) { e.preventDefault(); e.returnValue = ''; } });
