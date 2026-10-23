@@ -305,6 +305,24 @@ svg{display:block;flex:none}
 .b-q{--dot:var(--teal)} .b-q h4{color:var(--teal)}
 .brief-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:22px;padding-top:14px;border-top:1px solid var(--sep)}
 .brief-foot small{color:var(--text-3);font-size:.8rem;margin-left:auto}
+.brief.busy>*:not(.ask-wrap):not(.brief-foot){opacity:.5;transition:opacity .3s}
+.ask-wrap{margin-top:22px;padding-top:16px;border-top:1px solid var(--sep)}
+.ask{display:flex;align-items:center;gap:8px;background:var(--fill);border:1px solid transparent;border-radius:14px;padding:3px 4px 3px 12px;transition:border-color .15s,box-shadow .15s}
+.ask:focus-within{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent);background:var(--surface)}
+.ask-ic{color:var(--purple);display:grid;place-items:center}
+.ask-ic svg{width:17px;height:17px}
+.ask input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:.9667rem;padding:8px 0}
+.ask input::placeholder{color:var(--text-3)}
+.ask-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.ask-chips button{font-size:.8rem;font-weight:500;padding:5px 11px;border-radius:999px;background:var(--fill);color:var(--text-2);transition:background .15s,color .15s}
+.ask-chips button:hover{background:var(--purple-soft);color:var(--purple)}
+.bf-l{display:flex;align-items:baseline;gap:6px;font-size:.8rem;font-weight:600;color:var(--text-2);margin:16px 0 6px}
+.bf-l:first-child{margin-top:0}
+.bf-l small{font-weight:400;color:var(--text-3)}
+.bf-in,.bf-ta{display:block;width:100%;border:1px solid var(--sep-2);border-radius:10px;padding:9px 12px;background:var(--content);font-size:1rem;line-height:1.5;resize:none;overflow:hidden}
+.bf-in:focus,.bf-ta:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.bf-head{font-family:var(--font-d);font-weight:700;font-size:1.15rem}
+
 .brief-pending{display:flex;align-items:center;gap:12px;padding:18px 20px;border-radius:14px;background:var(--accent-soft);color:var(--accent-ink);font-weight:500}
 
 /* Session list: view toggle + sort */
@@ -725,7 +743,7 @@ const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessio
 let state = emptyState();
 let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
-const ui = { view: LS.get('cc.view', 'today'), mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
+const ui = { editingBrief: null, busyRevise: null, view: LS.get('cc.view', 'today'), mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
 const saveSettings = () => LS.set('cc.settings', settings);
 const saveDrive = () => LS.set('cc.drive', drive);
 
@@ -1000,7 +1018,7 @@ function toggleAttended(s) {
 }
 
 function select(id, push = true) {
-  ui.selected = id; ui.editing = null; ui.descOpen = false;
+  ui.selected = id; ui.editing = null; ui.editingBrief = null; ui.descOpen = false;
   if (push && !matchMedia('(min-width:760px)').matches) history.pushState({ s: id }, '', '#s=' + id);
   else history.replaceState({ s: id }, '', id ? '#s=' + id : location.pathname + location.search);
   document.body.classList.toggle('show-detail', !!id);
@@ -1076,8 +1094,19 @@ function renderDetail() {
 function renderBrief(s) {
   const b = s.brief;
   const list = (arr, cls, icon, label) => arr?.length ? `<div class="brief-blk ${cls}"><h4>${icon}${label}</h4><ul>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
-  return `<div class="sec-h"><h3>Brief</h3><small>${b.source === 'ai' ? 'Written by Claude' : 'Written on this device'} · ${esc(ago(b.generatedAt))}</small></div>
-  <article class="brief">
+  const changed = b.revisedAt || b.editedAt ? Math.max(b.revisedAt || 0, b.editedAt || 0) : 0;
+  const head = `<div class="sec-h"><h3>Brief</h3><small>${b.source === 'ai' ? 'Written by Claude' : 'Written on this device'} · ${esc(ago(b.generatedAt))}${changed ? ` · ${b.editedAt >= (b.revisedAt || 0) ? 'edited by you' : 'revised by Claude'} ${esc(ago(changed))}` : ''}</small></div>`;
+  if (ui.editingBrief === s.id) {
+    const area = (k, label) => `<label class="bf-l" for="bf-${k}">${label} <small>one per line</small></label><textarea class="bf-ta" id="bf-${k}" data-k="${k}" rows="${Math.max(2, (b[k] || []).length + 1)}">${esc((b[k] || []).join('\n'))}</textarea>`;
+    return `${head}<article class="brief editing" id="briefEdit">
+      <label class="bf-l" for="bf-headline">Headline</label><input class="bf-in bf-head" id="bf-headline" value="${esc(b.headline || '')}">
+      <label class="bf-l" for="bf-summary">Summary</label><textarea class="bf-ta" id="bf-summary" rows="4">${esc(b.summary || '')}</textarea>
+      ${area('keyTakeaways', 'Key takeaways')}${area('learnings', 'What I learned')}${area('quotes', 'Worth quoting')}${area('actionItems', 'Follow-ups')}${area('openQuestions', 'Open questions')}
+      <div class="edit-row" style="margin-top:16px"><button class="btn btn-sm btn-gray" data-b="cancelEdit">Cancel</button><button class="btn btn-sm btn-primary" data-b="saveEdit">Save Brief</button></div>
+    </article>`;
+  }
+  const busy = ui.busyRevise === s.id;
+  return `${head}<article class="brief ${busy ? 'busy' : ''}">
     ${b.headline ? `<h2 class="brief-head">${esc(b.headline)}</h2>` : ''}
     ${b.summary ? `<p class="brief-sum">${esc(b.summary)}</p>` : ''}
     ${list(b.keyTakeaways, 'b-take', I.target, 'Key takeaways')}
@@ -1085,12 +1114,79 @@ function renderBrief(s) {
     ${list(b.quotes, 'b-quote', I.quote, 'Worth quoting')}
     ${list(b.actionItems, 'b-act', I.flag, 'Follow-ups')}
     ${list(b.openQuestions, 'b-q', I.help, 'Open questions')}
+    <div class="ask-wrap">
+      <form class="ask" id="askForm" autocomplete="off">
+        <span class="ask-ic">${busy ? '<span class="spin"></span>' : I.sparkles}</span>
+        <input id="askInput" enterkeyhint="send" aria-label="Ask Claude to change this brief" placeholder="${settings.apiKey ? (busy ? 'Revising the brief…' : 'Ask Claude to change this brief…') : 'Add a Claude key in Settings to ask for changes'}" ${busy || !settings.apiKey ? 'disabled' : ''}>
+        <button class="in-btn send" type="submit" aria-label="Send request" ${busy || !settings.apiKey ? 'disabled' : ''}>${I.up}</button>
+      </form>
+      ${settings.apiKey && !busy ? `<div class="ask-chips">${['Make it shorter', 'Add more detail', 'Focus on what I can apply at work', 'Rewrite the summary as bullet points'].map(t => `<button data-ask="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : ''}
+    </div>
     <div class="brief-foot">
+      <button class="btn btn-sm btn-gray" data-b="edit" ${busy ? 'disabled' : ''}>${I.pencil} Edit</button>
       <button class="btn btn-sm btn-gray" data-b="copy">${I.copy} Copy</button>
       <button class="btn btn-sm btn-gray" data-b="doc">${I.doc} Save to Google Docs</button>
-      ${b.source === 'ai' ? '' : `<small>Add a Claude key in Settings for a fuller brief</small>`}
+      ${b.prev && !busy ? `<button class="btn btn-sm btn-plain" data-b="undo">${b.undone ? 'Redo Change' : 'Undo Change'}</button>` : ''}
+      ${b.source === 'ai' || changed ? '' : `<small>Add a Claude key in Settings for a fuller brief</small>`}
     </div>
   </article>`;
+}
+const briefCore = (b) => { if (!b) return null; const { prev, undone, ...rest } = b; return rest; };
+function saveBriefEdit(s) {
+  const el = $('#briefEdit'); if (!el) return;
+  const old = s.brief;
+  const lines = (k) => $(`#bf-${k}`, el).value.split('\n').map(x => x.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean);
+  s.brief = { ...briefCore(old), headline: $('#bf-headline', el).value.trim(), summary: $('#bf-summary', el).value.trim(),
+    keyTakeaways: lines('keyTakeaways'), learnings: lines('learnings'), quotes: lines('quotes'), actionItems: lines('actionItems'), openQuestions: lines('openQuestions'),
+    editedAt: now(), prev: briefCore(old), undone: false };
+  ui.editingBrief = null; touch(s); renderDetail(); toast('Brief saved');
+}
+function undoBrief(s) {
+  const b = s.brief; if (!b?.prev) return;
+  s.brief = { ...b.prev, prev: briefCore(b), undone: !b.undone };
+  touch(s); renderDetail(); toast(b.undone ? 'Change redone' : 'Change undone');
+}
+function noteAsText(n) {
+  const head = `[${fmtClock(n.ts)}]${n.star ? ' [KEY POINT]' : ''}`;
+  if (n.type === 'text') return `${head} Typed note: ${n.text}`;
+  if (n.type === 'audio') return n.text ? `${head} Transcript of the speaker:\n${n.text}` : '';
+  if (n.type === 'doc') return `${head} ${n.kind || 'File'} attached: ${n.fileName}${n.text ? ` (attendee's note: ${n.text})` : ''}${n.docText ? `\n<document>\n${n.docText.slice(0, 20000)}\n</document>` : ''}`;
+  return `${head} ${n.type === 'photo' ? 'Photo' : 'Video'}${n.text ? ` with caption: ${n.text}` : ''} (the image itself isn't included here; the current brief already reflects it)`;
+}
+async function reviseBrief(s, request) {
+  request = request.trim(); if (!request || !s.brief) return;
+  if (!settings.apiKey) { toast('Add a Claude key in Settings to ask for changes'); return openSettings(); }
+  ui.busyRevise = s.id; if (ui.selected === s.id) renderDetail();
+  try {
+    const notes = liveNotes(s).sort((a, b) => a.ts - b.ts).map(noteAsText).filter(Boolean).join('\n\n').slice(0, 150000);
+    const r = await claude({
+      system: `${BRIEF_SYSTEM}\n\nYou are revising a brief that already exists; the attendee may have edited parts of it by hand. Make the change the attendee asks for and keep everything else as it is, including their wording. Return the complete brief, all fields. Use the notes to add or check facts; if the request needs something the notes don't support, leave it out rather than inventing it.`,
+      content: [{ type: 'text', text: `Session: ${s.title}${s.speaker ? '\nSpeaker: ' + s.speaker : ''}\n\nThe attendee's notes, in order:\n${notes || '(none)'}\n\nThe current brief:\n${JSON.stringify(briefCore(s.brief), ['headline', 'summary', 'keyTakeaways', 'learnings', 'quotes', 'actionItems', 'openQuestions'], 1)}\n\nThe attendee's request: ${request}` }],
+      schema: BRIEF_SCHEMA,
+    });
+    const fresh = S(s.id); if (!fresh) return;
+    fresh.brief = { ...briefCore(fresh.brief), ...r, revisedAt: now(), prev: briefCore(fresh.brief), undone: false };
+    touch(fresh); toast('Brief updated. Undo Change is below it.', false, 4000);
+  } catch (e) {
+    toast(e.message || 'Could not change the brief', false, 5000);
+    if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings();
+  } finally {
+    ui.busyRevise = null; if (ui.selected === s.id) renderDetail();
+  }
+}
+function bindBrief(root, s) {
+  const acts = { copy: () => copyBrief(s), doc: () => briefToDoc(s), edit: () => { ui.editingBrief = s.id; renderDetail(); $('#bf-headline')?.focus(); },
+    cancelEdit: () => { ui.editingBrief = null; renderDetail(); }, saveEdit: () => saveBriefEdit(s), undo: () => undoBrief(s) };
+  $$('[data-b]', root).forEach(b => b.onclick = () => acts[b.dataset.b]?.());
+  const ed = $('#briefEdit', root);
+  ed?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveBriefEdit(s); }
+    if (e.key === 'Escape') { e.stopPropagation(); ui.editingBrief = null; renderDetail(); }
+  });
+  $$('.bf-ta', root).forEach(t => { const fit = () => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; }; fit(); t.oninput = fit; });
+  const form = $('#askForm', root);
+  form?.addEventListener('submit', e => { e.preventDefault(); reviseBrief(s, $('#askInput', form).value); });
+  $$('[data-ask]', root).forEach(b => b.onclick = () => reviseBrief(s, b.dataset.ask));
 }
 
 function renderNote(n) {
@@ -1143,7 +1239,7 @@ function bindNotes(root, s) {
     });
     $('img', el)?.addEventListener('click', e => { if (e.target.src) openViewer(e.target.src); });
   });
-  $$('[data-b]', root).forEach(b => b.onclick = () => ({ copy: () => copyBrief(s), doc: () => briefToDoc(s) })[b.dataset.b]());
+  bindBrief(root, s);
 }
 
 function openViewer(src) {
@@ -1653,6 +1749,8 @@ Ground everything in the notes. Don't add facts, numbers or claims that the note
 async function generateBrief(s) {
   const notes = liveNotes(s).sort((a, b) => a.ts - b.ts);
   if (!notes.length) return;
+  if ((s.brief?.editedAt || s.brief?.revisedAt) && !await confirmSheet('Rewrite the brief?', 'Copilot will write a new brief from all your notes, replacing your edits. You can undo this.', 'Rewrite Brief', false)) return;
+  ui.editingBrief = null;
   ui.busyBrief = s.id; if (ui.selected === s.id) renderDetail(); else updateComposer();
   try {
     let brief;
@@ -1699,6 +1797,7 @@ async function generateBrief(s) {
     }
     brief.generatedAt = now();
     const fresh = S(s.id) || s;
+    if (fresh.brief) { brief.prev = briefCore(fresh.brief); brief.undone = false; }
     fresh.brief = brief;
     if (!fresh.attended) { fresh.attended = true; fresh.attendedAt = now(); }
     touch(fresh);
