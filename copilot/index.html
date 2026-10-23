@@ -291,6 +291,70 @@ svg{display:block;flex:none}
 .brief-foot small{color:var(--text-3);font-size:.8rem;margin-left:auto}
 .brief-pending{display:flex;align-items:center;gap:12px;padding:18px 20px;border-radius:14px;background:var(--accent-soft);color:var(--accent-ink);font-weight:500}
 
+/* Session list: view toggle + sort */
+.mini-seg{display:inline-flex;background:var(--fill);border-radius:8px;padding:2px;gap:2px;margin-right:2px}
+.mini-seg button{width:30px;height:26px;border-radius:6px;display:grid;place-items:center;color:var(--text-2);transition:background .15s}
+.mini-seg button svg{width:16px;height:16px}
+.mini-seg button.on{background:var(--seg-on,var(--surface));color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+body.cal-mode #sortBtn{display:none}
+@media (min-width:760px){body.cal-mode .list-pane{flex:1.3 1 0;width:auto;min-width:380px}}
+.sort-hint{font-size:.8rem;color:var(--text-2);padding:10px 8px 4px;display:flex;gap:6px;align-items:center}
+.sort-hint button{color:var(--accent);font-weight:500}
+.tb-btn[disabled]{opacity:.3;pointer-events:none}
+
+/* Calendar */
+.cal{flex:1;display:flex;flex-direction:column;min-height:0}
+.cal-head{display:flex;align-items:center;gap:4px;padding:2px 12px 8px}
+.cal-range{font-weight:600;font-size:.9667rem;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-chips{display:flex;gap:6px;overflow-x:auto;padding:0 12px 8px;scrollbar-width:none}
+.cal-chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:flex;flex-direction:column;align-items:center;min-width:48px;padding:5px 8px;border-radius:10px;font-size:.8667rem;font-weight:600;color:var(--text);background:var(--fill)}
+.chip b{font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.03em;color:var(--text-2)}
+.chip.on{background:var(--sel);color:var(--on-sel)} .chip.on b{color:var(--on-sel)}
+.chip.today:not(.on),.chip.today:not(.on) b{color:var(--red)}
+.cal-untimed{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:0 12px 8px;font-size:.8rem;color:var(--text-2)}
+.ev-chip{font-size:.8rem;font-weight:500;padding:4px 10px;border-radius:7px;background:var(--accent-soft);color:var(--accent-ink);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--sep);padding-bottom:env(safe-area-inset-bottom)}
+.cal-grid{min-width:calc(52px + var(--k) * 132px)}
+.cal-dayhead{position:sticky;top:0;z-index:4;display:grid;grid-template-columns:52px repeat(var(--k),minmax(0,1fr));background:color-mix(in srgb,var(--win) 90%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--sep)}
+.dh{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 4px;font-size:.8rem;color:var(--text-2)}
+.dh b{font-size:1.05rem;font-weight:600;color:var(--text);min-width:26px;height:26px;display:inline-grid;place-items:center;padding:0 5px;border-radius:999px}
+.dh.today b{background:var(--red);color:#fff}
+.dh.today span{color:var(--red);font-weight:600}
+.cal-body{position:relative;display:grid;grid-template-columns:52px repeat(var(--k),minmax(0,1fr));margin-top:8px}
+.cal-hours{position:relative}
+.cal-hours span{position:absolute;right:8px;transform:translateY(-50%);font-size:.7rem;color:var(--text-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cal-col{position:relative;border-left:1px solid var(--sep);background-image:repeating-linear-gradient(to bottom,var(--sep) 0 1px,transparent 1px 64px)}
+.ev{position:absolute;display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;padding:4px 7px;border-radius:7px;background:var(--accent-soft);color:var(--accent-ink);overflow:hidden;font-size:.78rem;line-height:1.25;box-shadow:0 0 0 1px var(--content);transition:filter .15s;z-index:1;cursor:pointer}
+.ev:hover{filter:brightness(.96);z-index:2}
+.ev-time{font-size:.7rem;font-weight:600;opacity:.85;display:inline-flex;gap:3px;align-items:center}
+.ev-time svg{width:10px;height:10px}
+.ev-title{font-weight:600;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.ev.short{justify-content:center}
+.ev.short .ev-title{-webkit-line-clamp:1}
+.ev-room{font-size:.7rem;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ev-done{background:var(--green-soft);color:var(--green)}
+.ev-live{background:var(--red-soft);color:var(--red)}
+.ev.ev-sel,.ev-chip.ev-sel{background:var(--sel);color:var(--on-sel)}
+.now-line{position:absolute;left:-1px;right:0;height:2px;background:var(--red);z-index:3;pointer-events:none}
+.now-line::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--red)}
+
+/* Document notes */
+.doc{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--sep);border-radius:12px;background:var(--surface);max-width:560px}
+.doc-ic{width:36px;height:44px;border-radius:7px;display:grid;place-items:end center;padding-bottom:6px;font-size:.6rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;flex:none;background:var(--fill-2);color:var(--text-2)}
+.doc-ic.k-docx,.doc-ic.k-doc,.doc-ic.k-pages,.doc-ic.k-rtf{background:var(--accent-soft);color:var(--accent-ink)}
+.doc-ic.k-pptx,.doc-ic.k-ppt,.doc-ic.k-key{background:var(--orange-soft);color:var(--orange)}
+.doc-ic.k-xlsx,.doc-ic.k-xls,.doc-ic.k-csv,.doc-ic.k-numbers{background:var(--green-soft);color:var(--green)}
+.doc-ic.k-pdf{background:var(--red-soft);color:var(--red)}
+@media (min-width:760px){.note:has(.doc) .doc{max-width:min(560px, calc(100% - 100px))}}
+.doc-info{flex:1;min-width:0}
+.doc-info b{display:block;font-weight:600;font-size:.9667rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-info span{font-size:.8rem;color:var(--text-2)}
+.doc-tx summary{cursor:pointer;color:var(--accent);font-size:.8667rem;font-weight:500;margin-top:8px;list-style:none;display:inline-block}
+.doc-tx summary::-webkit-details-marker{display:none}
+.doc-tx[open] summary{margin-bottom:6px}
+.doc-tx div{font-size:.9rem;line-height:1.5;white-space:pre-wrap;max-height:300px;overflow:auto;background:var(--fill);border-radius:10px;padding:10px 12px;max-width:68ch}
+
 /* Notes timeline */
 .notes{display:flex;flex-direction:column}
 .note{display:grid;grid-template-columns:64px 1fr;gap:0 14px;padding:12px 0;position:relative;border-top:1px solid var(--sep)}
@@ -506,6 +570,8 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
       <button id="syncBtn2" class="sync no-sidebar"></button>
       <h1 class="tb-title with-sidebar" id="listTitle"></h1>
       <div class="spacer"></div>
+      <div class="mini-seg" id="modeSeg" role="tablist" aria-label="View"><button data-mode="list" aria-label="List" title="List"></button><button data-mode="calendar" aria-label="Calendar" title="Calendar"></button></div>
+      <button id="sortBtn" class="tb-btn" aria-label="Sort sessions" title="Sort"></button>
       <button id="settingsBtn2" class="tb-btn tint no-sidebar" aria-label="Settings"></button>
       <button id="addBtn" class="tb-btn tint" aria-label="Add sessions" title="Add sessions  ⌘N"></button>
     </header>
@@ -518,6 +584,7 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
       <label class="search"><span id="searchIcon"></span><input id="search" type="search" placeholder="Search" autocomplete="off" aria-label="Search sessions and notes"><kbd>⌘F</kbd></label>
     </div>
     <div id="list" class="scroll"></div>
+    <div id="calendar" class="cal hidden"></div>
   </section>
 
   <section id="detailPane" class="detail-pane pane" aria-label="Session">
@@ -535,6 +602,7 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
         <div class="bar">
           <button class="tool" id="photoBtn" aria-label="Add photo" title="Add photo"></button>
           <button class="tool" id="videoBtn" aria-label="Add video" title="Add video"></button>
+          <button class="tool" id="attachBtn" aria-label="Attach a document" title="Attach a document (Word, PDF, PowerPoint, Excel, text)"></button>
           <div class="field">
             <textarea id="noteInput" rows="1" placeholder="Add a note" enterkeyhint="send" aria-label="Note"></textarea>
             <button id="starToggle" class="in-btn" aria-label="Mark as key point" title="Mark as key point"></button>
@@ -550,6 +618,7 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
 <div id="toast" role="status" aria-live="polite"></div>
 <input id="photoInput" type="file" accept="image/*" multiple hidden>
 <input id="videoInput" type="file" accept="video/*" hidden>
+<input id="docInput" type="file" multiple hidden>
 <input id="fileInput" type="file" hidden>
 <script>
 'use strict';
@@ -639,7 +708,7 @@ const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessio
 let state = emptyState();
 let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
-const ui = { view: LS.get('cc.view', 'today'), descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
+const ui = { view: LS.get('cc.view', 'today'), mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
 const saveSettings = () => LS.set('cc.settings', settings);
 const saveDrive = () => LS.set('cc.drive', drive);
 
@@ -809,7 +878,7 @@ function filteredSessions() {
   const test = viewDef().test;
   return sessionsArr()
     .filter(test)
-    .filter(s => !q || [s.title, s.speaker, s.room, s.description, ...liveNotes(s).map(n => n.text)].join(' ').toLowerCase().includes(q))
+    .filter(s => !q || [s.title, s.speaker, s.room, s.description, ...liveNotes(s).map(n => [n.text, n.fileName, n.docText].filter(Boolean).join(' '))].join(' ').toLowerCase().includes(q))
     .sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
 }
 
@@ -839,8 +908,12 @@ function renderList() {
   const vd = viewDef();
   const list = $('#list');
   const all = sessionsArr();
-  const items = filteredSessions();
+  const items = listedSessions();
   $('#listTitle').innerHTML = `${esc(vd.label)}`;
+  $$('#modeSeg button').forEach(b => { b.classList.toggle('on', b.dataset.mode === ui.mode); b.setAttribute('aria-selected', b.dataset.mode === ui.mode); });
+  const cal = ui.mode === 'calendar';
+  list.classList.toggle('hidden', cal); $('#calendar').classList.toggle('hidden', !cal);
+  if (cal) { renderCalendar(); return; }
   if (!all.length) {
     list.innerHTML = matchMedia('(min-width:760px)').matches
       ? `<div class="empty"><p>No sessions yet.</p></div>`
@@ -858,17 +931,19 @@ function renderList() {
     list.innerHTML = `<div class="empty"><p>${ui.q ? 'No matches.' : ui.view === 'attended' ? 'Sessions you wrap up appear here, with their briefs.' : ui.view === 'todo' ? 'You’ve attended everything.' : 'Nothing here.'}</p></div>`;
     return;
   }
+  const byTime = ui.sort === 'time';
   const groups = new Map();
-  for (const s of items) { const k = s.date || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); }
-  const showDayHeads = !ui.view.startsWith('day:') && ui.view !== 'today';
-  let html = '';
+  if (byTime) for (const s of items) { const k = s.date || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); }
+  else groups.set('', items);
+  const showDayHeads = byTime && !ui.view.startsWith('day:') && ui.view !== 'today';
+  let html = byTime && !ui.sortRev ? '' : `<div class="sort-hint"><span>Sorted by ${esc(SORTS[ui.sort]?.[0] || 'Time')}${ui.sortRev ? ', reversed' : ''}</span><span class="spacer"></span><button id="sortReset">Sort by Time</button></div>`;
   if (ui.view === 'attended' && items.filter(s => s.brief).length >= 2) html += `<div style="padding:6px 4px 4px"><button class="btn btn-tinted btn-sm" style="width:100%" id="recapBtn">${I.book} Conference recap</button></div>`;
   for (const [date, ss] of groups) {
     if (showDayHeads) {
       const att = ss.filter(s => s.attended).length;
       html += `<div class="day-h"><span>${date ? esc(fmtDate(date)) : 'No date'}</span><span>${att ? `${att} of ${ss.length} attended` : ss.length}</span></div>`;
     }
-    for (const s of ss) html += rowHTML(s);
+    for (const s of ss) html += rowHTML(s, !byTime);
   }
   list.innerHTML = html;
   $$('.row', list).forEach(r => {
@@ -877,10 +952,12 @@ function renderList() {
     $('.chk', r).onclick = (e) => { e.stopPropagation(); toggleAttended(S(r.dataset.id)); };
   });
   $('#recapBtn', list)?.addEventListener('click', openRecap);
+  $('#sortReset', list)?.addEventListener('click', () => { ui.sort = 'time'; ui.sortRev = false; LS.set('cc.sort', 'time'); LS.set('cc.sortRev', false); renderList(); });
 }
-function rowHTML(s) {
+function rowHTML(s, withDay = false) {
   const n = liveNotes(s).length, live = isLive(s) && !s.attended, recording = rec.active && rec.sessionId === s.id;
-  const time = s.start ? fmtTime(s.start) : '';
+  const day = withDay && s.date ? fmtDate(s.date, s.start ? { weekday: 'short' } : { month: 'short', day: 'numeric' }) : '';
+  const time = [day, s.start ? fmtTime(s.start) : ''].filter(Boolean).join(' ');
   return `<div class="row ${s.id === ui.selected ? 'sel' : ''} ${s.attended ? 'done' : ''}" data-id="${s.id}" role="button" tabindex="-1" aria-current="${s.id === ui.selected}">
     <span class="chk ${s.attended ? 'done' : live ? 'live' : ''}" role="checkbox" aria-checked="${!!s.attended}" title="${s.attended ? 'Attended — click to undo' : 'Mark as attended'}">${s.attended ? I.circleCheck : live ? I.circleLive : I.circle}</span>
     <div class="row-main">
@@ -961,17 +1038,18 @@ function renderDetail() {
     ${busy ? `<div class="sec-h"><h3>Brief</h3></div><div class="brief-pending"><span class="spin"></span>Reading your notes and writing the brief…</div>` : s.brief ? renderBrief(s) : ''}
     <div class="sec-h"><h3>Notes</h3><small>${notes.length || ''}</small></div>
     <div class="notes">${notes.length ? notes.map(renderNote).join('') : `
-      <div class="notes-empty"><b>Capture the talk your way</b>Type below, add a photo of a slide, or record the speaker for a live transcript.
+      <div class="notes-empty"><b>Capture the talk your way</b>Type below, add a photo of a slide, attach the deck or a handout, or record the speaker for a live transcript.
         <div class="ways">
           <span><i>${I.text}</i>Type</span>
           <span data-way="photo" style="cursor:pointer"><i>${I.camera}</i>Photo</span>
           <span data-way="video" style="cursor:pointer"><i>${I.video}</i>Video</span>
+          <span data-way="file" style="cursor:pointer"><i>${I.clip}</i>Document</span>
           <span data-way="rec" style="cursor:pointer"><i style="color:var(--red)">${I.mic}</i>Record</span>
         </div></div>`}
     </div>
   </div>`;
   $('#dDesc', det)?.addEventListener('click', () => { ui.descOpen = !ui.descOpen; renderDetail(); });
-  $$('[data-way]', det).forEach(w => w.onclick = () => ({ photo: () => $('#photoBtn').click(), video: () => $('#videoBtn').click(), rec: () => $('#micBtn').click() })[w.dataset.way]());
+  $$('[data-way]', det).forEach(w => w.onclick = () => ({ photo: () => $('#photoBtn').click(), video: () => $('#videoBtn').click(), file: () => $('#attachBtn').click(), rec: () => $('#micBtn').click() })[w.dataset.way]());
   bindNotes(det, s);
   hydrateMedia(det);
   updateComposer();
@@ -1004,10 +1082,14 @@ function renderNote(n) {
   if (n.type === 'photo') media = `<div class="note-media"><img data-media="${n.mediaId}" alt="${esc(n.text || 'Photo')}"></div>`;
   if (n.type === 'video') media = `<div class="note-media"><video data-media="${n.mediaId}" controls playsinline preload="metadata" ${n.thumb ? `poster="${n.thumb}"` : ''}></video></div>`;
   if (n.type === 'audio' && n.mediaId) media = `<div class="note-media audio"><audio data-media="${n.mediaId}" controls preload="metadata"></audio></div>`;
+  if (n.type === 'doc') media = `<div class="doc"><span class="doc-ic k-${esc(n.ext)}" aria-hidden="true">${esc((n.ext || 'file').slice(0, 4))}</span><div class="doc-info"><b title="${esc(n.fileName)}">${esc(n.fileName)}</b><span>${esc([n.kind, n.size ? fmtSize(n.size) : '', n.meta].filter(Boolean).join(' · '))}</span></div><button class="btn btn-sm btn-gray" data-n="open">Open</button></div>`;
   let text;
   if (editing) text = `<textarea class="edit-area" id="editArea" aria-label="Edit note">${esc(n.text || '')}</textarea>
       <div class="edit-row"><button class="btn btn-sm btn-gray" data-e="cancel">Cancel</button><button class="btn btn-sm btn-primary" data-e="save">Save</button></div>`;
   else if (n.type === 'text') text = `<div class="note-text">${esc(n.text)}</div>`;
+  else if (n.type === 'doc') text = (n.text ? `<div class="note-cap">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">Add a note about this document…</div>`)
+      + (n.docText ? `<details class="doc-tx"><summary>Show text${n.truncated ? ' (first part)' : ''}</summary><div>${esc(n.docText.slice(0, 20000))}${n.docText.length > 20000 ? '\n…' : ''}</div></details>`
+        : n.ext === 'pdf' ? '' : `<div class="note-cap" style="color:var(--text-3)">Copilot can’t read this file type, so the brief uses only its name and your note.</div>`);
   else if (n.type === 'audio') text = n.text ? `<div class="tx-label">${I.wave} Transcript</div><div class="transcript">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">No transcript was captured. Add a summary…</div>`;
   else text = n.text ? `<div class="note-cap">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">Add a caption…</div>`;
   const dur = n.duration ? `${Math.floor(n.duration / 60)}:${pad(Math.round(n.duration % 60))}` : '';
@@ -1026,6 +1108,7 @@ function bindNotes(root, s) {
     const n = s.notes.find(x => x.id === el.dataset.note);
     $$('[data-n]', el).forEach(b => b.onclick = async () => {
       const a = b.dataset.n;
+      if (a === 'open') return openDoc(n);
       if (a === 'star') { n.star = !n.star; n.updatedAt = now(); touch(s); renderDetail(); }
       if (a === 'edit') { ui.editing = n.id; renderDetail(); const ta = $('#editArea'); ta?.focus(); ta?.setSelectionRange(ta.value.length, ta.value.length); }
       if (a === 'del') {
@@ -1049,6 +1132,214 @@ function openViewer(src) {
   const v = document.createElement('div'); v.className = 'viewer';
   v.innerHTML = `<img src="${src}" alt=""><button aria-label="Close">${I.x}</button>`;
   v.onclick = () => v.remove(); document.body.appendChild(v);
+}
+
+Object.assign(I, {
+  clip: P('<path d="M20 11.5 12.4 19a5 5 0 0 1-7.1-7.1l8.1-8.1a3.3 3.3 0 0 1 4.7 4.7l-8 8a1.7 1.7 0 0 1-2.4-2.4l7.3-7.3"/>'),
+  sort: P('<path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5"/>'),
+});
+let calRT;
+/* =========================================================
+   Sorting the session list
+   ========================================================= */
+const byText = (k) => (a, b) => (a[k] || '￿').localeCompare(b[k] || '￿', undefined, { sensitivity: 'base' }) || (sortKey(a) < sortKey(b) ? -1 : 1);
+const SORTS = {
+  time: ['Time', (a, b) => sortKey(a) < sortKey(b) ? -1 : 1],
+  title: ['Title', byText('title')],
+  speaker: ['Speaker', byText('speaker')],
+  room: ['Location', byText('room')],
+  status: ['Status', (a, b) => (a.attended - b.attended) || ((b.brief ? 1 : 0) - (a.brief ? 1 : 0)) || (sortKey(a) < sortKey(b) ? -1 : 1)],
+  edited: ['Recently Edited', (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)],
+};
+function listedSessions() {
+  const items = filteredSessions();
+  const cmp = (SORTS[ui.sort] || SORTS.time)[1];
+  items.sort(cmp);
+  if (ui.sortRev) items.reverse();
+  return items;
+}
+function sortMenu(anchor) {
+  const blank = '<svg viewBox="0 0 24 24"></svg>';
+  openMenu(anchor, [
+    ...Object.entries(SORTS).map(([k, [label]]) => ({ label, icon: ui.sort === k ? I.check : blank, run: () => { ui.sort = k; LS.set('cc.sort', k); renderList(); } })),
+    { sep: true },
+    { label: ui.sort === 'time' || ui.sort === 'edited' ? 'Latest First' : 'Z to A', icon: ui.sortRev ? I.check : blank, run: () => { ui.sortRev = !ui.sortRev; LS.set('cc.sortRev', ui.sortRev); renderList(); } },
+  ]);
+}
+
+/* =========================================================
+   Calendar view
+   ========================================================= */
+const HOUR_PX = 64;
+const hm2m = (hm) => { const [h, m] = String(hm).split(':').map(Number); return h * 60 + (m || 0); };
+function setMode(m) {
+  ui.mode = m; LS.set('cc.mode', m);
+  document.body.classList.toggle('cal-mode', m === 'calendar');
+  renderList();
+}
+function calLayout(events) {
+  // Side-by-side columns for overlapping sessions, like Calendar
+  const out = []; let cluster = [], cols = [], clusterEnd = -1;
+  const flush = () => { cluster.forEach(e => e.n = cols.length); out.push(...cluster); cluster = []; cols = []; };
+  for (const e of events) {
+    if (cluster.length && e.s >= clusterEnd) flush();
+    let c = cols.findIndex(end => end <= e.s);
+    if (c < 0) { c = cols.length; cols.push(0); }
+    cols[c] = e.e; e.c = c; cluster.push(e); clusterEnd = Math.max(clusterEnd, e.e);
+  }
+  if (cluster.length) flush();
+  return out;
+}
+function renderCalendar() {
+  const el = $('#calendar');
+  const items = filteredSessions();
+  if (!sessionsArr().length) { el.innerHTML = `<div class="empty"><p>No sessions yet.</p><button class="btn btn-tinted btn-sm" data-go="sheet">${I.plus} Add sessions</button></div>`; bindGo(el); return; }
+  const ds = ui.view.startsWith('day:') ? [ui.view.slice(4)] : [...new Set(items.map(s => s.date).filter(Boolean))].sort();
+  const untimed = items.filter(s => !s.date || !s.start);
+  if (!ds.length) { el.innerHTML = `<div class="empty"><p>${ui.q ? 'No matches.' : 'None of these sessions has a date yet.'}</p></div>`; return; }
+  const width = el.clientWidth || $('#listPane').clientWidth || 360;
+  const k = Math.max(1, Math.min(ds.length, Math.floor((width - 52) / 200)));
+  let idx = ds.indexOf(ui.calDay); if (idx < 0) idx = Math.max(0, ds.indexOf(todayISO()));
+  const start = Math.max(0, Math.min(idx, ds.length - k));
+  const vis = ds.slice(start, start + k);
+  ui.calDay = vis[0];
+  const timed = items.filter(s => vis.includes(s.date) && s.start);
+  const endOf = (s) => s.end && hm2m(s.end) > hm2m(s.start) ? hm2m(s.end) : hm2m(s.start) + 45;
+  const h0 = Math.min(8, ...timed.map(s => Math.floor(hm2m(s.start) / 60)));
+  const h1 = Math.max(18, ...timed.map(s => Math.ceil(endOf(s) / 60)));
+  const hours = Array.from({ length: h1 - h0 }, (_, i) => h0 + i);
+  const label = vis.length === 1 ? fmtDate(vis[0], { weekday: 'long', month: 'long', day: 'numeric' }) : `${fmtDate(vis[0], { weekday: 'short', month: 'short', day: 'numeric' })} – ${fmtDate(vis.at(-1), { weekday: 'short', month: 'short', day: 'numeric' })}`;
+  const today = todayISO(); const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const cols = vis.map(d => {
+    const evs = calLayout(timed.filter(s => s.date === d).map(s => ({ s: hm2m(s.start), e: endOf(s), x: s })).sort((a, b) => a.s - b.s || b.e - a.e));
+    const blocks = evs.map(({ s: st, e: en, c, n, x }) => {
+      const top = (st - h0 * 60) / 60 * HOUR_PX, h = Math.max(22, (en - st) / 60 * HOUR_PX - 2);
+      const cls = x.id === ui.selected ? 'ev-sel' : x.attended ? 'ev-done' : isLive(x) ? 'ev-live' : '';
+      const short = h < 44;
+      return `<button class="ev ${cls} ${short ? 'short' : ''}" data-id="${x.id}" style="top:${top}px;height:${h}px;left:calc(${c} * 100% / ${n} + 2px);width:calc(100% / ${n} - 4px)" title="${esc(`${fmtTime(x.start)}${x.end ? '–' + fmtTime(x.end) : ''}  ${x.title}${x.room ? '\n' + x.room : ''}`)}">
+        ${short ? '' : `<span class="ev-time">${esc(fmtTime(x.start))}${x.attended ? ' · ' + I.check : ''}</span>`}<span class="ev-title">${esc(x.title)}</span>${!short && x.room && h > 80 ? `<span class="ev-room">${esc(x.room)}</span>` : ''}
+      </button>`;
+    }).join('');
+    const nowLine = d === today && nowMin >= h0 * 60 && nowMin <= h1 * 60 ? `<div class="now-line" style="top:${(nowMin - h0 * 60) / 60 * HOUR_PX}px"></div>` : '';
+    return `<div class="cal-col" data-date="${d}">${blocks}${nowLine}</div>`;
+  }).join('');
+  const prevScroll = $('#calScroll', el)?.scrollTop;
+  el.innerHTML = `<div class="cal-head">
+      <button class="tb-btn" id="calPrev" aria-label="Previous day" ${start ? '' : 'disabled'}>${I.left}</button>
+      <div class="cal-range">${esc(label)}</div>
+      <button class="tb-btn" id="calNext" aria-label="Next day" ${start + k < ds.length ? '' : 'disabled'}>${I.right}</button>
+      ${ds.includes(today) && !vis.includes(today) ? `<button class="btn btn-gray btn-sm" id="calToday">Today</button>` : ''}
+    </div>
+    ${k < ds.length ? `<div class="cal-chips">${ds.map(d => `<button class="chip ${vis.includes(d) ? 'on' : ''} ${d === today ? 'today' : ''}" data-day="${d}"><b>${esc(fmtDate(d, { weekday: 'short' }))}</b>${esc(fmtDate(d, { day: 'numeric' }))}</button>`).join('')}</div>` : ''}
+    ${untimed.length ? `<div class="cal-untimed"><span>No time</span>${untimed.slice(0, 12).map(s => `<button class="ev-chip ${s.id === ui.selected ? 'ev-sel' : ''}" data-id="${s.id}">${esc(s.title)}</button>`).join('')}</div>` : ''}
+    <div class="cal-scroll" id="calScroll">
+      <div class="cal-grid" style="--k:${vis.length}">
+        <div class="cal-dayhead"><span></span>${vis.map(d => `<div class="dh ${d === today ? 'today' : ''}"><span>${esc(fmtDate(d, { weekday: 'short' }))}</span><b>${esc(fmtDate(d, { day: 'numeric' }))}</b></div>`).join('')}</div>
+        <div class="cal-body" style="height:${hours.length * HOUR_PX}px">
+          <div class="cal-hours">${hours.map((h, i) => `<span style="top:${i * HOUR_PX}px">${i ? esc(new Date(2000, 0, 1, h).toLocaleTimeString([], { hour: 'numeric' })) : ''}</span>`).join('')}</div>
+          ${cols}
+        </div>
+      </div>
+    </div>`;
+  const sc = $('#calScroll', el);
+  if (prevScroll != null && ui.calKey === vis.join()) sc.scrollTop = prevScroll;
+  else {
+    const first = timed.length ? Math.min(...timed.map(s => hm2m(s.start))) : 9 * 60;
+    const target = vis.includes(today) && nowMin > first ? nowMin - 60 : first - 20;
+    sc.scrollTop = Math.max(0, (target - h0 * 60) / 60 * HOUR_PX);
+  }
+  ui.calKey = vis.join();
+  const go = (d) => { ui.calDay = d; renderCalendar(); };
+  $('#calPrev', el).onclick = () => go(ds[Math.max(0, start - 1)]);
+  $('#calNext', el).onclick = () => go(ds[Math.min(ds.length - 1, start + 1)]);
+  $('#calToday', el)?.addEventListener('click', () => go(today));
+  $$('[data-day]', el).forEach(b => b.onclick = () => go(b.dataset.day));
+  $$('[data-id]', el).forEach(b => {
+    b.onclick = () => select(b.dataset.id);
+    b.oncontextmenu = (e) => { e.preventDefault(); select(b.dataset.id, false); sessionMenu(null, { x: e.clientX, y: e.clientY }); };
+  });
+}
+
+/* =========================================================
+   Documents as notes (Word, PDF, PowerPoint, Excel, text…)
+   ========================================================= */
+const DOC_KINDS = [
+  [/\.docx$/i, 'Word', 'docx'], [/\.doc$/i, 'Word', 'doc'], [/\.pdf$/i, 'PDF', 'pdf'],
+  [/\.pptx$/i, 'PowerPoint', 'pptx'], [/\.ppt$/i, 'PowerPoint', 'ppt'], [/\.(xlsx|xlsm)$/i, 'Excel', 'xlsx'], [/\.xls$/i, 'Excel', 'xls'],
+  [/\.csv$/i, 'CSV', 'csv'], [/\.tsv$/i, 'CSV', 'csv'], [/\.(md|markdown)$/i, 'Markdown', 'md'], [/\.txt$/i, 'Text', 'txt'],
+  [/\.rtf$/i, 'Rich Text', 'rtf'], [/\.json$/i, 'JSON', 'json'], [/\.html?$/i, 'Web Page', 'html'],
+  [/\.key$/i, 'Keynote', 'key'], [/\.pages$/i, 'Pages', 'pages'], [/\.numbers$/i, 'Numbers', 'numbers'],
+];
+function docKind(f) {
+  const name = f.name || '';
+  for (const [re, label, ext] of DOC_KINDS) if (re.test(name)) return { label, ext };
+  if (f.type === 'application/pdf') return { label: 'PDF', ext: 'pdf' };
+  if (f.type.startsWith('text/')) return { label: 'Text', ext: 'txt' };
+  return { label: 'File', ext: (name.match(/\.(\w{1,6})$/)?.[1] || 'file').toLowerCase() };
+}
+const fmtSize = (b) => b < 1024 ? b + ' B' : b < 1048576 ? Math.round(b / 1024) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
+const DOC_TEXT_MAX = 120000;
+// Returns { text, meta } where meta is e.g. "12 slides"
+async function extractDocText(file, kind) {
+  const paras = (doc, p, t) => tags(doc, p).map(x => tags(x, t).map(n => n.textContent).join('')).filter(s => s.trim());
+  switch (kind.ext) {
+    case 'txt': case 'md': case 'csv': case 'json': return { text: await file.text() };
+    case 'html': return { text: new DOMParser().parseFromString(await file.text(), 'text/html').body?.innerText || '' };
+    case 'rtf': return { text: (await file.text()).replace(/\\par[d]?/g, '\n').replace(/\{\\\*[^}]*\}|\\[a-z]+-?\d* ?|[{}]/gi, '').replace(/\n{3,}/g, '\n\n').trim() };
+    case 'docx': {
+      const z = await readZip(file); const doc = xml(await z.text('word/document.xml') || '<w/>');
+      const lines = paras(doc, 'p', 't');
+      return { text: lines.join('\n'), meta: `${lines.join(' ').split(/\s+/).filter(Boolean).length.toLocaleString()} words` };
+    }
+    case 'pptx': {
+      const z = await readZip(file);
+      const num = (n) => +n.match(/(\d+)\.xml$/)[1];
+      const slides = z.names().filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a, b) => num(a) - num(b));
+      const out = [];
+      for (const sl of slides) {
+        const lines = paras(xml(await z.text(sl)), 'p', 't');
+        const notesPath = `ppt/notesSlides/notesSlide${num(sl)}.xml`;
+        const notes = z.has(notesPath) ? paras(xml(await z.text(notesPath)), 'p', 't').filter(l => !/^\d+$/.test(l.trim())) : [];
+        out.push(`Slide ${num(sl)}\n${lines.join('\n')}${notes.length ? `\nSpeaker notes: ${notes.join(' ')}` : ''}`);
+      }
+      return { text: out.join('\n\n'), meta: `${slides.length} slide${slides.length === 1 ? '' : 's'}` };
+    }
+    case 'xlsx': {
+      const sheets = await readXlsx(file);
+      const text = sheets.map(sh => `Sheet: ${sh.name}\n` + sh.rows.slice(0, 500).map(r => r.map(c => typeof c === 'number' ? String(+c.toFixed(4)) : c).join('\t')).join('\n')).join('\n\n');
+      return { text, meta: `${sheets.length} sheet${sheets.length === 1 ? '' : 's'}` };
+    }
+    default: return { text: '' };
+  }
+}
+async function onFiles(files) {
+  const s = S(ui.selected); if (!s || !files.length) return;
+  const imgs = files.filter(f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
+  const vids = files.filter(f => f.type.startsWith('video/'));
+  const docs = files.filter(f => !imgs.includes(f) && !vids.includes(f));
+  if (imgs.length) await onPhotos(imgs);
+  for (const v of vids) await onVideo(v);
+  for (const f of docs) {
+    const kind = docKind(f);
+    if (f.size > 50 * 1048576) toast(`${f.name} is large; syncing it to Drive may take a while.`);
+    let ex = { text: '' };
+    try { ex = await extractDocText(f, kind); } catch (e) { console.warn('extract', e); }
+    const mediaId = uid();
+    await DB.put('media', mediaId, new Blob([f], { type: f.type || 'application/octet-stream' }));
+    const text = (ex.text || '').replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').trim();
+    addNote(s, { type: 'doc', mediaId, mime: f.type || 'application/octet-stream', fileName: f.name || 'Document', size: f.size, kind: kind.label, ext: kind.ext, meta: ex.meta || '', docText: text.slice(0, DOC_TEXT_MAX), truncated: text.length > DOC_TEXT_MAX });
+    toast(`Added ${f.name}`);
+  }
+  renderDetail(); renderList(); scrollNotesEnd();
+}
+async function openDoc(n) {
+  const blob = await getMediaBlob(n);
+  if (!blob) return toast(n.driveId ? 'Connect Google Drive in Settings to open this file here.' : 'This file is on another device and hasn’t synced yet.');
+  const url = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: n.mime }));
+  const viewable = /^(pdf|txt|md|csv|json|html)$/.test(n.ext);
+  if (viewable && !isTouch) window.open(url, '_blank', 'noopener');
+  else { const a = document.createElement('a'); a.href = url; a.download = n.fileName || 'document'; if (viewable) a.target = '_blank'; document.body.appendChild(a); a.click(); a.remove(); }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 /* ---------- Composer ---------- */
@@ -1336,7 +1627,7 @@ const BRIEF_SCHEMA = {
 };
 const BRIEF_SYSTEM = `You are Conference Copilot. You turn one attendee's raw notes from a conference session into a short, useful brief they will reread later.
 
-The notes mix several sources: things the attendee typed, photos of slides or whiteboards, frames from short videos, and automatic speech-to-text transcripts of the speaker. Transcripts contain recognition errors, so infer the intended words from context and never quote garbled text. Notes marked as key points were flagged by the attendee as important, so give them extra weight. Slides often carry the clearest statement of the speaker's argument; read them carefully.
+The notes mix several sources: things the attendee typed, photos of slides or whiteboards, frames from short videos, automatic speech-to-text transcripts of the speaker, and documents the attendee attached (the slide deck, a handout, a paper or a spreadsheet). Transcripts contain recognition errors, so infer the intended words from context and never quote garbled text. Notes marked as key points were flagged by the attendee as important, so give them extra weight. Slides often carry the clearest statement of the speaker's argument; read them carefully. Attached documents give detail and context: build the brief around what this session covered, and use the documents to get facts, figures and terminology right.
 
 Ground everything in the notes. Don't add facts, numbers or claims that the notes don't support. When the notes are thin, write a short brief rather than padding it, and leave a list empty if nothing fits. Write in the language the notes are written in.`;
 
@@ -1348,11 +1639,22 @@ async function generateBrief(s) {
     let brief;
     if (settings.apiKey) {
       const content = [{ type: 'text', text: `Session: ${s.title}\n${s.speaker ? 'Speaker: ' + s.speaker + '\n' : ''}${s.date ? 'Date: ' + s.date + (s.start ? ' ' + s.start : '') + '\n' : ''}${s.room ? 'Room: ' + s.room + '\n' : ''}${s.description ? 'Abstract: ' + s.description + '\n' : ''}\nThe attendee's notes, in order:` }];
-      let images = 0;
+      let images = 0, pdfs = 0, docBudget = 150000;
       for (const n of notes) {
         const head = `[${fmtClock(n.ts)}]${n.star ? ' [KEY POINT]' : ''}`;
         if (n.type === 'text') content.push({ type: 'text', text: `${head} Typed note: ${n.text}` });
         else if (n.type === 'audio') content.push({ type: 'text', text: n.text ? `${head} Speech-to-text transcript of the speaker (${Math.round(n.duration / 60) || '<1'} min):\n${n.text}` : `${head} An audio recording with no transcript.` });
+        else if (n.type === 'doc') {
+          const cap = n.text ? ` (attendee's note: ${n.text})` : '';
+          if (n.ext === 'pdf' && pdfs < 3 && (n.size || 0) < 24 * 1048576) {
+            const b = await getMediaBlob(n);
+            if (b) { content.push({ type: 'text', text: `${head} PDF the attendee attached: ${n.fileName}${cap}` }, { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: await blobToB64(b) } }); pdfs++; continue; }
+          }
+          if (n.docText && docBudget > 0) {
+            const t = n.docText.slice(0, Math.min(40000, docBudget)); docBudget -= t.length;
+            content.push({ type: 'text', text: `${head} ${n.kind} document the attendee attached: ${n.fileName}${cap}\n<document>\n${t}\n</document>` });
+          } else content.push({ type: 'text', text: `${head} The attendee attached a file that couldn't be read: ${n.fileName}${cap}` });
+        }
         else if (n.type === 'photo' || n.type === 'video') {
           let img = null;
           if (images < 20) {
@@ -1459,6 +1761,7 @@ async function readZip(file) {
     p += 46 + nlen + elen + clen;
   }
   return {
+    names: () => [...entries.keys()],
     has: (name) => entries.has(name),
     async text(name) {
       const e = entries.get(name); if (!e) return null;
@@ -1846,7 +2149,7 @@ async function uploadPendingMedia() {
       if (!blob) continue;
       setSync('busy', `Uploading ${n.type}…`);
       const safe = (s.title || 'session').replace(/[\\/:*?"<>|]+/g, '').slice(0, 60);
-      const r = await resumableUpload({ name: `${safe} — ${n.type} ${new Date(n.ts).toISOString().slice(0, 16).replace('T', ' ')}.${ext(n.mime || blob.type)}`, parents: [drive.folderId], appProperties: { ccMedia: n.mediaId } }, blob);
+      const r = await resumableUpload({ name: n.type === 'doc' ? `${safe} — ${n.fileName}` : `${safe} — ${n.type} ${new Date(n.ts).toISOString().slice(0, 16).replace('T', ' ')}.${ext(n.mime || blob.type)}`, parents: [drive.folderId], appProperties: { ccMedia: n.mediaId } }, blob);
       n.driveId = r.id; n.updatedAt = now(); s.updatedAt = now(); state.updatedAt = now();
     }
   }
@@ -2287,6 +2590,12 @@ function bindStatic() {
   $('#starToggle').onclick = () => { ui.composeStar = !ui.composeStar; updateComposer(); ta.focus(); };
   $('#photoBtn').onclick = () => { const i = $('#photoInput'); i.value = ''; i.click(); };
   $('#videoBtn').onclick = () => { const i = $('#videoInput'); i.value = ''; i.click(); };
+  $('#attachBtn').innerHTML = I.clip;
+  $('#attachBtn').onclick = () => { const i = $('#docInput'); i.value = ''; i.click(); };
+  $('#docInput').onchange = (e) => onFiles([...e.target.files]);
+  $('#sortBtn').innerHTML = I.sort; $('#sortBtn').onclick = (e) => sortMenu(e.currentTarget);
+  $$('#modeSeg button').forEach(b => { b.innerHTML = b.dataset.mode === 'list' ? I.list : I.calendar; b.onclick = () => setMode(b.dataset.mode); });
+  new ResizeObserver(() => { if (ui.mode === 'calendar') { clearTimeout(calRT); calRT = setTimeout(renderCalendar, 80); } }).observe($('#listPane'));
   $('#photoInput').onchange = (e) => onPhotos([...e.target.files]);
   $('#videoInput').onchange = (e) => onVideo(e.target.files[0]);
   $('#micBtn').onclick = () => rec.active ? stopRecording(true) : startRecording();
@@ -2297,10 +2606,9 @@ function bindStatic() {
   dp.addEventListener('dragover', e => { if (S(ui.selected) && e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
   dp.addEventListener('drop', e => {
     const files = [...e.dataTransfer.files];
-    if (!S(ui.selected) || !files.some(f => /^(image|video)\//.test(f.type))) return;
+    if (!S(ui.selected) || !files.length) return;
     e.preventDefault();
-    const imgs = files.filter(f => f.type.startsWith('image/')); if (imgs.length) onPhotos(imgs);
-    files.filter(f => f.type.startsWith('video/')).forEach(onVideo);
+    onFiles(files);
   });
 
   // Keyboard: Mac conventions
@@ -2312,7 +2620,7 @@ function bindStatic() {
     if (mod && e.key === 'Enter') { const s = S(ui.selected); if (s && liveNotes(s).length) { e.preventDefault(); generateBrief(s); } return; }
     if (typing()) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      const list = filteredSessions(); if (!list.length) return;
+      const list = ui.mode === 'calendar' ? filteredSessions() : listedSessions(); if (!list.length) return;
       e.preventDefault();
       const i = list.findIndex(s => s.id === ui.selected);
       const next = list[Math.max(0, Math.min(list.length - 1, i < 0 ? 0 : i + (e.key === 'ArrowDown' ? 1 : -1)))];
@@ -2335,6 +2643,7 @@ async function boot() {
   catch { toast('Local storage is unavailable (private browsing?). Notes won’t be kept.', false, 6000); }
   if (ui.view === 'today' && !sessionsArr().some(VIEWS.today.test)) ui.view = 'all';
   if (ui.view.startsWith('day:') && !days().includes(ui.view.slice(4))) ui.view = 'all';
+  document.body.classList.toggle('cal-mode', ui.mode === 'calendar');
   const m = location.hash.match(/s=([\w]+)/);
   if (m && S(m[1])) { ui.selected = m[1]; document.body.classList.add('show-detail'); }
   else if (matchMedia('(min-width:760px)').matches) { const list = filteredSessions(); ui.selected = (list.find(isLive) || list.find(s => !s.attended) || list[0])?.id || null; }
