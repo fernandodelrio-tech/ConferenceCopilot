@@ -376,6 +376,10 @@ body.resizing iframe,body.resizing video{pointer-events:none}
 .b-quote{--dot:var(--purple)} .b-quote h4{color:var(--purple)} .b-quote li{font-style:italic;color:var(--text-2)}
 .b-act{--dot:var(--orange)} .b-act h4{color:var(--orange)}
 .b-q{--dot:var(--teal)} .b-q h4{color:var(--teal)}
+.wr-ready{text-align:center;max-width:440px;margin:0 auto;padding:28px 8px 20px}
+.wr-ready h2{margin:6px 0 8px;font-size:1.35rem;letter-spacing:-.01em}
+.wr-ready p{margin:0 0 10px}
+.wr-ready .btn{margin-top:12px}
 .brief-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:22px;padding-top:14px;border-top:1px solid var(--sep)}
 .brief-foot small{color:var(--text-3);font-size:.8rem;margin-left:auto}
 .brief.busy>*:not(.ask-wrap):not(.brief-foot){opacity:.5;transition:opacity .3s}
@@ -2675,10 +2679,27 @@ function openWrap(kind, key) {
   const sh = openSheet({ title: label, left: 'Close', right: 'Export', cls: 'wide', body: `<div id="wrapBody"></div>`,
     onRight: (api) => { const rp = reportOf(kind, key); rp && exportMenu($('[data-act=right]', api.el), rp); } });
   const body = $('#wrapBody', sh.el);
+  const what = kind === 'day' ? 'Wrap-up' : 'Takeaways';
+  let busy = false;
+  // Nothing is generated until the user asks: an AI briefing sends every note of the day or conference to Claude.
+  const ready = () => {
+    sh.setRight('Export', false);
+    const items = sessionsArr().filter(s => (kind === 'conf' || s.date === key) && (s.brief || liveNotes(s).length));
+    if (!items.length) { body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">${kind === 'day' ? 'Nothing to wrap up yet: add notes or finish a session on this day.' : 'Nothing to summarise yet: take notes or finish a session first.'}</p>`; return; }
+    const briefed = items.filter(s => s.brief && !s.informal).length, quick = items.filter(s => s.informal).length, raw = items.length - briefed - quick;
+    const parts = [briefed && `${briefed} session brief${briefed === 1 ? '' : 's'}`, raw && `${raw} session${raw === 1 ? '' : 's'} with notes only`, quick && `${quick} quick note${quick === 1 ? '' : 's'}`].filter(Boolean);
+    body.innerHTML = `<div class="wr-ready"><div class="empty-art">${I.sparkles}</div>
+      <h2>${kind === 'day' ? `Wrap up ${fmtDate(key, { weekday: 'long' })}` : 'Pull the conference together'}</h2>
+      <p class="muted">Copilot will combine ${esc(parts.join(', ').replace(/, ([^,]*)$/, ' and $1'))} into ${kind === 'day' ? 'one end-of-day briefing' : 'one set of takeaways and a slide deck'}.</p>
+      <p class="f-cap">${settings.apiKey ? 'This sends those notes and briefs to Claude using your API key.' : 'No Claude key is set, so this is written on this device from your session briefs.'}</p>
+      <button class="btn btn-primary" id="wrGo">${I.sparkles} Create ${what}</button></div>`;
+    $('#wrGo', body).onclick = () => run();
+  };
   const paint = () => {
     const rp = reportOf(kind, key);
-    sh.setRight('Export', !!rp);
-    if (!rp) { body.innerHTML = `<div class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:40px"><span class="spin"></span>${kind === 'day' ? 'Pulling the day together…' : 'Pulling the whole conference together…'}</div>`; return; }
+    sh.setRight('Export', !!rp && !busy);
+    if (busy) { body.innerHTML = `<div class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:40px"><span class="spin"></span>${kind === 'day' ? 'Pulling the day together…' : 'Pulling the whole conference together…'}</div>`; return; }
+    if (!rp) return ready();
     const r = rp.data;
     body.innerHTML = `<article class="brief"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${esc(rp.subtitle)} · from ${r.sessions || 0} session${r.sessions === 1 ? '' : 's'} and notes · ${r.source === 'ai' ? 'written by Claude' : 'written on this device'} ${esc(ago(r.generatedAt))}</p>
       <h2 class="brief-head">${esc(rp.headline)}</h2><p class="brief-sum">${esc(rp.summary)}</p>
@@ -2691,17 +2712,24 @@ function openWrap(kind, key) {
         ${r.source === 'ai' ? '' : '<small>Add a Claude key in Settings for a fuller briefing</small>'}
       </div></article>`;
     $('#wrCopy', body).onclick = async () => { try { await navigator.clipboard.writeText(reportText(rp)); toast('Copied'); } catch { toast('Copy failed'); } };
-    $('#wrRedo', body).onclick = () => run();
+    $('#wrRedo', body).onclick = async () => {
+      if (settings.apiKey && !await confirmSheet(`Refresh ${what}?`, `This sends your notes and briefs to Claude again and replaces the current ${what.toLowerCase()}.`, 'Refresh', false)) return;
+      run();
+    };
     $('#wrExport', body).onclick = (e) => exportMenu(e.currentTarget, rp);
   };
+  // The current briefing stays in place until a new one has been written, so a failed refresh loses nothing.
   const run = async () => {
-    if (kind === 'day') delete state.dayBriefs?.[key]; else state.confBrief = null;
+    if (busy) return;
+    busy = true; paint();
+    let err;
+    try { kind === 'day' ? await generateDayBrief(key) : await generateConfBrief(); } catch (e) { err = e; }
+    busy = false;
+    if (!body.isConnected) return;
     paint();
-    try { kind === 'day' ? await generateDayBrief(key) : await generateConfBrief(); }
-    catch (e) { body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">${esc(e.message)}</p>`; if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings(); return; }
-    if (body.isConnected) paint();
+    if (err) { toast(err.message); if (err.code === 'NO_KEY' || err.code === 'NEED_WS') openSettings(); }
   };
-  if (reportOf(kind, key)) paint(); else run();
+  paint();
 }
 function briefingsMenu(anchor) {
   const ds = days().filter(dayHasContent);
