@@ -338,7 +338,8 @@ svg{display:block;flex:none}
 .welcome .empty-art svg{width:40px;height:40px}
 .welcome h2{font-family:var(--font-d);font-size:1.7rem;letter-spacing:-.02em;margin:18px 0 6px}
 .welcome p{color:var(--text-2);max-width:380px;margin:0 auto 24px}
-.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:520px;margin:0 auto}
+.choices{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:640px;margin:0 auto}
+@media (max-width:1180px){.choices{grid-template-columns:repeat(2,1fr);max-width:420px}}
 .choice{background:var(--surface);border:1px solid var(--sep);border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:600;font-size:.9rem;transition:transform .12s var(--ease),box-shadow .2s}
 .choice:hover{box-shadow:var(--shadow-2);transform:translateY(-1px)}
 .choice i{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
@@ -845,7 +846,8 @@ function renderList() {
       ? `<div class="empty"><p>No sessions yet.</p></div>`
       : `<div class="empty"><div class="empty-art">${I.calendar}</div><h2>Bring your agenda</h2>
           <p>Each session becomes a notebook. Take notes during the talk; get a brief when it ends.</p>
-          <div class="stack"><button class="btn btn-primary" data-go="paste">${I.text} Paste agenda</button>
+          <div class="stack"><button class="btn btn-primary" data-go="sheet">${I.list} Spreadsheet (Excel or CSV)</button>
+          <button class="btn btn-tinted" data-go="paste">${I.text} Paste agenda</button>
           <button class="btn btn-tinted" data-go="photo">${I.camera} Photo of the program</button>
           <button class="btn btn-tinted" data-go="ics">${I.calendar} Calendar file</button>
           <button class="btn btn-plain" data-go="sample">Try a sample agenda</button></div></div>`;
@@ -933,6 +935,7 @@ function renderDetail() {
           <h2>Bring your agenda</h2>
           <p>Each session becomes a notebook. Take notes during the talk, and get a brief with the key takeaways when it ends.</p>
           <div class="choices">
+            <button class="choice" data-go="sheet"><i>${I.list}</i>Spreadsheet<small>Excel or CSV</small></button>
             <button class="choice" data-go="paste"><i>${I.text}</i>Paste text<small>From the site or an email</small></button>
             <button class="choice" data-go="photo"><i>${I.camera}</i>Photo or PDF<small>Of the printed program</small></button>
             <button class="choice" data-go="ics"><i>${I.calendar}</i>Calendar file<small>Exported .ics</small></button>
@@ -1431,8 +1434,187 @@ function pickFile(accept, cb) {
 }
 function createSession(p) {
   const id = uid();
-  state.sessions[id] = { id, title: p.title || 'Untitled session', date: p.date || '', start: p.start || '', end: p.end || '', speaker: p.speaker || '', room: p.room || '', description: p.description || '', notes: [], brief: null, attended: false, attendedAt: 0, createdAt: now(), updatedAt: now() };
+  state.sessions[id] = { id, title: p.title || 'Untitled session', date: p.date || '', start: p.start || '', end: p.end || '', speaker: p.speaker || '', room: p.room || '', description: p.description || '', type: p.type || '', notes: [], brief: null, attended: false, attendedAt: 0, createdAt: now(), updatedAt: now() };
   return id;
+}
+
+/* ---------- Spreadsheets & tables (.xlsx, .csv, .tsv, pasted cells) ---------- */
+// A tiny zip reader: .xlsx is a zip of XML files. DecompressionStream does the inflating.
+async function readZip(file) {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('This file isn’t a readable .xlsx spreadsheet.');
+  const count = dv.getUint16(eocd + 10, true); let p = dv.getUint32(eocd + 16, true);
+  const entries = new Map(), td = new TextDecoder();
+  for (let k = 0; k < count && dv.getUint32(p, true) === 0x02014b50; k++) {
+    const nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+    entries.set(td.decode(buf.subarray(p + 46, p + 46 + nlen)), { method: dv.getUint16(p + 10, true), size: dv.getUint32(p + 20, true), at: dv.getUint32(p + 42, true) });
+    p += 46 + nlen + elen + clen;
+  }
+  return {
+    has: (name) => entries.has(name),
+    async text(name) {
+      const e = entries.get(name); if (!e) return null;
+      const start = e.at + 30 + dv.getUint16(e.at + 26, true) + dv.getUint16(e.at + 28, true);
+      const data = buf.subarray(start, start + e.size);
+      if (e.method === 0) return td.decode(data);
+      if (e.method !== 8 || !window.DecompressionStream) throw new Error('This browser can’t open .xlsx files. Save the sheet as .csv and try again.');
+      return td.decode(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    },
+  };
+}
+const xml = (s) => new DOMParser().parseFromString(s, 'application/xml');
+const tags = (node, name) => [...node.getElementsByTagNameNS('*', name)];
+const colIndex = (ref) => { let n = 0; for (const ch of ref.replace(/\d+/g, '')) n = n * 26 + ch.charCodeAt(0) - 64; return n - 1; };
+// Returns [{ name, rows: [[cell, …], …] }]; cells are strings or numbers (dates stay Excel serial numbers).
+async function readXlsx(file) {
+  const z = await readZip(file);
+  const wb = xml(await z.text('xl/workbook.xml') || '');
+  const date1904 = tags(wb, 'workbookPr')[0]?.getAttribute('date1904');
+  const rels = xml(await z.text('xl/_rels/workbook.xml.rels') || '<r/>');
+  const target = {}; tags(rels, 'Relationship').forEach(r => target[r.getAttribute('Id')] = r.getAttribute('Target'));
+  const ss = z.has('xl/sharedStrings.xml') ? tags(xml(await z.text('xl/sharedStrings.xml')), 'si').map(si => tags(si, 't').map(t => t.textContent).join('')) : [];
+  const sheets = [];
+  for (const sh of tags(wb, 'sheet')) {
+    const rid = sh.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id') || sh.getAttribute('r:id');
+    let path = (target[rid] || '').replace(/^\/?xl\//, ''); path = 'xl/' + path.replace(/^\//, '');
+    if (!z.has(path)) continue;
+    const doc = xml(await z.text(path)); const rows = [];
+    for (const row of tags(doc, 'row')) {
+      const r = []; let next = 0;
+      for (const c of tags(row, 'c')) {
+        const i = c.getAttribute('r') ? colIndex(c.getAttribute('r')) : next; next = i + 1;
+        const t = c.getAttribute('t'), v = tags(c, 'v')[0]?.textContent;
+        let val = t === 's' ? ss[+v] : t === 'inlineStr' ? tags(c, 't').map(x => x.textContent).join('') : t === 'str' || t === 'e' ? v : v == null ? '' : t === 'b' ? (v === '1' ? 'TRUE' : 'FALSE') : +v;
+        if (typeof val === 'number' && date1904) val += 1462;
+        r[i] = val ?? '';
+      }
+      rows[(+row.getAttribute('r') || rows.length + 1) - 1] = r;
+    }
+    sheets.push({ name: sh.getAttribute('name'), rows: Array.from(rows, r => Array.from(r || [], x => x ?? '')) });
+  }
+  return sheets;
+}
+// CSV / TSV with quoted fields; the delimiter is detected from the first lines.
+function parseDelimited(text) {
+  const sample = text.split(/\r?\n/).slice(0, 8).join('\n');
+  const delim = ['\t', ',', ';', '|'].map(d => [d, sample.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+    else if (ch === '"' && cell === '') q = true;
+    else if (ch === delim) { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.map(r => r.map(c => c.trim()));
+}
+const looksLikeTable = (text) => text.split(/\r?\n/).filter(l => l.includes('\t')).length >= 2;
+
+const HEADERS = {
+  title: /^(session|session (title|name)|title|talk|topic|name|event|activity|agenda item)\b/i,
+  date: /\bdate\b/i,
+  day: /^day\b/i,
+  start: /\b(start|begins?|from)\b/i,
+  end: /\b(end|ends|finish|until|to)\b/i,
+  time: /^(time|times|time slot|slot|when)\b/i,
+  speaker: /\b(speakers?|presenters?|hosts?|moderators?|panelists?|facilitators?|by)\b/i,
+  room: /\b(location|room|venue|where|stage|hall|place)\b/i,
+  type: /\b(type|track|format|category|kind)\b/i,
+  description: /\b(description|abstract|summary|details|notes|about)\b/i,
+};
+function mapHeader(cells) {
+  const map = {};
+  cells.forEach((raw, i) => {
+    const h = String(raw ?? '').trim(); if (!h || h.length > 40) return;
+    for (const [k, re] of Object.entries(HEADERS)) if (map[k] == null && re.test(h)) { map[k] = i; break; }
+  });
+  return map;
+}
+const serialDate = (n) => { const d = new Date(Math.round((n - 25569) * 864e5)); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; };
+const serialTime = (n) => { const m = Math.round((n - Math.floor(n)) * 1440) % 1440; return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
+function cellDate(v) {
+  if (typeof v === 'number' && v > 20000) return serialDate(v);
+  const s = String(v ?? '').trim(); if (!s) return '';
+  const iso = parseDateLine(s); if (iso) return iso;
+  const m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/);
+  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; const us = !/^(en-GB|de|fr|es|it|pt|nl)/.test(navigator.language); const [mo, d] = us ? [m[1], m[2]] : [m[2], m[1]]; return `${y}-${pad(+mo)}-${pad(+d)}`; }
+  return '';
+}
+function cellTime(v) {
+  if (typeof v === 'number') return serialTime(v);
+  const s = String(v ?? '').trim(); if (!s) return '';
+  const m = s.match(/(\d{1,2}(?:[:.h]\d{2})?\s*(?:[ap]\.?m\.?)?)/i);
+  return m ? to24(m[1].replace(/\s+/g, '')) || '' : '';
+}
+// rows (array of arrays) → { conferenceName, sessions } or null when no header row is recognisable
+function tableToSessions(rows) {
+  let hi = -1, map = null;
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const m = mapHeader(rows[i] || []);
+    if (Object.keys(m).length >= 2 && (m.title != null || m.start != null || m.time != null || m.date != null)) { hi = i; map = m; break; }
+  }
+  if (hi < 0) return null;
+  const body = rows.slice(hi + 1).filter(r => r && r.some(c => String(c ?? '').trim()));
+  if (map.title == null) {
+    // No obvious title column: take the column with the longest text on average
+    const used = new Set(Object.values(map)); let best = -1, bestLen = 0;
+    for (let c = 0; c < (rows[hi] || []).length; c++) {
+      if (used.has(c)) continue;
+      const avg = body.reduce((a, r) => a + String(r[c] ?? '').length, 0) / (body.length || 1);
+      if (avg > bestLen) { best = c; bestLen = avg; }
+    }
+    if (best < 0) return null; map.title = best;
+  }
+  const get = (r, k) => map[k] == null ? '' : r[map[k]];
+  const str = (v) => String(v ?? '').trim();
+  let lastDate = '';
+  const sessions = [];
+  for (const r of body) {
+    const title = str(get(r, 'title')); if (!title) continue;
+    let date = cellDate(get(r, 'date')) || (map.date == null ? cellDate(get(r, 'day')) : '');
+    if (date) lastDate = date; else date = lastDate;
+    let start = cellTime(get(r, 'start')), end = cellTime(get(r, 'end'));
+    const timeCell = get(r, 'time');
+    if (!start && timeCell !== '') {
+      if (typeof timeCell === 'number') start = serialTime(timeCell);
+      else {
+        const parts = str(timeCell).split(/\s*(?:-|–|—|to)\s*/i);
+        const ap = (parts[1] || '').match(/[ap]\.?m/i)?.[0]?.[0].toLowerCase();
+        start = parts[0] ? to24(parts[0].replace(/\s+/g, ''), /[ap]\.?m/i.test(parts[0]) ? '' : ap ? ap + 'm' : '') || '' : '';
+        end = parts[1] ? cellTime(parts[1]) : end;
+      }
+    }
+    if (!start && typeof get(r, 'date') === 'number' && get(r, 'date') % 1) start = serialTime(get(r, 'date'));
+    const type = str(get(r, 'type'));
+    const logistics = /logistic|network|meal|break|registration|reception|social|exhibit|booth|lunch|breakfast/i.test(type)
+      || /^(attendee |networking |industry networking )?(breakfast|lunch|dinner|reception|registration|coffee|break|badge)\b/i.test(title)
+      || /\b(networking (breakfast|lunch|reception)|badge pick-?up|registration)\b/i.test(title);
+    sessions.push({ title, date, start, end, speaker: str(get(r, 'speaker')), room: str(get(r, 'room')), description: str(get(r, 'description')), type, skip: logistics });
+  }
+  // Conference name: the first text-only row above the header, minus "My Agenda" style suffixes
+  let conferenceName = '';
+  for (let i = 0; i < hi; i++) {
+    const cells = (rows[i] || []).map(str).filter(Boolean);
+    if (cells.length === 1 && cells[0].length < 120 && !/^source\b/i.test(cells[0])) { conferenceName = cells[0].replace(/\s*[—–|:-]\s*(my )?(agenda|schedule).*$/i, '').trim(); break; }
+  }
+  return { conferenceName, sessions };
+}
+async function readAgendaFile(file) {
+  const name = (file.name || '').toLowerCase();
+  if (/\.xlsx$|\.xlsm$/.test(name) || file.type.includes('spreadsheetml')) {
+    for (const sh of await readXlsx(file)) { const r = tableToSessions(sh.rows); if (r?.sessions.length) return r; }
+    throw new Error('No sessions found. The sheet needs a header row with columns like Session, Date, Start and Location.');
+  }
+  if (/\.xls$/.test(name)) throw new Error('Old .xls files aren’t supported. Save as .xlsx or .csv and try again.');
+  if (/\.numbers$/.test(name)) throw new Error('Export from Numbers first: File → Export To → Excel or CSV.');
+  const r = tableToSessions(parseDelimited(await file.text()));
+  if (!r?.sessions.length) throw new Error('No sessions found. The file needs a header row with columns like Session, Date, Start and Location.');
+  return r;
 }
 
 async function aiParseAgenda(content) {
@@ -1786,8 +1968,8 @@ async function openRecap() {
 /* =========================================================
    Agenda import
    ========================================================= */
-function openImport(start = 'paste') {
-  let mode = ['paste', 'photo', 'ics'].includes(start) ? start : 'paste', fileBlob = null, parsed = [], confName = '';
+function openImport(start = 'sheet', presetFile = null) {
+  let mode = ['sheet', 'paste', 'photo', 'ics'].includes(start) ? start : 'sheet', fileBlob = null, parsed = [], confName = '';
   openSheet({
     title: 'Add Sessions', left: 'Cancel', right: 'Add', cls: 'wide',
     onRight: (sh) => {
@@ -1799,7 +1981,7 @@ function openImport(start = 'paste') {
       if (matchMedia('(min-width:760px)').matches && !ui.selected) select(filteredSessions()[0]?.id, false);
     },
     body: `<div class="seg" id="impSeg" style="margin:4px 0 14px">
-        <button data-m="paste">Paste Text</button><button data-m="photo">Photo or PDF</button><button data-m="ics">Calendar File</button>
+        <button data-m="sheet">Spreadsheet</button><button data-m="paste">Paste</button><button data-m="photo">Photo or PDF</button><button data-m="ics">Calendar</button>
       </div>
       <div id="impPane"></div>
       <div id="impPreview"></div>
@@ -1807,23 +1989,38 @@ function openImport(start = 'paste') {
     onMount: (sh) => {
       const pane = $('#impPane', sh.el);
       const updateRight = () => { const n = $$('.pv-item input:checked', sh.el).length; sh.setRight(n ? `Add ${n}` : 'Add', n > 0); };
+      const accept = { sheet: '.xlsx,.xlsm,.csv,.tsv,.txt,.xls,.numbers,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', photo: 'image/*,application/pdf', ics: '.ics,text/calendar' };
+      const useFile = async (f) => {
+        fileBlob = f; draw();
+        if (mode === 'ics') { parsed = parseICS(await f.text()); confName = ''; showPreview(); }
+        if (mode === 'sheet') {
+          try { ({ sessions: parsed, conferenceName: confName } = await readAgendaFile(f)); showPreview(); }
+          catch (e) { parsed = []; $('#impPreview', sh.el).innerHTML = `<p class="f-cap" style="text-align:center">${esc(e.message)}</p>`; updateRight(); }
+        }
+      };
       const draw = () => {
         $$('[data-m]', sh.el).forEach(c => c.classList.toggle('on', c.dataset.m === mode));
-        if (mode === 'paste') pane.innerHTML = `<textarea class="big-text" id="impText" aria-label="Agenda text" placeholder="Paste the agenda from the conference site, app or email. For example:
+        if (mode === 'sheet') pane.innerHTML = `<div class="drop" id="impPick" role="button" tabindex="0"><b>${fileBlob ? esc(fileBlob.name) : 'Choose or drop a spreadsheet'}</b>Excel (.xlsx) or CSV, with a header row such as Session, Date, Start, End, Speaker, Location.</div>
+          <p class="f-cap">Meals, breaks and networking start unchecked. From Numbers or Google Sheets, export as Excel or CSV first, or copy the cells and use Paste.</p>`;
+        if (mode === 'paste') pane.innerHTML = `<textarea class="big-text" id="impText" aria-label="Agenda text" placeholder="Paste the agenda from the conference site, app or email, or copy cells straight from a spreadsheet. For example:
 
 Tuesday, Oct 27
 9:00 – 9:45 AM  Opening Keynote — Jane Park — Main Stage
 10:00 – 10:45 AM  Designing Calm Interfaces · Sam Lee · Room B"></textarea>
-          <p class="f-cap">${settings.apiKey ? 'Claude reads any layout.' : 'Works best with one session per line, starting with its time. With a Claude key (Settings), any layout works.'} You’ll pick which sessions to add.</p>
+          <p class="f-cap">Copied spreadsheet cells are read column by column. ${settings.apiKey ? 'For other text, Claude reads any layout.' : 'Other text works best with one session per line, starting with its time; with a Claude key (Settings), any layout works.'} You’ll pick which sessions to add.</p>
           <div class="stack" style="max-width:none"><button class="btn btn-primary" id="impGo">${I.sparkles} Find Sessions</button></div>`;
         if (mode === 'photo') pane.innerHTML = `<div class="drop" id="impPick" role="button" tabindex="0"><b>${fileBlob ? esc(fileBlob.name || 'File selected') : 'Choose a photo, screenshot or PDF'}</b>Of the printed program or the conference app.</div>
           <p class="f-cap">${settings.apiKey ? 'Claude reads the sessions from the image.' : 'Reading images needs a Claude API key. Add one in Settings.'}</p>
           <div class="stack" style="max-width:none"><button class="btn btn-primary" id="impGo" ${settings.apiKey ? '' : 'disabled'}>${I.sparkles} Find Sessions</button></div>`;
         if (mode === 'ics') pane.innerHTML = `<div class="drop" id="impPick" role="button" tabindex="0"><b>${fileBlob ? esc(fileBlob.name) : 'Choose a calendar file (.ics)'}</b>Most conference apps can export your schedule as one.</div>`;
-        $('#impPick', pane)?.addEventListener('click', () => pickFile(mode === 'ics' ? '.ics,text/calendar' : 'image/*,application/pdf', async f => {
-          fileBlob = f; draw();
-          if (mode === 'ics') { parsed = parseICS(await f.text()); showPreview(); }
-        }));
+        const pick = $('#impPick', pane);
+        if (pick) {
+          pick.onclick = () => pickFile(accept[mode], useFile);
+          pick.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick.click(); } };
+          pick.ondragover = (e) => { e.preventDefault(); pick.style.borderColor = 'var(--accent)'; };
+          pick.ondragleave = () => { pick.style.borderColor = ''; };
+          pick.ondrop = (e) => { e.preventDefault(); e.stopPropagation(); const f = e.dataTransfer.files[0]; if (f) useFile(f); };
+        }
         $('#impGo', pane)?.addEventListener('click', runParse);
         if (mode === 'paste') setTimeout(() => $('#impText', pane)?.focus(), 250);
       };
@@ -1833,7 +2030,9 @@ Tuesday, Oct 27
           if (mode === 'paste') {
             const txt = $('#impText', pane).value.trim();
             if (!txt) throw new Error('Paste your agenda first');
-            if (settings.apiKey) ({ sessions: parsed, conferenceName: confName } = await aiParseAgenda([{ type: 'text', text: txt }]));
+            const table = looksLikeTable(txt) ? tableToSessions(parseDelimited(txt)) : null;
+            if (table?.sessions.length) ({ sessions: parsed, conferenceName: confName } = table);
+            else if (settings.apiKey) ({ sessions: parsed, conferenceName: confName } = await aiParseAgenda([{ type: 'text', text: txt }]));
             else parsed = parseAgendaText(txt);
           } else {
             if (!fileBlob) throw new Error('Choose a file first');
@@ -1850,17 +2049,32 @@ Tuesday, Oct 27
       const showPreview = () => {
         const pv = $('#impPreview', sh.el);
         if (!parsed.length) { pv.innerHTML = `<p class="f-cap" style="text-align:center">No sessions found. Try another format, or add sessions one at a time.</p>`; updateRight(); return; }
-        pv.innerHTML = `<div class="grp-t">${parsed.length} session${parsed.length > 1 ? 's' : ''} found${confName ? ' · ' + esc(confName) : ''}</div><div class="preview">${parsed.map(p => `
-          <label class="pv-item"><input type="checkbox" checked><div><b>${esc(p.title)}</b><span>${esc([p.date && fmtDate(p.date, { weekday: 'short', month: 'short', day: 'numeric' }), p.start && fmtTime(p.start) + (p.end ? '–' + fmtTime(p.end) : ''), p.speaker, p.room].filter(Boolean).join(' · '))}</span></div></label>`).join('')}</div>`;
-        $$('.pv-item input', pv).forEach(c => c.onchange = updateRight);
+        const skipped = parsed.filter(p => p.skip).length;
+        pv.innerHTML = `<div class="grp-t" style="display:flex;align-items:baseline;gap:8px"><span>${parsed.length} found${confName ? ' · ' + esc(confName) : ''}${skipped ? ` · ${skipped} meals and networking unchecked` : ''}</span>
+            <span class="spacer"></span><button class="btn btn-plain btn-sm" style="white-space:nowrap" id="pvAll">Select All</button>${skipped ? `<button class="btn btn-plain btn-sm" style="white-space:nowrap" id="pvTalks">Talks Only</button>` : ''}</div>
+          <div class="preview">${parsed.map(p => `
+          <label class="pv-item"><input type="checkbox" ${p.skip ? '' : 'checked'}><div><b>${esc(p.title)}</b><span>${esc([p.date && fmtDate(p.date, { weekday: 'short', month: 'short', day: 'numeric' }), p.start && fmtTime(p.start) + (p.end ? '–' + fmtTime(p.end) : ''), p.speaker, p.room].filter(Boolean).join(' · '))}</span></div></label>`).join('')}</div>`;
+        const boxes = $$('.pv-item input', pv);
+        boxes.forEach(c => c.onchange = updateRight);
+        $('#pvAll', pv).onclick = () => { boxes.forEach(c => c.checked = true); updateRight(); };
+        $('#pvTalks', pv)?.addEventListener('click', () => { boxes.forEach((c, i) => c.checked = !parsed[i].skip); updateRight(); });
         updateRight();
         pv.scrollIntoView({ behavior: 'smooth', block: 'start' });
       };
       $$('[data-m]', sh.el).forEach(c => c.onclick = () => { mode = c.dataset.m; fileBlob = null; parsed = []; $('#impPreview', sh.el).innerHTML = ''; updateRight(); draw(); });
       $('#impManual', sh.el).onclick = () => { sh.close(); openSessionForm(); };
       updateRight(); draw();
+      if (presetFile) useFile(presetFile);
     },
   });
+}
+// Files dropped anywhere in the window open the importer with the right tab
+function agendaFileMode(f) {
+  const n = (f.name || '').toLowerCase();
+  if (/\.(xlsx|xlsm|xls|csv|tsv|numbers)$/.test(n) || f.type.includes('spreadsheet') || f.type === 'text/csv') return 'sheet';
+  if (/\.ics$/.test(n) || f.type === 'text/calendar') return 'ics';
+  if (f.type === 'application/pdf') return 'photo';
+  return null;
 }
 
 /* ---------- Session form ---------- */
@@ -2037,6 +2251,13 @@ function bindStatic() {
   $('#photoBtn').innerHTML = I.camera; $('#videoBtn').innerHTML = I.video; $('#sendBtn').innerHTML = I.up;
   applyTheme();
   $('#addBtn').onclick = () => openImport();
+  // Drop an agenda file (spreadsheet, calendar, PDF) anywhere outside a session to import it
+  addEventListener('dragover', e => { if (e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
+  addEventListener('drop', e => {
+    const f = e.dataTransfer?.files?.[0]; if (!f || e.defaultPrevented) return;
+    const m = agendaFileMode(f); e.preventDefault();
+    if (m && !sheetStack.length) openImport(m, f);
+  });
   $('#settingsBtn').onclick = $('#settingsBtn2').onclick = openSettings;
   $('#themeBtn').onclick = () => { const order = ['auto', 'light', 'dark']; const t = order[(order.indexOf(settings.theme || 'auto') + 1) % 3]; setTheme(t); toast(`Appearance: ${THEMES[t][0]}`); };
   $('#syncBtn').onclick = $('#syncBtn2').onclick = () => settings.clientId && drive.connected ? syncNow(true) : openSettings();
@@ -2067,8 +2288,9 @@ function bindStatic() {
   const dp = $('#detailPane');
   dp.addEventListener('dragover', e => { if (S(ui.selected) && e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
   dp.addEventListener('drop', e => {
-    if (!S(ui.selected)) return; e.preventDefault();
     const files = [...e.dataTransfer.files];
+    if (!S(ui.selected) || !files.some(f => /^(image|video)\//.test(f.type))) return;
+    e.preventDefault();
     const imgs = files.filter(f => f.type.startsWith('image/')); if (imgs.length) onPhotos(imgs);
     files.filter(f => f.type.startsWith('video/')).forEach(onVideo);
   });
