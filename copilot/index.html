@@ -1,0 +1,1747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Copilot">
+<meta name="theme-color" content="#F5F3EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)">
+<title>Conference Copilot</title>
+<style>
+:root{
+  --bg:#F5F3EF; --bg-2:#EFECE7; --surface:#FFFFFF; --surface-2:#FAF9F7; --elev:rgba(255,255,255,.78);
+  --text:#1D1D1F; --text-2:#636368; --text-3:#76767B; --sep:rgba(60,60,67,.12); --sep-strong:rgba(60,60,67,.2);
+  --accent:#5868C4; --accent-ink:#45539F; --accent-soft:#E8EBF9;
+  --sage:#3E7A5D; --sage-soft:#E3F0E8; --peach:#A9623A; --peach-soft:#FBEDE3;
+  --rose:#B54C5B; --rose-soft:#FAE6E9; --lav:#7459B0; --lav-soft:#EEE9F8; --sky:#3A77A3; --sky-soft:#E4EFF7;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 24px rgba(30,30,40,.06);
+  --shadow-lg:0 20px 60px rgba(20,20,30,.18);
+  --r-sm:10px; --r:14px; --r-lg:20px; --r-xl:28px;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",system-ui,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#141416; --bg-2:#1A1A1D; --surface:#1F1F22; --surface-2:#252529; --elev:rgba(31,31,34,.78);
+    --text:#F5F5F7; --text-2:#A8A8AF; --text-3:#8C8C93; --sep:rgba(235,235,245,.1); --sep-strong:rgba(235,235,245,.18);
+    --accent:#8F9DEB; --accent-ink:#AEB8F2; --accent-soft:rgba(143,157,235,.16);
+    --sage:#82C3A2; --sage-soft:rgba(130,195,162,.15); --peach:#EDAA84; --peach-soft:rgba(237,170,132,.15);
+    --rose:#EE8E9A; --rose-soft:rgba(238,142,154,.15); --lav:#B6A2E6; --lav-soft:rgba(182,162,230,.15); --sky:#86BCE2; --sky-soft:rgba(134,188,226,.15);
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 24px rgba(0,0,0,.25); --shadow-lg:0 20px 60px rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.4;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,textarea,select{font:inherit;color:inherit}
+svg{display:block}
+.hidden{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- Shell ---------- */
+#app{display:flex;height:100vh;height:100dvh;overflow:hidden}
+.pane{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
+#listPane{flex:1;background:var(--bg)}
+#detailPane{display:none;flex:1;background:var(--bg-2)}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+@media (min-width:860px){
+  #listPane{flex:none;width:380px;border-right:1px solid var(--sep)}
+  #detailPane{display:flex}
+  .only-narrow{display:none!important}
+}
+@media (max-width:859px){
+  body.show-detail #listPane{display:none}
+  body.show-detail #detailPane{display:flex}
+}
+
+/* ---------- Nav ---------- */
+.nav{position:sticky;top:0;z-index:5;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;background:color-mix(in srgb,var(--bg) 80%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
+#detailPane .nav{background:color-mix(in srgb,var(--bg-2) 80%,transparent);border-bottom:1px solid transparent;transition:border-color .2s}
+#detailPane .nav.scrolled{border-bottom-color:var(--sep)}
+.nav-row{display:flex;align-items:center;gap:6px;min-height:36px}
+.spacer{flex:1}
+.icon-btn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--accent);transition:background .15s}
+.icon-btn:hover{background:var(--accent-soft)}
+.icon-btn svg{width:22px;height:22px}
+.back{display:flex;align-items:center;gap:2px;color:var(--accent);font-size:17px;padding:6px 8px 6px 0}
+.back svg{width:22px;height:22px}
+.large-title{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:6px 0 0;line-height:1.1}
+.subtitle{color:var(--text-2);font-size:15px;margin-top:2px;min-height:20px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 10px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-size:13px;font-weight:500;color:var(--text-2);white-space:nowrap}
+.pill svg{width:16px;height:16px}
+.pill.ok{color:var(--sage)} .pill.err{color:var(--rose)} .pill.busy{color:var(--accent)} .pill.signin{color:var(--accent)}
+.pill.busy svg{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+.segmented{display:flex;background:color-mix(in srgb,var(--text) 7%,transparent);border-radius:9px;padding:2px;margin-top:14px}
+.segmented button{flex:1;height:30px;border-radius:7px;font-size:13px;font-weight:500;color:var(--text);transition:background .2s,box-shadow .2s}
+.segmented button.on{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.1),0 0 0 .5px rgba(0,0,0,.04)}
+.search{display:flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--text) 6%,transparent);border-radius:10px;height:36px;padding:0 10px;margin-top:10px;color:var(--text-3)}
+.search svg{width:16px;height:16px;flex:none}
+.search input{flex:1;border:0;background:transparent;outline:0;font-size:16px;color:var(--text);min-width:0}
+.search input::placeholder{color:var(--text-3)}
+
+/* ---------- Agenda list ---------- */
+#list{padding:4px 16px calc(env(safe-area-inset-bottom) + 24px)}
+.group-h{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-2);margin:18px 4px 8px;display:flex;justify-content:space-between}
+.group-h span:last-child{font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)}
+.cells{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.cell{display:flex;gap:12px;width:100%;text-align:left;padding:12px 14px;position:relative;transition:background .15s}
+.cell+.cell::before{content:"";position:absolute;top:0;left:98px;right:0;height:1px;background:var(--sep)}
+.cell:hover{background:var(--surface-2)}
+.cell.sel{background:var(--accent-soft)}
+.cell-time{width:72px;flex:none;white-space:nowrap;font-size:13px;color:var(--text-2);font-variant-numeric:tabular-nums;padding-top:2px}
+.cell-time b{display:block;color:var(--text);font-weight:600;font-size:14px}
+.cell-body{flex:1;min-width:0}
+.cell-title{font-weight:600;font-size:16px;line-height:1.3;letter-spacing:-.01em}
+.cell.done .cell-title{color:var(--text-2)}
+.cell-meta{font-size:13px;color:var(--text-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px}
+.badge svg{width:12px;height:12px}
+.b-done{background:var(--sage-soft);color:var(--sage)}
+.b-live{background:var(--rose-soft);color:var(--rose)}
+.b-live i{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.4s infinite}
+.b-notes{background:color-mix(in srgb,var(--text) 6%,transparent);color:var(--text-2);font-weight:500}
+.b-brief{background:var(--lav-soft);color:var(--lav)}
+.chev{color:var(--text-3);align-self:center;width:14px;height:14px;flex:none}
+
+.empty{text-align:center;padding:40px 16px;color:var(--text-2)}
+.empty h2{color:var(--text);font-size:22px;letter-spacing:-.01em;margin:14px 0 6px}
+.empty p{margin:0 auto 20px;max-width:340px;font-size:15px}
+.empty .art{width:84px;height:84px;margin:0 auto;border-radius:24px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent-soft),var(--lav-soft));color:var(--accent)}
+.empty .art svg{width:40px;height:40px}
+.stack{display:flex;flex-direction:column;gap:10px;max-width:300px;margin:0 auto}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:12px;font-weight:600;font-size:16px;transition:transform .1s,filter .15s,background .15s}
+.btn:active{transform:scale(.98)}
+.btn svg{width:18px;height:18px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{filter:brightness(1.05)}
+.btn-tinted{background:var(--accent-soft);color:var(--accent-ink)}
+.btn-plain{color:var(--accent)}
+.btn-danger{background:var(--rose-soft);color:var(--rose)}
+.btn-sm{height:34px;padding:0 12px;font-size:14px;border-radius:10px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+/* ---------- Detail ---------- */
+#detail{padding:0 20px 24px}
+.detail-wrap{max-width:760px;margin:0 auto}
+.d-eyebrow{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--text-2);font-size:14px;margin-top:4px}
+.d-eyebrow span{display:inline-flex;align-items:center;gap:5px}
+.d-eyebrow svg{width:15px;height:15px}
+.d-title{font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.02em;margin:10px 0 6px}
+.d-speaker{font-size:17px;color:var(--text-2);display:flex;align-items:center;gap:6px}
+.d-speaker svg{width:17px;height:17px}
+.d-desc{color:var(--text-2);font-size:15px;margin-top:10px;white-space:pre-wrap}
+.d-status{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.section-h{display:flex;align-items:baseline;justify-content:space-between;margin:28px 2px 10px}
+.section-h h3{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.section-h small{color:var(--text-3);font-size:13px}
+
+.card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:16px}
+.brief{position:relative;overflow:hidden;padding:20px;background:
+  radial-gradient(120% 80% at 100% 0%,var(--lav-soft),transparent 60%),
+  radial-gradient(100% 70% at 0% 100%,var(--sky-soft),transparent 60%),var(--surface)}
+.brief .tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--lav)}
+.brief .tag svg{width:14px;height:14px}
+.brief h4{font-size:21px;line-height:1.25;letter-spacing:-.01em;margin:8px 0 8px}
+.brief p.sum{margin:0;color:var(--text);font-size:16px;line-height:1.5}
+.brief .blk{margin-top:18px}
+.brief .blk h5{margin:0 0 8px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:6px}
+.brief .blk h5 i{width:8px;height:8px;border-radius:3px;background:currentColor}
+.brief ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.brief li{position:relative;padding-left:18px;font-size:15.5px;line-height:1.45}
+.brief li::before{content:"";position:absolute;left:3px;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--dot,var(--text-3))}
+.brief .q li{font-style:italic;color:var(--text-2)}
+.k-take h5{color:var(--accent)} .k-take{--dot:var(--accent)}
+.k-learn h5{color:var(--sage)} .k-learn{--dot:var(--sage)}
+.k-act h5{color:var(--peach)} .k-act{--dot:var(--peach)}
+.k-q h5{color:var(--sky)} .k-q{--dot:var(--sky)}
+.k-quote h5{color:var(--lav)} .k-quote{--dot:var(--lav)}
+.brief-foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;align-items:center}
+.brief-foot small{color:var(--text-3);font-size:12px;margin-left:auto}
+
+.notes{display:flex;flex-direction:column;gap:10px}
+.note{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px;position:relative}
+.note.star{box-shadow:var(--shadow),inset 3px 0 0 var(--peach)}
+.note-meta{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3);margin-bottom:6px}
+.note-meta .ty{display:inline-flex;align-items:center;gap:4px;font-weight:600;color:var(--text-2)}
+.note-meta svg{width:13px;height:13px}
+.note-acts{margin-left:auto;display:flex;gap:2px;opacity:.75}
+.note-acts button{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--text-3)}
+.note-acts button:hover{background:var(--surface-2);color:var(--text)}
+.note-acts button.on{color:var(--peach)}
+.note-acts svg{width:16px;height:16px}
+.note-text{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:1.45}
+.note-media{margin:-2px -4px 6px;border-radius:10px;overflow:hidden;background:var(--surface-2)}
+.note-media img,.note-media video{display:block;width:100%;max-height:420px;object-fit:contain;background:#0000}
+.note-media img{cursor:zoom-in}
+.note-media audio{width:100%;display:block}
+.note-media .miss{padding:28px 12px;text-align:center;font-size:13px;color:var(--text-3)}
+.note-cap{font-size:15px;color:var(--text-2);white-space:pre-wrap}
+.note-cap.ph{color:var(--text-3);font-style:italic;cursor:pointer}
+.transcript{font-size:15px;line-height:1.5;color:var(--text);background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-top:8px;white-space:pre-wrap;max-height:260px;overflow:auto}
+.transcript-h{font-size:12px;font-weight:600;color:var(--text-3);margin-top:8px;text-transform:uppercase;letter-spacing:.05em}
+.edit-area{width:100%;border:1px solid var(--sep-strong);border-radius:10px;padding:10px;background:var(--surface-2);resize:vertical;min-height:80px;font-size:16px;outline:0}
+.edit-area:focus{border-color:var(--accent)}
+.edit-row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+
+.notes-empty{border:1.5px dashed var(--sep-strong);border-radius:var(--r-lg);padding:28px 18px;text-align:center;color:var(--text-2);font-size:15px}
+.notes-empty b{color:var(--text);display:block;font-size:17px;margin-bottom:4px}
+.hint-row{display:flex;justify-content:center;gap:18px;margin-top:14px;color:var(--text-3);font-size:12px}
+.hint-row span{display:flex;flex-direction:column;align-items:center;gap:4px}
+.hint-row svg{width:22px;height:22px;color:var(--accent)}
+
+.no-sel{flex:1;display:grid;place-items:center;color:var(--text-3);text-align:center;padding:40px}
+.no-sel svg{width:56px;height:56px;margin:0 auto 12px;color:var(--text-3);opacity:.6}
+
+/* ---------- Composer ---------- */
+.composer{padding:8px 12px calc(env(safe-area-inset-bottom) + 10px);background:color-mix(in srgb,var(--bg-2) 82%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:1px solid var(--sep)}
+.composer-in{max-width:760px;margin:0 auto}
+.wrap-row{display:flex;justify-content:center;margin-bottom:8px}
+.wrap-btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;font-weight:600;font-size:15px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--lav));box-shadow:0 1px 2px rgba(0,0,0,.08),0 4px 12px rgba(20,20,30,.12);transition:transform .1s}
+.wrap-btn:active{transform:scale(.97)}
+.wrap-btn svg{width:17px;height:17px}
+.wrap-btn[disabled]{opacity:.5;pointer-events:none;box-shadow:none}
+.wrap-btn.busy svg{animation:spin 1.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bar{display:flex;align-items:flex-end;gap:6px}
+.tool{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--accent);background:var(--surface);box-shadow:var(--shadow);transition:transform .1s}
+.tool:active{transform:scale(.94)}
+.tool svg{width:21px;height:21px}
+.tool.rec{color:#fff;background:var(--rose)}
+.field{flex:1;min-width:0;background:var(--surface);border-radius:20px;box-shadow:var(--shadow);display:flex;align-items:flex-end;padding:0 4px 0 14px}
+.field textarea{flex:1;border:0;outline:0;background:transparent;resize:none;font-size:16px;line-height:22px;padding:9px 0;max-height:160px;min-height:40px}
+.field textarea::placeholder{color:var(--text-3)}
+.send{width:32px;height:32px;margin:4px 0;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;flex:none;transition:opacity .15s,transform .1s}
+.send:active{transform:scale(.92)}
+.send[disabled]{opacity:.3}
+.send svg{width:18px;height:18px}
+.star-toggle{width:32px;height:32px;margin:4px 0;border-radius:50%;display:grid;place-items:center;color:var(--text-3);flex:none}
+.star-toggle.on{color:var(--peach)}
+.star-toggle svg{width:18px;height:18px}
+
+/* ---------- Sheets ---------- */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.28);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease}
+@keyframes fade{from{opacity:0}}
+.sheet{width:100%;max-width:640px;max-height:92vh;max-height:92dvh;background:var(--bg);border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;animation:up .32s cubic-bezier(.2,.9,.3,1)}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+@media (min-width:700px){.overlay{align-items:center;padding:24px}.sheet{border-radius:var(--r-xl);max-height:86vh}}
+.sheet-h{display:flex;align-items:center;padding:14px 16px 8px;gap:8px}
+.sheet-h h2{flex:1;text-align:center;font-size:17px;font-weight:600;margin:0}
+.sheet-h .btn-plain{font-size:17px;font-weight:400;min-width:64px;text-align:left;height:auto;padding:4px 0}
+.sheet-h .btn-plain.r{text-align:right;font-weight:600}
+.grabber{width:36px;height:5px;border-radius:3px;background:var(--sep-strong);margin:8px auto 0}
+@media (min-width:700px){.grabber{display:none}}
+.sheet-b{overflow-y:auto;padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);-webkit-overflow-scrolling:touch}
+.form-group{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:8px}
+.form-row{display:flex;align-items:center;gap:12px;padding:0 14px;min-height:48px;position:relative}
+.form-row+.form-row::before{content:"";position:absolute;top:0;left:14px;right:0;height:1px;background:var(--sep)}
+.form-row label{flex:none;width:96px;color:var(--text);font-size:16px}
+.form-row input,.form-row select{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:16px;padding:12px 0;text-align:right}
+.form-row input[type=text],.form-row input[type=password],.form-row input[type=url]{text-align:left}
+.form-row textarea{flex:1;border:0;outline:0;background:transparent;resize:vertical;font-size:16px;padding:12px 0;min-height:80px}
+.form-row.col{flex-direction:column;align-items:stretch;gap:0}
+.form-row.col label{width:auto;padding-top:10px;font-size:13px;color:var(--text-2)}
+.form-cap{font-size:13px;color:var(--text-2);margin:6px 14px 18px;line-height:1.45}
+.form-cap a{color:var(--accent)}
+.group-title{font-size:13px;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin:18px 14px 6px}
+.switch{position:relative;width:51px;height:31px;flex:none}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch span{position:absolute;inset:0;border-radius:999px;background:color-mix(in srgb,var(--text) 16%,transparent);transition:background .2s}
+.switch span::after{content:"";position:absolute;width:27px;height:27px;top:2px;left:2px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2);transition:transform .25s cubic-bezier(.3,.9,.3,1)}
+.switch input:checked+span{background:var(--sage)}
+.switch input:checked+span::after{transform:translateX(20px)}
+.row-btn{width:100%;text-align:left;color:var(--accent);font-size:16px;padding:0 14px;min-height:48px;display:flex;align-items:center;gap:10px;position:relative}
+.row-btn+.row-btn::before{content:"";position:absolute;top:0;left:14px;right:0;height:1px;background:var(--sep)}
+.row-btn.danger{color:var(--rose)}
+.row-btn svg{width:20px;height:20px}
+.row-btn small{margin-left:auto;color:var(--text-3);font-size:14px}
+details.help{background:var(--surface-2);border-radius:var(--r);padding:12px 14px;margin:0 0 12px;font-size:14px;color:var(--text-2)}
+details.help summary{cursor:pointer;color:var(--accent);font-weight:500}
+details.help ol{padding-left:20px;margin:10px 0 0}
+details.help li{margin-bottom:6px}
+details.help code{background:var(--surface);padding:1px 6px;border-radius:6px;font-size:13px;word-break:break-all}
+.big-text{width:100%;min-height:200px;border:0;outline:0;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;font-size:15px;line-height:1.45;resize:vertical}
+.tabs{display:flex;gap:8px;margin:4px 0 14px;flex-wrap:wrap}
+.chip{height:34px;padding:0 14px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-size:14px;font-weight:500;color:var(--text-2);display:inline-flex;align-items:center;gap:6px}
+.chip svg{width:16px;height:16px}
+.chip.on{background:var(--accent);color:#fff}
+.preview-list{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.preview-item{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);font-size:14px}
+.preview-item input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent)}
+.preview-item b{display:block;font-size:15px}
+.preview-item span{color:var(--text-2)}
+.action-list .row-btn{justify-content:center;font-size:17px}
+.action-list .row-btn svg{display:none}
+
+/* Recording */
+.rec-wrap{text-align:center;padding:8px 4px 4px}
+.rec-dot{width:96px;height:96px;margin:6px auto 12px;border-radius:50%;background:var(--rose-soft);display:grid;place-items:center;position:relative}
+.rec-dot::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--rose);opacity:.18;animation:ring 1.8s ease-out infinite}
+@keyframes ring{from{transform:scale(.8);opacity:.35}to{transform:scale(1.35);opacity:0}}
+.rec-dot i{width:30px;height:30px;border-radius:50%;background:var(--rose)}
+.rec-dot.paused::before{animation:none;opacity:0}
+.rec-time{font-size:40px;font-weight:300;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.rec-sub{color:var(--text-2);font-size:14px;margin:2px 0 14px}
+.levels{display:flex;gap:3px;justify-content:center;align-items:center;height:36px;margin-bottom:12px}
+.levels i{width:4px;border-radius:2px;background:var(--rose);opacity:.7;height:4px;transition:height .08s}
+.live-tx{text-align:left;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;min-height:120px;max-height:34vh;overflow:auto;font-size:16px;line-height:1.5;white-space:pre-wrap}
+.live-tx .interim{color:var(--text-3)}
+.live-tx .ph{color:var(--text-3);font-style:italic}
+.rec-actions{display:flex;gap:10px;justify-content:center;margin-top:16px}
+
+/* Toast & viewer */
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%) translateY(-20px);z-index:80;background:color-mix(in srgb,var(--text) 88%,transparent);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:all .25s;max-width:calc(100% - 32px);text-align:center;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+#toast a{color:inherit;font-weight:700}
+.viewer{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.92);display:grid;place-items:center;animation:fade .2s}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain}
+.viewer button{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:14px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center}
+.viewer button svg{width:18px;height:18px}
+.spin{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite;display:inline-block}
+.muted{color:var(--text-2)}
+.kbd-hint{font-size:11px;color:var(--text-3);text-align:center;margin-top:6px}
+@media (hover:none){.kbd-hint{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <section id="listPane" class="pane">
+    <header class="nav">
+      <div class="nav-row">
+        <button id="syncBtn" class="pill" aria-live="polite"></button>
+        <div class="spacer"></div>
+        <button id="addBtn" class="icon-btn" aria-label="Add sessions"></button>
+        <button id="settingsBtn" class="icon-btn" aria-label="Settings"></button>
+      </div>
+      <h1 class="large-title">Agenda</h1>
+      <div class="subtitle" id="confName"></div>
+      <div class="segmented" id="filterSeg" role="tablist">
+        <button data-f="all">All</button><button data-f="todo">To attend</button><button data-f="attended">Attended</button>
+      </div>
+      <label class="search"><span id="searchIcon"></span><input id="search" type="search" placeholder="Search sessions, speakers, notes" autocomplete="off"></label>
+    </header>
+    <div id="list" class="scroll"></div>
+  </section>
+
+  <section id="detailPane" class="pane">
+    <header class="nav" id="detailNav">
+      <div class="nav-row">
+        <button id="backBtn" class="back only-narrow"></button>
+        <div class="spacer"></div>
+        <button id="moreBtn" class="icon-btn" aria-label="Session options"></button>
+      </div>
+    </header>
+    <div id="detail" class="scroll"></div>
+    <div id="composer" class="composer hidden">
+      <div class="composer-in">
+        <div class="wrap-row"><button id="wrapBtn" class="wrap-btn"></button></div>
+        <div class="bar">
+          <button class="tool" id="photoBtn" aria-label="Add photo"></button>
+          <button class="tool" id="videoBtn" aria-label="Add video"></button>
+          <button class="tool" id="micBtn" aria-label="Record speaker"></button>
+          <div class="field">
+            <textarea id="noteInput" rows="1" placeholder="Write a note…" enterkeyhint="send"></textarea>
+            <button id="starToggle" class="star-toggle" aria-label="Mark as key point" title="Mark as key point"></button>
+            <button id="sendBtn" class="send" aria-label="Add note" disabled></button>
+          </div>
+        </div>
+        <div class="kbd-hint">Enter to add · Shift+Enter for a new line</div>
+      </div>
+    </div>
+  </section>
+</div>
+<div id="toast" role="status"></div>
+<input id="photoInput" type="file" accept="image/*" multiple hidden>
+<input id="videoInput" type="file" accept="video/*" hidden>
+<input id="fileInput" type="file" hidden>
+
+<script>
+'use strict';
+/* =========================================================
+   Conference Copilot — single-file app
+   Local data: IndexedDB.  Sync: Google Drive (drive.file).
+   Briefs: Claude API called from the browser with your key.
+   ========================================================= */
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const now = () => Date.now();
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const isTouch = matchMedia('(hover: none)').matches;
+const wide = () => matchMedia('(min-width: 860px)').matches;
+
+/* ---------- Icons (SF Symbols–style strokes) ---------- */
+const P = (d, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${extra}>${d}</svg>`;
+const I = {
+  plus: P('<path d="M12 5v14M5 12h14"/>'),
+  gear: P('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+  cloud: P('<path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.5 4.5 0 0 0 7 18z"/>'),
+  cloudOk: P('<path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.5 4.5 0 0 0 7 18z"/><path d="m9.5 13 2 2 3.5-3.5"/>'),
+  cloudOff: P('<path d="M3 3l18 18"/><path d="M8.5 8.4A4.5 4.5 0 0 0 7 18h10.5M20.6 15.9A4 4 0 0 0 18.1 10 6 6 0 0 0 10 5.3"/>'),
+  cloudAlert: P('<path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.5 4.5 0 0 0 7 18z"/><path d="M12 10v3M12 15.5v.01"/>'),
+  camera: P('<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>'),
+  video: P('<rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="m16 10.5 5-3v9l-5-3"/>'),
+  mic: P('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>'),
+  wave: P('<path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/>'),
+  up: P('<path d="M12 19V5M6 11l6-6 6 6"/>', 'stroke-width="2.4"'),
+  sparkles: P('<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'),
+  check: P('<path d="m5 12.5 4.5 4.5L19 7.5"/>', 'stroke-width="2.4"'),
+  checkCircle: P('<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16.5 9.5"/>'),
+  left: P('<path d="M15 5l-7 7 7 7"/>', 'stroke-width="2.2"'),
+  right: P('<path d="M9 5l7 7-7 7"/>', 'stroke-width="2.4"'),
+  more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg>',
+  trash: P('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>'),
+  star: P('<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/>'),
+  starFill: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/></svg>',
+  pencil: P('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>'),
+  share: P('<path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/>'),
+  copy: P('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>'),
+  doc: P('<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>'),
+  clock: P('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  pin: P('<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>'),
+  person: P('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+  search: P('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', 'stroke-width="2.2"'),
+  x: P('<path d="M6 6l12 12M18 6 6 18"/>', 'stroke-width="2.2"'),
+  calendar: P('<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
+  text: P('<path d="M5 7h14M5 12h14M5 17h9"/>'),
+  photo: P('<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="m21 16-5-5-8 8"/>'),
+  list: P('<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>', 'stroke-width="2.2"'),
+  bolt: P('<path d="M13 3 5 14h6l-1 7 8-11h-6z"/>'),
+  book: P('<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M19 19v2H6"/>'),
+};
+
+/* ---------- Storage: IndexedDB ---------- */
+const DB = (() => {
+  let opening;
+  const open = () => opening ||= new Promise((res, rej) => {
+    const r = indexedDB.open('conference-copilot', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('kv'); d.createObjectStore('media'); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  const run = async (store, mode, fn) => {
+    const d = await open();
+    return new Promise((res, rej) => {
+      const t = d.transaction(store, mode); const req = fn(t.objectStore(store));
+      t.oncomplete = () => res(req?.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+    });
+  };
+  return {
+    get: (s, k) => run(s, 'readonly', st => st.get(k)),
+    put: (s, k, v) => run(s, 'readwrite', st => st.put(v, k)),
+    del: (s, k) => run(s, 'readwrite', st => st.delete(k)),
+  };
+})();
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+/* ---------- App state ---------- */
+const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, updatedAt: 0 });
+let state = emptyState();
+let settings = Object.assign({ apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '' }, LS.get('cc.settings', {}));
+let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
+const ui = { filter: LS.get('cc.filter', 'all'), q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
+const saveSettings = () => LS.set('cc.settings', settings);
+const saveDrive = () => LS.set('cc.drive', drive);
+
+let persistT;
+function persist() {
+  clearTimeout(persistT);
+  persistT = setTimeout(() => DB.put('kv', 'state', state).catch(e => toast('Could not save locally: ' + e.message)), 250);
+  scheduleSync();
+}
+function touch(s) { const t = now(); if (s) s.updatedAt = t; state.updatedAt = t; persist(); }
+const sessionsArr = () => Object.values(state.sessions);
+const S = (id) => state.sessions[id];
+const liveNotes = (s) => (s?.notes || []).filter(n => !n.deleted);
+
+/* ---------- Time helpers ---------- */
+const pad = (n) => String(n).padStart(2, '0');
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+function fmtTime(hm) {
+  if (!hm) return '';
+  const [h, m] = hm.split(':').map(Number);
+  const d = new Date(2000, 0, 1, h, m || 0);
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+function fmtDate(iso, opts = { weekday: 'long', month: 'long', day: 'numeric' }) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return isNaN(d) ? iso : d.toLocaleDateString([], opts);
+}
+const fmtClock = (ts) => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function isLive(s) {
+  if (!s.date || !s.start || s.date !== todayISO()) return false;
+  const d = new Date(); const cur = d.getHours() * 60 + d.getMinutes();
+  const toMin = (hm) => { const [h, m] = hm.split(':').map(Number); return h * 60 + (m || 0); };
+  const st = toMin(s.start), en = s.end ? toMin(s.end) : st + 60;
+  return cur >= st - 5 && cur <= en;
+}
+const sortKey = (s) => `${s.date || '9999'}|${s.start || '99:99'}|${(s.title || '').toLowerCase()}`;
+function ago(ts) {
+  const d = (now() - ts) / 1000;
+  if (d < 45) return 'just now';
+  if (d < 3600) return Math.round(d / 60) + ' min ago';
+  if (d < 86400) return Math.round(d / 3600) + ' h ago';
+  return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+/* ---------- Toast & sheets ---------- */
+let toastT;
+function toast(msg, html = false, ms = 3200) {
+  const t = $('#toast'); t[html ? 'innerHTML' : 'textContent'] = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms);
+}
+let sheetStack = [];
+function openSheet({ title, left = 'Cancel', right = '', onRight, body, onMount, onClose, cls = '' }) {
+  const ov = document.createElement('div'); ov.className = 'overlay';
+  ov.innerHTML = `<div class="sheet ${cls}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <div class="grabber"></div>
+    <div class="sheet-h"><button class="btn-plain" data-act="left">${esc(left)}</button><h2>${esc(title)}</h2>
+    <button class="btn-plain r" data-act="right" ${right ? '' : 'style="visibility:hidden"'}>${esc(right || '.')}</button></div>
+    <div class="sheet-b">${body}</div></div>`;
+  const close = () => { ov.remove(); sheetStack = sheetStack.filter(x => x !== api); onClose?.(); };
+  const api = { el: ov, close };
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  $('[data-act=left]', ov).onclick = close;
+  $('[data-act=right]', ov).onclick = () => onRight?.(api);
+  document.body.appendChild(ov); sheetStack.push(api);
+  onMount?.(api);
+  return api;
+}
+addEventListener('keydown', e => { if (e.key === 'Escape' && sheetStack.length && !rec.active) sheetStack.at(-1).close(); });
+function actionSheet(title, actions) {
+  const sh = openSheet({
+    title, left: 'Close', cls: 'action-list',
+    body: `<div class="form-group">${actions.map((a, i) => `<button class="row-btn ${a.danger ? 'danger' : ''}" data-i="${i}">${a.icon || ''}${esc(a.label)}</button>`).join('')}</div>`,
+    onMount: (s) => $$('[data-i]', s.el).forEach(b => b.onclick = () => { s.close(); actions[+b.dataset.i].run(); }),
+  });
+  return sh;
+}
+function confirmSheet(title, text, okLabel, danger = true) {
+  return new Promise(res => {
+    let done = false;
+    const sh = openSheet({
+      title, left: 'Cancel', onClose: () => !done && res(false),
+      body: `<p class="muted" style="text-align:center;margin:4px 8px 18px">${esc(text)}</p>
+        <div class="stack" style="max-width:none"><button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="cfOk">${esc(okLabel)}</button></div>`,
+      onMount: (s) => $('#cfOk', s.el).onclick = () => { done = true; s.close(); res(true); },
+    });
+  });
+}
+
+/* =========================================================
+   Rendering
+   ========================================================= */
+function render() { renderSync(); renderList(); renderDetail(); }
+
+function filteredSessions() {
+  const q = ui.q.trim().toLowerCase();
+  return sessionsArr()
+    .filter(s => ui.filter === 'all' || (ui.filter === 'attended' ? s.attended : !s.attended))
+    .filter(s => !q || [s.title, s.speaker, s.room, s.description, ...liveNotes(s).map(n => n.text)].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+}
+
+function renderList() {
+  $('#confName').textContent = state.conference.name || (sessionsArr().length ? 'My conference' : '');
+  $$('#filterSeg button').forEach(b => b.classList.toggle('on', b.dataset.f === ui.filter));
+  const list = $('#list');
+  const all = sessionsArr();
+  if (!all.length) {
+    list.innerHTML = `<div class="empty">
+      <div class="art">${I.calendar}</div>
+      <h2>Bring your agenda</h2>
+      <p>Paste your sessions, import a calendar file, or snap a photo of the printed program. Each one becomes a notebook for the talk.</p>
+      <div class="stack">
+        <button class="btn btn-primary" data-go="import">${I.plus} Import agenda</button>
+        <button class="btn btn-tinted" data-go="manual">Add a session</button>
+        <button class="btn btn-plain" data-go="sample">Try a sample agenda</button>
+      </div></div>`;
+    $$('[data-go]', list).forEach(b => b.onclick = () => ({ import: openImport, manual: () => openSessionForm(), sample: loadSample })[b.dataset.go]());
+    return;
+  }
+  const items = filteredSessions();
+  if (!items.length) {
+    list.innerHTML = `<div class="empty"><p>${ui.filter === 'attended' ? 'Sessions you wrap up will appear here, with their briefs.' : ui.q ? 'No matches.' : 'Nothing left — you’ve attended everything. 🎉'}</p></div>`;
+    return;
+  }
+  const groups = new Map();
+  for (const s of items) { const k = s.date || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); }
+  let html = '';
+  if (ui.filter === 'attended' && items.length >= 2) {
+    html += `<div style="margin-top:12px"><button class="btn btn-tinted" style="width:100%" id="recapBtn">${I.book} Conference recap</button></div>`;
+  }
+  for (const [date, ss] of groups) {
+    const att = ss.filter(s => s.attended).length;
+    html += `<div class="group-h"><span>${date ? esc(fmtDate(date)) : 'Sessions'}</span><span>${att ? `${att}/${ss.length} attended` : `${ss.length} session${ss.length > 1 ? 's' : ''}`}</span></div><div class="cells">`;
+    for (const s of ss) {
+      const n = liveNotes(s).length, live = isLive(s);
+      html += `<button class="cell ${s.id === ui.selected ? 'sel' : ''} ${s.attended ? 'done' : ''}" data-id="${s.id}">
+        <div class="cell-time">${s.start ? `<b>${esc(fmtTime(s.start))}</b>${s.end ? esc(fmtTime(s.end)) : ''}` : '<b>—</b>'}</div>
+        <div class="cell-body">
+          <div class="cell-title">${esc(s.title || 'Untitled session')}</div>
+          ${s.speaker || s.room ? `<div class="cell-meta">${esc([s.speaker, s.room].filter(Boolean).join(' · '))}</div>` : ''}
+          ${s.attended || live || n ? `<div class="badges">
+            ${s.attended ? `<span class="badge b-done">${I.check} Attended</span>` : ''}
+            ${live && !s.attended ? `<span class="badge b-live"><i></i> Live now</span>` : ''}
+            ${s.brief ? `<span class="badge b-brief">${I.sparkles} Brief</span>` : ''}
+            ${n ? `<span class="badge b-notes">${n} note${n > 1 ? 's' : ''}</span>` : ''}</div>` : ''}
+        </div>
+        <span class="chev only-narrow">${I.right}</span>
+      </button>`;
+    }
+    html += '</div>';
+  }
+  list.innerHTML = html;
+  $$('.cell', list).forEach(c => c.onclick = () => select(c.dataset.id));
+  $('#recapBtn', list)?.addEventListener('click', openRecap);
+}
+
+function select(id, push = true) {
+  ui.selected = id; ui.editing = null;
+  if (push && !wide()) history.pushState({ s: id }, '', '#s=' + id);
+  else history.replaceState({ s: id }, '', id ? '#s=' + id : location.pathname + location.search);
+  document.body.classList.toggle('show-detail', !!id);
+  renderList(); renderDetail();
+  $('#detail').scrollTop = 0;
+}
+addEventListener('popstate', () => {
+  const m = location.hash.match(/s=([\w]+)/);
+  ui.selected = m && S(m[1]) ? m[1] : null;
+  document.body.classList.toggle('show-detail', !!ui.selected);
+  renderList(); renderDetail();
+});
+
+function renderDetail() {
+  const s = S(ui.selected);
+  const det = $('#detail');
+  $('#composer').classList.toggle('hidden', !s);
+  $('#moreBtn').classList.toggle('hidden', !s);
+  if (!s) {
+    det.innerHTML = `<div class="no-sel" style="height:100%"><div>${I.list}<div>Select a session to take notes</div></div></div>`;
+    return;
+  }
+  const notes = liveNotes(s).sort((a, b) => a.ts - b.ts);
+  const eyebrow = [
+    s.date ? `<span>${I.calendar}${esc(fmtDate(s.date, { weekday: 'short', month: 'short', day: 'numeric' }))}</span>` : '',
+    s.start ? `<span>${I.clock}${esc(fmtTime(s.start))}${s.end ? ' – ' + esc(fmtTime(s.end)) : ''}</span>` : '',
+    s.room ? `<span>${I.pin}${esc(s.room)}</span>` : '',
+  ].join('');
+  det.innerHTML = `<div class="detail-wrap">
+    ${eyebrow ? `<div class="d-eyebrow">${eyebrow}</div>` : ''}
+    <h2 class="d-title">${esc(s.title || 'Untitled session')}</h2>
+    ${s.speaker ? `<div class="d-speaker">${I.person}${esc(s.speaker)}</div>` : ''}
+    ${s.description ? `<div class="d-desc">${esc(s.description)}</div>` : ''}
+    <div class="d-status">
+      ${s.attended ? `<span class="badge b-done">${I.check} Attended${s.attendedAt ? ' · ' + esc(new Date(s.attendedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })) : ''}</span>` : ''}
+      ${isLive(s) && !s.attended ? `<span class="badge b-live"><i></i> Happening now</span>` : ''}
+    </div>
+    ${s.brief ? renderBrief(s) : ''}
+    <div class="section-h"><h3>Notes</h3><small>${notes.length ? `${notes.length} item${notes.length > 1 ? 's' : ''}` : ''}</small></div>
+    <div class="notes">${notes.length ? notes.map(n => renderNote(n)).join('') : `
+      <div class="notes-empty"><b>Capture the session your way</b>Type thoughts, snap slides, film a demo, or record the speaker and get a live transcript.
+        <div class="hint-row"><span>${I.text}Type</span><span>${I.camera}Photo</span><span>${I.video}Video</span><span>${I.mic}Record</span></div></div>`}
+    </div>
+  </div>`;
+  bindNotes(det, s);
+  hydrateMedia(det);
+  updateComposer();
+}
+
+function renderBrief(s) {
+  const b = s.brief;
+  const list = (arr, cls, label, q = '') => arr?.length ? `<div class="blk ${cls} ${q}"><h5><i></i>${label}</h5><ul>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+  return `<div class="section-h"><h3>Session brief</h3><small>${b.source === 'ai' ? 'by Claude' : 'on-device'}</small></div>
+  <div class="card brief">
+    <span class="tag">${I.sparkles} Brief</span>
+    ${b.headline ? `<h4>${esc(b.headline)}</h4>` : ''}
+    ${b.summary ? `<p class="sum">${esc(b.summary)}</p>` : ''}
+    ${list(b.keyTakeaways, 'k-take', 'Key takeaways')}
+    ${list(b.learnings, 'k-learn', 'Learnings')}
+    ${list(b.quotes, 'k-quote', 'Worth quoting', 'q')}
+    ${list(b.actionItems, 'k-act', 'Follow-ups')}
+    ${list(b.openQuestions, 'k-q', 'Open questions')}
+    <div class="brief-foot">
+      <button class="btn btn-sm btn-tinted" data-b="share">${I.share} Share</button>
+      <button class="btn btn-sm btn-tinted" data-b="copy">${I.copy} Copy</button>
+      <button class="btn btn-sm btn-tinted" data-b="doc">${I.doc} Google Doc</button>
+      <small>${b.source === 'ai' ? '' : 'Add a Claude key in Settings for a richer brief · '}${esc(ago(b.generatedAt))}</small>
+    </div>
+  </div>`;
+}
+
+function renderNote(n) {
+  const types = { text: [I.text, 'Note'], photo: [I.photo, 'Photo'], video: [I.video, 'Video'], audio: [I.wave, 'Recording'] };
+  const [ic, label] = types[n.type] || types.text;
+  const editing = ui.editing === n.id;
+  let body = '';
+  if (n.type === 'photo') body = `<div class="note-media"><img data-media="${n.mediaId}" alt="${esc(n.text || 'Photo')}"></div>`;
+  if (n.type === 'video') body = `<div class="note-media"><video data-media="${n.mediaId}" controls playsinline preload="metadata" ${n.thumb ? `poster="${n.thumb}"` : ''}></video></div>`;
+  if (n.type === 'audio') body = n.mediaId ? `<div class="note-media"><audio data-media="${n.mediaId}" controls preload="metadata"></audio></div>` : '';
+  let text = '';
+  if (editing) {
+    text = `<textarea class="edit-area" id="editArea">${esc(n.text || '')}</textarea>
+      <div class="edit-row"><button class="btn btn-sm btn-plain" data-e="cancel">Cancel</button><button class="btn btn-sm btn-primary" data-e="save">Save</button></div>`;
+  } else if (n.type === 'text') text = `<div class="note-text">${esc(n.text)}</div>`;
+  else if (n.type === 'audio') text = n.text ? `<div class="transcript-h">Transcript</div><div class="transcript">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">No transcript captured — tap to add a summary</div>`;
+  else text = n.text ? `<div class="note-cap">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">Add a caption…</div>`;
+  const dur = n.duration ? ` · ${Math.floor(n.duration / 60)}:${pad(Math.round(n.duration % 60))}` : '';
+  return `<div class="note ${n.star ? 'star' : ''}" data-note="${n.id}">
+    <div class="note-meta"><span class="ty">${ic}${label}</span><span>${esc(fmtClock(n.ts))}${dur}</span>
+      <div class="note-acts">
+        <button data-n="star" class="${n.star ? 'on' : ''}" aria-label="Key point">${n.star ? I.starFill : I.star}</button>
+        <button data-n="edit" aria-label="Edit">${I.pencil}</button>
+        <button data-n="del" aria-label="Delete">${I.trash}</button>
+      </div></div>
+    ${body}${text}</div>`;
+}
+
+function bindNotes(root, s) {
+  $$('[data-note]', root).forEach(el => {
+    const n = s.notes.find(x => x.id === el.dataset.note);
+    $$('[data-n]', el).forEach(b => b.onclick = async () => {
+      const a = b.dataset.n;
+      if (a === 'star') { n.star = !n.star; n.updatedAt = now(); touch(s); renderDetail(); }
+      if (a === 'edit') { ui.editing = n.id; renderDetail(); const ta = $('#editArea'); ta?.focus(); ta?.setSelectionRange(ta.value.length, ta.value.length); }
+      if (a === 'del') {
+        if (await confirmSheet('Delete note?', 'This removes it from this session on all your devices.', 'Delete')) {
+          n.deleted = true; n.updatedAt = now(); touch(s); renderDetail(); renderList();
+        }
+      }
+    });
+    $$('[data-e]', el).forEach(b => b.onclick = () => {
+      if (b.dataset.e === 'save') { n.text = $('#editArea').value.trim(); n.updatedAt = now(); touch(s); }
+      ui.editing = null; renderDetail();
+    });
+    $('img', el)?.addEventListener('click', e => { if (e.target.src) openViewer(e.target.src); });
+  });
+  $$('[data-b]', root).forEach(b => b.onclick = () => ({ share: () => shareBrief(s), copy: () => copyBrief(s), doc: () => briefToDoc(s) })[b.dataset.b]());
+}
+
+function openViewer(src) {
+  const v = document.createElement('div'); v.className = 'viewer';
+  v.innerHTML = `<img src="${src}" alt=""><button aria-label="Close">${I.x}</button>`;
+  v.onclick = () => v.remove(); document.body.appendChild(v);
+}
+
+/* ---------- Media hydration (local first, then Drive) ---------- */
+const urlCache = new Map();
+async function getMediaBlob(note, { allowRemote = true } = {}) {
+  let blob = await DB.get('media', note.mediaId).catch(() => null);
+  if (!blob && allowRemote && note.driveId && tokenValid()) {
+    try {
+      const r = await gfetch(`https://www.googleapis.com/drive/v3/files/${note.driveId}?alt=media`);
+      blob = await r.blob();
+      if (note.mime) blob = new Blob([blob], { type: note.mime });
+      await DB.put('media', note.mediaId, blob);
+    } catch (e) { console.warn('media download', e); }
+  }
+  return blob || null;
+}
+async function hydrateMedia(root) {
+  const s = S(ui.selected); if (!s) return;
+  for (const el of $$('[data-media]', root)) {
+    const id = el.dataset.media;
+    if (urlCache.has(id)) { el.src = urlCache.get(id); continue; }
+    const n = s.notes.find(x => x.mediaId === id);
+    const blob = n && await getMediaBlob(n);
+    if (blob) { const u = URL.createObjectURL(blob); urlCache.set(id, u); el.src = u; }
+    else if (el.isConnected) {
+      el.parentElement.innerHTML = `<div class="miss">${n?.driveId ? 'Saved in Google Drive — connect Drive in Settings to load it here.' : 'This file is on another device and hasn’t synced yet.'}</div>`;
+    }
+  }
+}
+
+/* ---------- Composer ---------- */
+function updateComposer() {
+  const s = S(ui.selected); if (!s) return;
+  const n = liveNotes(s).length;
+  const wb = $('#wrapBtn');
+  const busy = ui.busyBrief === s.id;
+  wb.disabled = !n || busy;
+  wb.classList.toggle('busy', busy);
+  wb.innerHTML = busy ? `${I.sparkles} Making sense of your notes…` : s.brief ? `${I.sparkles} Refresh brief` : `${I.sparkles} Wrap up & brief`;
+  $('#sendBtn').disabled = !$('#noteInput').value.trim();
+  const st = $('#starToggle'); st.classList.toggle('on', ui.composeStar); st.innerHTML = ui.composeStar ? I.starFill : I.star;
+}
+function autoGrow() { const ta = $('#noteInput'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; }
+function addNote(s, note) {
+  const n = Object.assign({ id: uid(), ts: now(), updatedAt: now(), text: '', star: false }, note);
+  s.notes = s.notes || []; s.notes.push(n); touch(s);
+  return n;
+}
+function sendText() {
+  const s = S(ui.selected); const ta = $('#noteInput'); const text = ta.value.trim();
+  if (!s || !text) return;
+  addNote(s, { type: 'text', text, star: ui.composeStar });
+  ta.value = ''; ui.composeStar = false; autoGrow();
+  renderDetail(); renderList(); scrollNotesEnd();
+}
+function scrollNotesEnd() { const d = $('#detail'); requestAnimationFrame(() => d.scrollTo({ top: d.scrollHeight, behavior: 'smooth' })); }
+
+/* ---------- Photos & video ---------- */
+async function resizeImage(blob, max = 2048, q = 0.85) {
+  try {
+    const img = await loadImage(blob);
+    const sc = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement('canvas'); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return await new Promise(r => c.toBlob(b => r(b || blob), 'image/jpeg', q));
+  } catch { return blob; }
+}
+function loadImage(blob) {
+  return new Promise((res, rej) => { const u = URL.createObjectURL(blob); const i = new Image(); i.onload = () => { URL.revokeObjectURL(u); res(i); }; i.onerror = () => { URL.revokeObjectURL(u); rej(new Error('image')); }; i.src = u; });
+}
+async function blobToB64(blob) {
+  const buf = new Uint8Array(await blob.arrayBuffer()); let s = '';
+  for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function videoFrame(blob, max = 960) {
+  return new Promise(res => {
+    const v = document.createElement('video'); const u = URL.createObjectURL(blob);
+    let done = false; const fin = (r) => { if (done) return; done = true; URL.revokeObjectURL(u); res(r); };
+    v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = u;
+    v.onloadeddata = () => { try { v.currentTime = Math.min(1, (v.duration || 2) / 3); } catch { fin(null); } };
+    v.onseeked = () => {
+      try {
+        const sc = Math.min(1, max / Math.max(v.videoWidth, v.videoHeight));
+        const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        fin({ dataUrl: c.toDataURL('image/jpeg', 0.72), duration: v.duration });
+      } catch { fin(null); }
+    };
+    v.onerror = () => fin(null);
+    setTimeout(() => fin(null), 6000);
+    v.load();
+  });
+}
+async function onPhotos(files) {
+  const s = S(ui.selected); if (!s || !files.length) return;
+  toast(files.length > 1 ? `Adding ${files.length} photos…` : 'Adding photo…');
+  for (const f of files) {
+    const blob = await resizeImage(f);
+    const mediaId = uid();
+    await DB.put('media', mediaId, blob);
+    addNote(s, { type: 'photo', mediaId, mime: blob.type || 'image/jpeg' });
+  }
+  renderDetail(); renderList(); scrollNotesEnd();
+}
+async function onVideo(file) {
+  const s = S(ui.selected); if (!s || !file) return;
+  if (file.size > 300 * 1024 * 1024) toast('Large video — syncing to Drive may take a while.');
+  const mediaId = uid();
+  await DB.put('media', mediaId, file);
+  const fr = await videoFrame(file);
+  addNote(s, { type: 'video', mediaId, mime: file.type || 'video/mp4', thumb: fr?.dataUrl ? await shrinkDataUrl(fr.dataUrl) : '', frame: '', duration: fr?.duration || 0 });
+  // keep a larger frame locally for the AI brief
+  if (fr?.dataUrl) await DB.put('media', mediaId + '_frame', await (await fetch(fr.dataUrl)).blob());
+  renderDetail(); renderList(); scrollNotesEnd();
+}
+async function shrinkDataUrl(dataUrl, max = 480) {
+  const b = await (await fetch(dataUrl)).blob(); const small = await resizeImage(b, max, 0.65);
+  return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(small); });
+}
+
+/* ---------- Recording + live transcription ---------- */
+const rec = { active: false };
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+async function startRecording() {
+  const s = S(ui.selected); if (!s) return;
+  if (!navigator.mediaDevices?.getUserMedia) { toast('Recording needs a secure (https) page.'); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+  catch (e) { toast('Microphone access was blocked. Allow it in your browser settings.'); return; }
+  Object.assign(rec, { active: true, sessionId: s.id, stream, chunks: [], finalText: '', interim: '', started: now(), paused: false, srErrors: 0, mr: null, sr: null, wake: null, mime: '' });
+
+  if (settings.keepAudio && window.MediaRecorder) {
+    const mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find(m => MediaRecorder.isTypeSupported?.(m)) || '';
+    try {
+      rec.mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      rec.mime = rec.mr.mimeType || mime || 'audio/mp4';
+      rec.mr.ondataavailable = e => e.data.size && rec.chunks.push(e.data);
+      rec.mr.start(1000);
+    } catch (e) { console.warn(e); rec.mr = null; }
+  }
+  if (SR) startRecognition();
+  try { rec.wake = await navigator.wakeLock?.request('screen'); } catch {}
+
+  // level meter
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)(); const src = ac.createMediaStreamSource(stream);
+    const an = ac.createAnalyser(); an.fftSize = 256; src.connect(an); rec.ac = ac; rec.an = an;
+  } catch {}
+
+  rec.sheet = openSheet({
+    title: 'Recording', left: 'Discard', right: 'Save',
+    onRight: () => stopRecording(true),
+    onClose: () => rec.active && stopRecording(false),
+    body: `<div class="rec-wrap">
+      <div class="rec-dot" id="recDot"><i></i></div>
+      <div class="rec-time" id="recTime">0:00</div>
+      <div class="rec-sub">${esc(s.title || '')}</div>
+      <div class="levels" id="levels">${'<i></i>'.repeat(28)}</div>
+      <div class="live-tx" id="liveTx"><span class="ph">${SR ? 'Live transcript will appear here as the speaker talks…' : 'Live transcription isn’t supported in this browser. Audio is still being recorded.'}</span></div>
+      <p class="form-cap" style="text-align:center;margin:10px 0 0">Keep this screen open while recording. ${settings.keepAudio ? 'Audio and transcript are both saved.' : 'Only the transcript is saved (see Settings).'}</p>
+      <div class="rec-actions"><button class="btn btn-tinted" id="recPause">Pause</button><button class="btn btn-primary" id="recStop">Stop & save</button></div>
+    </div>`,
+    onMount: (sh) => {
+      $('#recStop', sh.el).onclick = () => stopRecording(true);
+      $('#recPause', sh.el).onclick = togglePause;
+    },
+  });
+  $('#micBtn').classList.add('rec');
+  rec.timer = setInterval(tickRecording, 120);
+}
+function startRecognition() {
+  const r = new SR(); rec.sr = r;
+  r.continuous = true; r.interimResults = true; r.lang = settings.lang || 'en-US';
+  r.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) rec.finalText += (rec.finalText && !/\s$/.test(rec.finalText) ? ' ' : '') + t.trim();
+      else interim += t;
+    }
+    rec.interim = interim; paintTranscript();
+  };
+  r.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { rec.srDenied = true; paintTranscript('Transcription isn’t available here (permission denied). Audio is still recording.'); } rec.srErrors++; };
+  r.onend = () => { if (rec.active && !rec.paused && !rec.srDenied && rec.srErrors < 30) { rec.finalText += rec.finalText ? '\n' : ''; try { r.start(); } catch {} } };
+  try { r.start(); } catch (e) { console.warn(e); }
+}
+function paintTranscript(msg) {
+  const el = $('#liveTx'); if (!el) return;
+  if (msg) { el.innerHTML = `<span class="ph">${esc(msg)}</span>`; return; }
+  el.innerHTML = esc(rec.finalText.replace(/\n+/g, '\n')) + (rec.interim ? ` <span class="interim">${esc(rec.interim)}</span>` : '');
+  el.scrollTop = el.scrollHeight;
+}
+function tickRecording() {
+  if (!rec.active) return;
+  const el = (rec.elapsed || 0) + (rec.paused ? 0 : now() - rec.started);
+  const sec = Math.floor(el / 1000);
+  const t = $('#recTime'); if (t) t.textContent = `${Math.floor(sec / 60)}:${pad(sec % 60)}`;
+  if (rec.an) {
+    const d = new Uint8Array(rec.an.frequencyBinCount); rec.an.getByteFrequencyData(d);
+    $$('#levels i').forEach((b, i) => { const v = rec.paused ? 0 : d[(i * 3) % d.length] / 255; b.style.height = (4 + v * 32) + 'px'; });
+  }
+}
+function togglePause() {
+  rec.paused = !rec.paused;
+  if (rec.paused) { rec.elapsed = (rec.elapsed || 0) + now() - rec.started; rec.mr?.state === 'recording' && rec.mr.pause(); try { rec.sr?.stop(); } catch {} }
+  else { rec.started = now(); rec.mr?.state === 'paused' && rec.mr.resume(); try { rec.sr?.start(); } catch {} }
+  $('#recPause').textContent = rec.paused ? 'Resume' : 'Pause';
+  $('#recDot').classList.toggle('paused', rec.paused);
+}
+async function stopRecording(save) {
+  if (!rec.active) return;
+  rec.active = false; clearInterval(rec.timer);
+  const duration = ((rec.elapsed || 0) + (rec.paused ? 0 : now() - rec.started)) / 1000;
+  try { rec.sr?.stop(); } catch {}
+  const blob = await new Promise(res => {
+    if (!rec.mr || rec.mr.state === 'inactive') return res(rec.chunks.length ? new Blob(rec.chunks, { type: rec.mime }) : null);
+    rec.mr.onstop = () => res(rec.chunks.length ? new Blob(rec.chunks, { type: rec.mime }) : null);
+    rec.mr.stop();
+  });
+  rec.stream.getTracks().forEach(t => t.stop());
+  try { rec.ac?.close(); } catch {}
+  try { rec.wake?.release(); } catch {}
+  $('#micBtn').classList.remove('rec');
+  const sh = rec.sheet; rec.sheet = null; sh && sheetStack.includes(sh) && sh.close();
+  if (!save) { toast('Recording discarded'); return; }
+  const s = S(rec.sessionId); if (!s) return;
+  const text = (rec.finalText + (rec.interim ? ' ' + rec.interim : '')).replace(/\n{2,}/g, '\n').trim();
+  if (!blob && !text) { toast('Nothing was captured.'); return; }
+  let mediaId = '';
+  if (blob) { mediaId = uid(); await DB.put('media', mediaId, blob); }
+  addNote(s, { type: 'audio', mediaId, mime: blob?.type || '', text, duration, ts: now() - duration * 1000 });
+  toast(text ? 'Recording and transcript saved' : 'Recording saved');
+  if (ui.selected === s.id) { renderDetail(); scrollNotesEnd(); }
+  renderList();
+}
+
+/* =========================================================
+   Claude API (called directly from the browser with your key)
+   ========================================================= */
+async function claude({ system, content, schema, maxTokens = 16000 }) {
+  if (!settings.apiKey) throw Object.assign(new Error('Add your Claude API key in Settings.'), { code: 'NO_KEY' });
+  const model = settings.model || 'claude-opus-5-5';
+  const build = (extras) => {
+    const body = { model, max_tokens: maxTokens, system, messages: [{ role: 'user', content }], output_config: { effort: 'medium' } };
+    if (schema && extras) body.output_config.format = { type: 'json_schema', schema };
+    const headers = { 'content-type': 'application/json', 'x-api-key': settings.apiKey, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' };
+    // Server-side refusal fallback (not offered on Haiku)
+    if (extras && model !== 'claude-haiku-5-5') { headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; body.fallbacks = 'default'; }
+    return { method: 'POST', headers, body: JSON.stringify(body) };
+  };
+  let res = await fetch('https://api.anthropic.com/v1/messages', build(true));
+  if (res.status === 400) {
+    // Retry once without optional features in case the account or model doesn't accept them
+    const j = await res.clone().json().catch(() => ({}));
+    if (/fallback|output_config|format|beta/i.test(j?.error?.message || '')) res = await fetch('https://api.anthropic.com/v1/messages', build(false));
+  }
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    const msg = j?.error?.message || res.statusText;
+    if (res.status === 401) throw new Error('Claude rejected the API key. Check it in Settings.');
+    if (res.status === 429) throw new Error('Claude is rate-limiting this key. Try again in a minute.');
+    throw new Error(`Claude error (${res.status}): ${msg}`);
+  }
+  const data = await res.json();
+  if (data.stop_reason === 'refusal') throw new Error('Claude declined to process this content.');
+  const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  if (!schema) return text;
+  try { return JSON.parse(text); }
+  catch { const m = text.match(/\{[\s\S]*\}/); if (m) return JSON.parse(m[0]); throw new Error('Claude returned an unexpected format.'); }
+}
+const strArr = { type: 'array', items: { type: 'string' } };
+const BRIEF_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['headline', 'summary', 'keyTakeaways', 'learnings', 'quotes', 'actionItems', 'openQuestions'],
+  properties: { headline: { type: 'string' }, summary: { type: 'string' }, keyTakeaways: strArr, learnings: strArr, quotes: strArr, actionItems: strArr, openQuestions: strArr },
+};
+const BRIEF_SYSTEM = `You are Conference Copilot. You turn one attendee's raw notes from a conference session into a short, useful brief they will reread later.
+
+The notes mix several sources: things the attendee typed, photos of slides or whiteboards, frames from short videos, and automatic speech-to-text transcripts of the speaker. Transcripts contain recognition errors, so infer the intended words from context and never quote garbled text. Notes marked as key points were flagged by the attendee as important, so give them extra weight. Slides often carry the clearest statement of the speaker's argument; read them carefully.
+
+Ground everything in the notes. Don't add facts, numbers or claims that the notes don't support. When the notes are thin, write a short brief rather than padding it, and leave a list empty if nothing fits. Write in the language the notes are written in.`;
+
+async function generateBrief(s) {
+  const notes = liveNotes(s).sort((a, b) => a.ts - b.ts);
+  if (!notes.length) return;
+  ui.busyBrief = s.id; updateComposer();
+  try {
+    let brief;
+    if (settings.apiKey) {
+      const content = [{ type: 'text', text: `Session: ${s.title}\n${s.speaker ? 'Speaker: ' + s.speaker + '\n' : ''}${s.date ? 'Date: ' + s.date + (s.start ? ' ' + s.start : '') + '\n' : ''}${s.room ? 'Room: ' + s.room + '\n' : ''}${s.description ? 'Abstract: ' + s.description + '\n' : ''}\nThe attendee's notes, in order:` }];
+      let images = 0;
+      for (const n of notes) {
+        const head = `[${fmtClock(n.ts)}]${n.star ? ' [KEY POINT]' : ''}`;
+        if (n.type === 'text') content.push({ type: 'text', text: `${head} Typed note: ${n.text}` });
+        else if (n.type === 'audio') content.push({ type: 'text', text: n.text ? `${head} Speech-to-text transcript of the speaker (${Math.round(n.duration / 60) || '<1'} min):\n${n.text}` : `${head} An audio recording with no transcript.` });
+        else if (n.type === 'photo' || n.type === 'video') {
+          let img = null;
+          if (images < 20) {
+            if (n.type === 'photo') { const b = await getMediaBlob(n); if (b) img = await resizeImage(b, 1568, 0.82); }
+            else { img = await DB.get('media', n.mediaId + '_frame').catch(() => null); if (!img && n.thumb) img = await (await fetch(n.thumb)).blob(); }
+          }
+          content.push({ type: 'text', text: `${head} ${n.type === 'photo' ? 'Photo taken by the attendee' : 'Frame from a video the attendee recorded'}${n.text ? ' — caption: ' + n.text : ''}${img ? ':' : ' (image unavailable).'}` });
+          if (img) { content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: await blobToB64(img) } }); images++; }
+        }
+      }
+      content.push({ type: 'text', text: `Write the brief:
+- headline: one line that captures the session's core idea.
+- summary: 3 to 5 sentences on what the session covered and argued.
+- keyTakeaways: the 3 to 6 most important points, one sentence each.
+- learnings: 2 to 5 things the attendee now understands or can apply in their own work.
+- quotes: up to 3 memorable lines the speaker clearly said, only if they appear in the notes or transcript.
+- actionItems: up to 5 concrete follow-ups for the attendee (resources mentioned, people to contact, things to try).
+- openQuestions: up to 3 unresolved questions worth following up on.` });
+      brief = await claude({ system: BRIEF_SYSTEM, content, schema: BRIEF_SCHEMA });
+      brief.source = 'ai';
+    } else {
+      brief = offlineBrief(s, notes); brief.source = 'offline';
+    }
+    brief.generatedAt = now();
+    const fresh = S(s.id) || s;
+    fresh.brief = brief;
+    if (!fresh.attended) { fresh.attended = true; fresh.attendedAt = now(); }
+    touch(fresh);
+    toast(brief.source === 'ai' ? 'Brief ready · session marked attended' : 'On-device brief ready', false, 4200);
+  } catch (e) {
+    console.error(e);
+    toast(e.message || 'Could not create the brief', false, 5000);
+    if (e.code === 'NO_KEY') openSettings();
+  } finally {
+    ui.busyBrief = null;
+    if (ui.selected === s.id) { renderDetail(); $('#detail').scrollTo({ top: 0, behavior: 'smooth' }); }
+    renderList();
+  }
+}
+
+/* On-device extractive fallback, no network */
+const STOP = new Set('a an and are as at be but by for from has have i in is it its of on or that the this to was we were will with you your they their our not can just so if about into than then there these those what when which who how also more most very been being do does did had he she his her them us me my mine yours through over under after before because while each some any all only like would could should get got make made one two'.split(' '));
+function offlineBrief(s, notes) {
+  const chunks = [];
+  for (const n of notes) {
+    if (!n.text) continue;
+    const parts = n.text.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+|\n+|\s+[-•]\s+/).map(x => x.trim()).filter(x => x.length > 12);
+    parts.forEach(p => chunks.push({ t: p, star: n.star, typed: n.type === 'text' }));
+  }
+  const freq = {};
+  chunks.forEach(c => c.t.toLowerCase().match(/[\p{L}\p{N}']+/gu)?.forEach(w => { if (w.length > 2 && !STOP.has(w)) freq[w] = (freq[w] || 0) + 1; }));
+  const score = (c) => { const ws = c.t.toLowerCase().match(/[\p{L}\p{N}']+/gu) || []; const base = ws.reduce((a, w) => a + (freq[w] || 0), 0) / Math.sqrt(ws.length + 1); return base * (c.star ? 2.2 : 1) * (c.typed ? 1.3 : 1); };
+  const ranked = [...chunks].sort((a, b) => score(b) - score(a));
+  const uniq = (arr, k) => { const seen = new Set(); const out = []; for (const c of arr) { const key = c.t.toLowerCase().slice(0, 40); if (!seen.has(key)) { seen.add(key); out.push(c.t); } if (out.length >= k) break; } return out; };
+  const take = uniq(ranked, 5);
+  const learn = uniq(ranked.filter(c => /\b(learn|lesson|insight|important|key|remember|realis|realiz|understand|tip|best practice|should|must)\w*/i.test(c.t) && !take.includes(c.t)), 4);
+  const acts = uniq(chunks.filter(c => /\b(todo|to-do|follow[- ]?up|try|check out|look into|read|contact|email|download|need to|action|next step)\b/i.test(c.t)), 5);
+  const qs = uniq(chunks.filter(c => /\?$/.test(c.t)), 3);
+  const topWords = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([w]) => w);
+  const counts = { text: 0, photo: 0, video: 0, audio: 0 }; notes.forEach(n => counts[n.type]++);
+  const parts = [counts.text && `${counts.text} typed note${counts.text > 1 ? 's' : ''}`, counts.photo && `${counts.photo} photo${counts.photo > 1 ? 's' : ''}`, counts.video && `${counts.video} video${counts.video > 1 ? 's' : ''}`, counts.audio && `${counts.audio} recording${counts.audio > 1 ? 's' : ''}`].filter(Boolean);
+  return {
+    headline: s.title,
+    summary: `${take.slice(0, 2).join(' ')}${take.length ? ' ' : ''}Captured from ${parts.join(', ')}${topWords.length ? `; recurring themes: ${topWords.join(', ')}` : ''}.`,
+    keyTakeaways: take, learnings: learn, quotes: [], actionItems: acts, openQuestions: qs,
+  };
+}
+
+function briefText(s, md = false) {
+  const b = s.brief; if (!b) return '';
+  const sec = (t, a) => a?.length ? `\n${md ? '## ' : ''}${t}\n${a.map(x => '• ' + x).join('\n')}\n` : '';
+  return `${md ? '# ' : ''}${s.title}\n${[s.speaker, s.date && fmtDate(s.date), s.room].filter(Boolean).join(' · ')}\n\n${b.headline && b.headline !== s.title ? b.headline + '\n\n' : ''}${b.summary || ''}\n${sec('Key takeaways', b.keyTakeaways)}${sec('Learnings', b.learnings)}${sec('Worth quoting', b.quotes)}${sec('Follow-ups', b.actionItems)}${sec('Open questions', b.openQuestions)}`.trim();
+}
+async function copyBrief(s) { try { await navigator.clipboard.writeText(briefText(s)); toast('Brief copied'); } catch { toast('Copy failed'); } }
+async function shareBrief(s) {
+  if (navigator.share) { try { await navigator.share({ title: s.title, text: briefText(s) }); } catch {} }
+  else copyBrief(s);
+}
+
+/* ---------- Conference recap ---------- */
+async function openRecap() {
+  const done = sessionsArr().filter(s => s.attended && s.brief).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+  if (!done.length) return toast('Wrap up a session first');
+  const sh = openSheet({ title: 'Conference recap', left: 'Close', body: `<div id="recapBody" class="muted" style="text-align:center;padding:30px"><span class="spin"></span><p>Pulling your sessions together…</p></div>` });
+  let r;
+  try {
+    if (settings.apiKey) {
+      const text = done.map(s => briefText(s)).join('\n\n---\n\n');
+      r = await claude({
+        system: 'You write a conference recap for one attendee from the briefs of the sessions they attended. Stay grounded in the briefs and connect ideas across sessions where the briefs support it.',
+        content: [{ type: 'text', text: `Conference: ${state.conference.name || 'Untitled'}\n\nBriefs of attended sessions:\n\n${text}\n\nWrite: headline (one line), summary (4 to 6 sentences), themes (3 to 5 cross-session themes, one sentence each), topTakeaways (5 to 8 points), actionItems (up to 8 concrete follow-ups).` }],
+        schema: { type: 'object', additionalProperties: false, required: ['headline', 'summary', 'themes', 'topTakeaways', 'actionItems'], properties: { headline: { type: 'string' }, summary: { type: 'string' }, themes: strArr, topTakeaways: strArr, actionItems: strArr } },
+      });
+    } else {
+      r = { headline: `${done.length} sessions attended`, summary: done.map(s => `${s.title}: ${s.brief.headline !== s.title ? s.brief.headline : (s.brief.keyTakeaways[0] || '')}`).join(' '), themes: [], topTakeaways: done.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), actionItems: done.flatMap(s => s.brief.actionItems) };
+    }
+  } catch (e) { $('#recapBody', sh.el).innerHTML = `<p>${esc(e.message)}</p>`; return; }
+  const list = (a, cls, t) => a?.length ? `<div class="blk ${cls}"><h5><i></i>${t}</h5><ul>${a.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+  const plain = `${r.headline}\n\n${r.summary}\n\nThemes\n${(r.themes || []).map(x => '• ' + x).join('\n')}\n\nTop takeaways\n${r.topTakeaways.map(x => '• ' + x).join('\n')}\n\nFollow-ups\n${r.actionItems.map(x => '• ' + x).join('\n')}`;
+  $('#recapBody', sh.el).outerHTML = `<div class="card brief"><span class="tag">${I.book} ${done.length} sessions</span><h4>${esc(r.headline)}</h4><p class="sum">${esc(r.summary)}</p>
+    ${list(r.themes, 'k-learn', 'Themes')}${list(r.topTakeaways, 'k-take', 'Top takeaways')}${list(r.actionItems, 'k-act', 'Follow-ups')}
+    <div class="brief-foot"><button class="btn btn-sm btn-tinted" id="rcCopy">${I.copy} Copy</button>${navigator.share ? `<button class="btn btn-sm btn-tinted" id="rcShare">${I.share} Share</button>` : ''}</div></div>`;
+  $('#rcCopy', sh.el).onclick = async () => { try { await navigator.clipboard.writeText(plain); toast('Recap copied'); } catch {} };
+  $('#rcShare', sh.el)?.addEventListener('click', () => navigator.share({ title: 'Conference recap', text: plain }).catch(() => {}));
+}
+
+/* =========================================================
+   Agenda import
+   ========================================================= */
+function openImport() {
+  let mode = 'paste', fileBlob = null, parsed = [], confName = '';
+  const sh = openSheet({
+    title: 'Import agenda', left: 'Cancel', right: 'Add',
+    onRight: (sh) => {
+      const picks = $$('.preview-item input', sh.el).map((c, i) => c.checked ? parsed[i] : null).filter(Boolean);
+      if (!picks.length) return toast('Read your agenda first');
+      if (confName && !state.conference.name) state.conference = { name: confName, updatedAt: now() };
+      for (const p of picks) createSession(p);
+      touch(); sh.close(); render(); toast(`Added ${picks.length} session${picks.length > 1 ? 's' : ''}`);
+      if (wide() && !ui.selected) select(filteredSessions()[0]?.id, false);
+    },
+    body: `<div class="tabs">
+        <button class="chip on" data-m="paste">${I.text} Paste text</button>
+        <button class="chip" data-m="photo">${I.camera} Photo / PDF</button>
+        <button class="chip" data-m="ics">${I.calendar} Calendar (.ics)</button>
+        <button class="chip" data-m="manual">${I.plus} One session</button>
+      </div>
+      <div id="impPane"></div>
+      <div id="impPreview"></div>`,
+    onMount: (sh) => {
+      const pane = $('#impPane', sh.el);
+      const draw = () => {
+        $$('[data-m]', sh.el).forEach(c => c.classList.toggle('on', c.dataset.m === mode));
+        if (mode === 'paste') pane.innerHTML = `<textarea class="big-text" id="impText" placeholder="Paste the agenda from the conference site, app or email. For example:
+
+Tuesday, Oct 27
+9:00 – 9:45 AM  Opening Keynote — Jane Park, Main Stage
+10:00 – 10:45 AM  Designing Calm Interfaces · Sam Lee · Room B"></textarea>
+          <p class="form-cap">${settings.apiKey ? 'Claude reads any layout. ' : 'Works best with one session per line, starting with a time. Add a Claude key in Settings to read any format. '}You’ll review the sessions before they’re added.</p>
+          <div class="stack" style="max-width:none"><button class="btn btn-primary" id="impGo">${I.sparkles} Read agenda</button></div>`;
+        if (mode === 'photo') pane.innerHTML = `<div class="notes-empty" style="cursor:pointer" id="impPick"><b>${fileBlob ? esc(fileBlob.name || 'File selected') : 'Choose a photo, screenshot or PDF'}</b>A picture of the printed program or a screenshot of the conference app.</div>
+          <p class="form-cap">${settings.apiKey ? 'Claude will read the sessions from the image.' : 'Reading images needs a Claude API key (Settings).'}</p>
+          <div class="stack" style="max-width:none"><button class="btn btn-primary" id="impGo" ${settings.apiKey ? '' : 'disabled'}>${I.sparkles} Read agenda</button></div>`;
+        if (mode === 'ics') pane.innerHTML = `<div class="notes-empty" style="cursor:pointer" id="impPick"><b>${fileBlob ? esc(fileBlob.name) : 'Choose a .ics calendar file'}</b>Most conference apps can export your schedule to a calendar file.</div>`;
+        if (mode === 'manual') { sh.close(); openSessionForm(); return; }
+        $('#impPick', pane)?.addEventListener('click', () => pickFile(mode === 'ics' ? '.ics,text/calendar' : 'image/*,application/pdf', async f => {
+          fileBlob = f; draw();
+          if (mode === 'ics') { parsed = parseICS(await f.text()); showPreview(); }
+        }));
+        $('#impGo', pane)?.addEventListener('click', runParse);
+      };
+      const runParse = async () => {
+        const btn = $('#impGo', pane); btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Reading…`;
+        try {
+          if (mode === 'paste') {
+            const txt = $('#impText', pane).value.trim();
+            if (!txt) throw new Error('Paste your agenda first');
+            if (settings.apiKey) ({ sessions: parsed, conferenceName: confName } = await aiParseAgenda([{ type: 'text', text: txt }]));
+            else parsed = parseAgendaText(txt);
+          } else {
+            if (!fileBlob) throw new Error('Choose a file first');
+            const isPdf = fileBlob.type === 'application/pdf';
+            const data = await blobToB64(isPdf ? fileBlob : await resizeImage(fileBlob, 2000, 0.9));
+            ({ sessions: parsed, conferenceName: confName } = await aiParseAgenda([isPdf
+              ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } }
+              : { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } }]));
+          }
+          showPreview();
+        } catch (e) { toast(e.message, false, 5000); }
+        finally { if (btn.isConnected) { btn.disabled = false; btn.innerHTML = `${I.sparkles} Read agenda`; } }
+      };
+      const showPreview = () => {
+        const pv = $('#impPreview', sh.el);
+        if (!parsed.length) { pv.innerHTML = `<p class="form-cap" style="text-align:center">No sessions found. Try another format, or add sessions one at a time.</p>`; return; }
+        pv.innerHTML = `<div class="group-title">${parsed.length} session${parsed.length > 1 ? 's' : ''} found${confName ? ' · ' + esc(confName) : ''}</div><div class="preview-list">${parsed.map(p => `
+          <label class="preview-item"><input type="checkbox" checked><div><b>${esc(p.title)}</b><span>${esc([p.date && fmtDate(p.date, { weekday: 'short', month: 'short', day: 'numeric' }), p.start && fmtTime(p.start) + (p.end ? '–' + fmtTime(p.end) : ''), p.speaker, p.room].filter(Boolean).join(' · '))}</span></div></label>`).join('')}</div>`;
+        pv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      $$('[data-m]', sh.el).forEach(c => c.onclick = () => { mode = c.dataset.m; fileBlob = null; parsed = []; $('#impPreview', sh.el).innerHTML = ''; draw(); });
+      draw();
+    },
+  });
+}
+function pickFile(accept, cb) {
+  const inp = $('#fileInput'); inp.accept = accept; inp.value = '';
+  inp.onchange = () => inp.files[0] && cb(inp.files[0]);
+  inp.click();
+}
+function createSession(p) {
+  const id = uid();
+  state.sessions[id] = { id, title: p.title || 'Untitled session', date: p.date || '', start: p.start || '', end: p.end || '', speaker: p.speaker || '', room: p.room || '', description: p.description || '', notes: [], brief: null, attended: false, attendedAt: 0, createdAt: now(), updatedAt: now() };
+  return id;
+}
+
+async function aiParseAgenda(content) {
+  const year = new Date().getFullYear();
+  const r = await claude({
+    system: `You extract the sessions from a conference agenda so an attendee can take notes in each one. Include talks, keynotes, panels, workshops and other content sessions. Leave out pure logistics such as registration, breaks, meals and transit, unless the attendee's agenda clearly treats them as sessions. Use 24-hour HH:MM for times and YYYY-MM-DD for dates; when the year is missing, assume ${year}. Use an empty string for anything the agenda doesn't state. Put the speaker's name (and affiliation if shown) in speaker, and the room, stage or track location in room.`,
+    content: [...content, { type: 'text', text: 'Extract every session from this agenda, plus the conference name if it is shown.' }],
+    schema: {
+      type: 'object', additionalProperties: false, required: ['conferenceName', 'sessions'],
+      properties: {
+        conferenceName: { type: 'string' },
+        sessions: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['title', 'date', 'start', 'end', 'speaker', 'room', 'description'],
+          properties: { title: { type: 'string' }, date: { type: 'string' }, start: { type: 'string' }, end: { type: 'string' }, speaker: { type: 'string' }, room: { type: 'string' }, description: { type: 'string' } } } },
+      },
+    },
+  });
+  return { conferenceName: r.conferenceName || '', sessions: (r.sessions || []).filter(x => x.title) };
+}
+
+/* Heuristic text parser (no network) */
+const MONTHS = 'jan feb mar apr may jun jul aug sep oct nov dec'.split(' ');
+function parseDateLine(line) {
+  const l = line.toLowerCase();
+  let m = l.match(/(\d{4})-(\d{2})-(\d{2})/); if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = l.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?/);
+  if (!m) { const m2 = l.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:,?\s+(\d{4}))?/); if (m2) m = [m2[0], m2[2], m2[1], m2[3]]; }
+  if (m) { const y = m[3] || new Date().getFullYear(); return `${y}-${pad(MONTHS.indexOf(m[1].slice(0, 3)) + 1)}-${pad(+m[2])}`; }
+  return null;
+}
+function to24(t, ampmHint) {
+  const m = t.trim().toLowerCase().match(/^(\d{1,2})(?:[:.h](\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?$/);
+  if (!m) return null;
+  let h = +m[1]; const min = m[2] || '00'; const ap = (m[3] || ampmHint || '').replace(/\./g, '');
+  if (ap === 'pm' && h < 12) h += 12; if (ap === 'am' && h === 12) h = 0;
+  if (h > 23) return null;
+  return `${pad(h)}:${min}`;
+}
+function parseAgendaText(txt) {
+  const lines = txt.split(/\r?\n/).map(l => l.trim());
+  const out = []; let date = ''; let cur = null;
+  const T = String.raw`\d{1,2}(?:[:.h]\d{2})?\s*(?:[ap]\.?m\.?)?`;
+  const rangeRe = new RegExp(`^(${T})\\s*(?:-|–|—|to|until)\\s*(${T})\\b[\\s:,|·\\-–—]*`, 'i');
+  const singleRe = new RegExp(`^(${T})\\b[\\s:,|·\\-–—]+`, 'i');
+  const skip = /^(break|coffee|lunch|registration|networking|breakfast|reception|transit|check-?in)\b/i;
+  for (const raw of lines) {
+    if (!raw) continue;
+    const d = parseDateLine(raw);
+    const tm = raw.match(rangeRe) || raw.match(singleRe);
+    if (d && !tm && raw.length < 60) { date = d; cur = null; continue; }
+    if (/^day\s*\d+\b/i.test(raw) && raw.length < 40 && !tm) { cur = null; continue; }
+    if (tm) {
+      const ampm2 = (tm[2] || '').toLowerCase().match(/[ap]/)?.[0];
+      const ap = ampm2 ? ampm2 + 'm' : '';
+      let start = to24(tm[1].replace(/\s+/g, ''), /[ap]/i.test(tm[1]) ? '' : ap), end = tm[2] ? to24(tm[2].replace(/\s+/g, '')) : '';
+      if (start && end && start > end && !/[ap]/i.test(tm[1])) start = to24(tm[1], 'am');
+      let rest = raw.slice(tm[0].length).trim();
+      const s = { date, start: start || '', end: end || '', title: '', speaker: '', room: '', description: '' };
+      if (rest) assignParts(s, rest);
+      if (s.title && skip.test(s.title)) { cur = null; continue; }
+      cur = s; out.push(s); continue;
+    }
+    if (cur) {
+      if (!cur.title) { assignParts(cur, raw); continue; }
+      const kv = raw.match(/^(speakers?|presenters?|by|room|location|where|track|stage)\s*[:\-–]\s*(.+)$/i);
+      if (kv) { if (/room|location|where|track|stage/i.test(kv[1])) cur.room = kv[2]; else cur.speaker = kv[2]; continue; }
+      if (/^(room|hall|stage|ballroom|level|floor|track)\b/i.test(raw) && raw.length < 50 && !cur.room) { cur.room = raw; continue; }
+      if (!cur.speaker && raw.length < 70 && /^[A-Z][\p{L}'.-]+(\s+[A-Z][\p{L}'.-]+){1,3}(\s*[,(|–—-].*)?$/u.test(raw)) { cur.speaker = raw; continue; }
+      cur.description += (cur.description ? ' ' : '') + raw;
+    }
+  }
+  return out.filter(s => s.title);
+}
+function assignParts(s, text) {
+  const parts = text.split(/\s+[|·•]\s+|\s+[—–]\s+|\t+|\s{3,}/).map(x => x.trim()).filter(Boolean);
+  s.title = parts.shift() || '';
+  for (const p of parts) {
+    if (/^(room|hall|stage|ballroom|level|floor|track|auditorium|theat)/i.test(p) || /\b(room|hall|stage|ballroom|auditorium)\b/i.test(p)) s.room ||= p;
+    else if (/^(by|with)\s+/i.test(p)) s.speaker ||= p.replace(/^(by|with)\s+/i, '');
+    else if (!s.speaker) s.speaker = p;
+    else if (!s.room) s.room = p;
+    else s.description += (s.description ? ' ' : '') + p;
+  }
+  const by = s.title.match(/^(.*?)\s+by\s+([A-Z][\p{L}'.-]+(?:\s+[A-Z][\p{L}'.-]+){0,3})$/u);
+  if (by && !s.speaker) { s.title = by[1]; s.speaker = by[2]; }
+}
+
+function parseICS(txt) {
+  const lines = txt.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '').split(/\r?\n/);
+  const out = []; let ev = null;
+  const unesc = (v) => v.replace(/\\n/gi, '\n').replace(/\\([,;\\])/g, '$1');
+  const dt = (v) => {
+    const m = v.match(/(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/); if (!m) return {};
+    let d = m[4] ? new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]) : new Date(+m[1], m[2] - 1, +m[3]);
+    if (m[7]) d = new Date(Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5]));
+    return { date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: m[4] ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : '' };
+  };
+  for (const l of lines) {
+    if (l === 'BEGIN:VEVENT') ev = { title: '', date: '', start: '', end: '', speaker: '', room: '', description: '' };
+    else if (l === 'END:VEVENT') { if (ev?.title) out.push(ev); ev = null; }
+    else if (ev) {
+      const i = l.indexOf(':'); if (i < 0) continue;
+      const key = l.slice(0, i).split(';')[0].toUpperCase(), val = l.slice(i + 1);
+      if (key === 'SUMMARY') ev.title = unesc(val);
+      if (key === 'LOCATION') ev.room = unesc(val);
+      if (key === 'DESCRIPTION') ev.description = unesc(val).slice(0, 600);
+      if (key === 'DTSTART') { const r = dt(val); ev.date = r.date; ev.start = r.time; }
+      if (key === 'DTEND') ev.end = dt(val).time;
+    }
+  }
+  return out;
+}
+
+function loadSample() {
+  const base = new Date(); const d = (o) => { const x = new Date(base); x.setDate(x.getDate() + o); return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`; };
+  state.conference = { name: 'Design & AI Summit (sample)', updatedAt: now() };
+  [
+    { date: d(0), start: '09:00', end: '09:45', title: 'Opening Keynote: Calm Technology', speaker: 'Amara Okafor', room: 'Main Stage' },
+    { date: d(0), start: '10:00', end: '10:45', title: 'Designing for Trust in AI Products', speaker: 'Lena Fischer', room: 'Room B' },
+    { date: d(0), start: '11:00', end: '11:45', title: 'Prototyping with Language Models', speaker: 'Diego Ramos', room: 'Workshop Hall' },
+    { date: d(0), start: '14:00', end: '15:00', title: 'Panel: The Future of Interfaces', speaker: 'Moderated by Priya Shah', room: 'Main Stage' },
+    { date: d(1), start: '09:30', end: '10:15', title: 'Accessibility as a Design Superpower', speaker: 'Noah Kim', room: 'Room A' },
+    { date: d(1), start: '10:30', end: '11:15', title: 'Measuring What Matters', speaker: 'Grace Liu', room: 'Room B' },
+  ].forEach(createSession);
+  touch(); render();
+  if (wide()) select(filteredSessions()[0].id, false);
+}
+
+/* ---------- Session form ---------- */
+function openSessionForm(s) {
+  const v = s || { title: '', date: todayISO(), start: '', end: '', speaker: '', room: '', description: '' };
+  openSheet({
+    title: s ? 'Edit session' : 'New session', left: 'Cancel', right: s ? 'Save' : 'Add',
+    body: `<div class="form-group">
+        <div class="form-row"><input type="text" id="fTitle" placeholder="Session title" value="${esc(v.title)}" style="font-weight:600"></div>
+        <div class="form-row"><input type="text" id="fSpeaker" placeholder="Speaker" value="${esc(v.speaker)}"></div>
+        <div class="form-row"><input type="text" id="fRoom" placeholder="Room or stage" value="${esc(v.room)}"></div>
+      </div>
+      <div class="form-group">
+        <div class="form-row"><label for="fDate">Date</label><input type="date" id="fDate" value="${esc(v.date)}"></div>
+        <div class="form-row"><label for="fStart">Starts</label><input type="time" id="fStart" value="${esc(v.start)}"></div>
+        <div class="form-row"><label for="fEnd">Ends</label><input type="time" id="fEnd" value="${esc(v.end)}"></div>
+      </div>
+      <div class="form-group"><div class="form-row"><textarea id="fDesc" placeholder="Abstract or description (optional)">${esc(v.description)}</textarea></div></div>`,
+    onMount: (sh) => !s && setTimeout(() => $('#fTitle', sh.el).focus(), 300),
+    onRight: (sh) => {
+      const g = (id) => $(id, sh.el).value.trim();
+      const data = { title: g('#fTitle'), speaker: g('#fSpeaker'), room: g('#fRoom'), date: g('#fDate'), start: g('#fStart'), end: g('#fEnd'), description: g('#fDesc') };
+      if (!data.title) return toast('Give the session a title');
+      let id;
+      if (s) { Object.assign(S(s.id) || s, data); id = s.id; touch(S(id)); }
+      else { id = createSession(data); touch(); }
+      sh.close(); render(); if (!s) select(id);
+    },
+  });
+}
+function sessionMenu() {
+  const s = S(ui.selected); if (!s) return;
+  actionSheet(s.title, [
+    { label: 'Edit session details', run: () => openSessionForm(s) },
+    { label: s.attended ? 'Mark as not attended' : 'Mark as attended', run: () => { s.attended = !s.attended; s.attendedAt = s.attended ? now() : 0; touch(s); render(); } },
+    ...(liveNotes(s).length ? [{ label: s.brief ? 'Regenerate brief' : 'Create brief', run: () => generateBrief(s) }] : []),
+    ...(s.brief ? [{ label: 'Remove brief', run: () => { s.brief = null; touch(s); render(); } }] : []),
+    { label: 'Delete session', danger: true, run: async () => {
+      if (!await confirmSheet('Delete session?', 'Its notes, photos and recordings will be removed from all your devices.', 'Delete session')) return;
+      for (const n of s.notes) if (n.mediaId) { DB.del('media', n.mediaId).catch(() => {}); DB.del('media', n.mediaId + '_frame').catch(() => {}); }
+      state.deleted[s.id] = now(); pendingTrash.push(...s.notes.filter(n => n.driveId).map(n => n.driveId));
+      LS.set('cc.trash', pendingTrash);
+      delete state.sessions[s.id]; touch(); ui.selected = null;
+      history.replaceState(null, '', location.pathname + location.search); document.body.classList.remove('show-detail'); render();
+    } },
+  ]);
+}
+
+/* =========================================================
+   Settings
+   ========================================================= */
+function openSettings() {
+  const models = [['claude-opus-5-5', 'Claude Opus 5.5 — best briefs'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5 — faster'], ['claude-haiku-5-5', 'Claude Haiku 5.5 — fastest, lowest cost']];
+  const langs = [['en-US', 'English (US)'], ['en-GB', 'English (UK)'], ['es-ES', 'Español (España)'], ['es-MX', 'Español (México)'], ['pt-BR', 'Português (Brasil)'], ['fr-FR', 'Français'], ['de-DE', 'Deutsch'], ['it-IT', 'Italiano'], ['nl-NL', 'Nederlands'], ['ja-JP', '日本語'], ['zh-CN', '中文 (简体)'], ['ko-KR', '한국어'], ['hi-IN', 'हिन्दी']];
+  if (!langs.some(l => l[0] === settings.lang)) langs.unshift([settings.lang, settings.lang]);
+  const origin = location.origin.startsWith('http') ? location.origin : '(host this file on https first)';
+  openSheet({
+    title: 'Settings', left: 'Close', right: 'Done', onRight: (s) => s.close(),
+    onClose: () => render(),
+    body: `
+      <div class="group-title">Conference</div>
+      <div class="form-group"><div class="form-row"><input type="text" id="sConf" placeholder="Conference name" value="${esc(state.conference.name)}"></div></div>
+
+      <div class="group-title">Google Drive sync</div>
+      <div class="form-group">
+        <div class="form-row"><label>Status</label><span class="muted" style="margin-left:auto;font-size:15px">${drive.connected ? (tokenValid() ? 'Connected' : 'Connected · tap Sync to refresh') : 'Not connected'}${drive.lastSync ? ' · ' + esc(ago(drive.lastSync)) : ''}</span></div>
+        <div class="form-row col"><label for="sClient">OAuth Client ID</label><input type="text" id="sClient" placeholder="1234-abc.apps.googleusercontent.com" value="${esc(settings.clientId)}" autocapitalize="off" autocomplete="off" spellcheck="false"></div>
+        <button class="row-btn" id="sConnect">${I.cloud}${drive.connected ? 'Sync now' : 'Connect Google Drive'}</button>
+        ${drive.connected ? `<button class="row-btn danger" id="sDisconnect">Disconnect on this device</button>` : ''}
+      </div>
+      <details class="help"><summary>How to set up Drive sync (one time, ~5 min)</summary><ol>
+        <li>Open this page from an <b>https</b> address (for example GitHub Pages). Use that same address on your Mac, iPad and iPhone.</li>
+        <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, create a project, and enable the <b>Google Drive API</b>.</li>
+        <li>Under <b>OAuth consent screen</b>, choose External, fill in the app name, and add your Google account as a test user.</li>
+        <li>Under <b>Credentials → Create credentials → OAuth client ID</b>, pick <b>Web application</b> and add this Authorized JavaScript origin: <code>${esc(origin)}</code></li>
+        <li>Paste the Client ID above and tap Connect. Repeat the paste on each device.</li>
+      </ol><p style="margin:8px 0 0">Copilot can only see files it creates: a <b>Conference Copilot</b> folder in your Drive with your notes, photos, recordings and briefs.</p></details>
+
+      <div class="group-title">AI briefs</div>
+      <div class="form-group">
+        <div class="form-row col"><label for="sKey">Claude API key</label><input type="password" id="sKey" placeholder="sk-ant-…" value="${esc(settings.apiKey)}" autocomplete="off" spellcheck="false"></div>
+        <div class="form-row"><label for="sModel">Model</label><select id="sModel">${models.map(([v, l]) => `<option value="${v}" ${settings.model === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <button class="row-btn" id="sTest">${I.bolt}Test connection</button>
+      </div>
+      <p class="form-cap">Create a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It stays on this device and is sent only to Anthropic. Without a key, Copilot writes a simpler brief on-device.</p>
+
+      <div class="group-title">Recording</div>
+      <div class="form-group">
+        <div class="form-row"><label for="sLang">Speaker language</label><select id="sLang">${langs.map(([v, l]) => `<option value="${v}" ${settings.lang === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div class="form-row"><label for="sAudio" style="width:auto;flex:1">Keep audio with transcript</label><span class="switch"><input type="checkbox" id="sAudio" ${settings.keepAudio ? 'checked' : ''}><span></span></span></div>
+      </div>
+      <p class="form-cap">${SR ? 'Live transcription uses your browser’s speech recognition (Safari and Chrome).' : 'This browser doesn’t offer live transcription; recordings are saved as audio only. Safari and Chrome support it.'} If transcription stops on iPhone, turn off “Keep audio” so the microphone is used only for the transcript.</p>
+
+      <div class="group-title">Data</div>
+      <div class="form-group">
+        <button class="row-btn" id="sExport">${I.share}Export backup (.json)</button>
+        <button class="row-btn" id="sImport">${I.doc}Restore from backup</button>
+        <button class="row-btn danger" id="sReset">${I.trash}Erase data on this device</button>
+      </div>
+      <p class="form-cap" style="text-align:center">Conference Copilot · works offline · your data stays yours</p>`,
+    onMount: (sh) => {
+      const el = sh.el;
+      $('#sConf', el).onchange = (e) => { state.conference = { name: e.target.value.trim(), updatedAt: now() }; touch(); renderList(); };
+      $('#sClient', el).onchange = (e) => { settings.clientId = e.target.value.trim(); saveSettings(); if (settings.clientId) loadGis().catch(() => {}); renderSync(); };
+      $('#sKey', el).onchange = (e) => { settings.apiKey = e.target.value.trim(); saveSettings(); };
+      $('#sModel', el).onchange = (e) => { settings.model = e.target.value; saveSettings(); };
+      $('#sLang', el).onchange = (e) => { settings.lang = e.target.value; saveSettings(); };
+      $('#sAudio', el).onchange = (e) => { settings.keepAudio = e.target.checked; saveSettings(); };
+      $('#sConnect', el).onclick = () => {
+        settings.clientId = $('#sClient', el).value.trim(); saveSettings();
+        if (!settings.clientId) return toast('Paste your OAuth Client ID first');
+        if (!location.origin.startsWith('http')) return toast('Open this page from an https address to use Google sign-in');
+        syncNow(true).then(() => { if (drive.connected) { sh.close(); } });
+      };
+      $('#sDisconnect', el)?.addEventListener('click', () => {
+        try { window.google?.accounts?.oauth2?.revoke(drive.token, () => {}); } catch {}
+        drive = { connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0 }; saveDrive(); sh.close(); renderSync(); toast('Drive disconnected on this device');
+      });
+      $('#sTest', el).onclick = async (e) => {
+        settings.apiKey = $('#sKey', el).value.trim(); saveSettings();
+        const b = e.currentTarget; b.innerHTML = `<span class="spin"></span> Testing…`;
+        try { await claude({ system: 'Reply with the single word: ready', content: [{ type: 'text', text: 'Ping' }], maxTokens: 64 }); b.innerHTML = `${I.checkCircle} Connected to Claude`; b.style.color = 'var(--sage)'; }
+        catch (err) { b.innerHTML = `${I.bolt} Test connection`; toast(err.message, false, 5000); }
+      };
+      $('#sExport', el).onclick = exportBackup;
+      $('#sImport', el).onclick = () => pickFile('application/json,.json', importBackup);
+      $('#sReset', el).onclick = async () => {
+        if (!await confirmSheet('Erase this device?', 'Removes sessions and notes stored on this device. Anything already synced stays in Google Drive.', 'Erase')) return;
+        state = emptyState(); await DB.put('kv', 'state', state); drive.stateFileId = ''; drive.lastSync = 0; saveDrive();
+        ui.selected = null; document.body.classList.remove('show-detail'); sh.close(); render();
+      };
+    },
+  });
+}
+async function exportBackup() {
+  const media = {};
+  for (const s of sessionsArr()) for (const n of liveNotes(s)) if (n.mediaId && (n.type === 'photo')) { const b = await DB.get('media', n.mediaId).catch(() => null); if (b) media[n.mediaId] = { type: b.type, data: await blobToB64(b) }; }
+  const blob = new Blob([JSON.stringify({ app: 'conference-copilot', exportedAt: new Date().toISOString(), state, media })], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `conference-copilot-${todayISO()}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('Backup saved (includes photos; videos and audio stay in Drive)');
+}
+async function importBackup(file) {
+  try {
+    const j = JSON.parse(await file.text());
+    if (!j.state?.sessions) throw new Error('Not a Conference Copilot backup');
+    for (const [id, m] of Object.entries(j.media || {})) {
+      const bin = atob(m.data); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      await DB.put('media', id, new Blob([u8], { type: m.type }));
+    }
+    state = mergeStates(state, j.state); touch(); render(); toast('Backup restored');
+    sheetStack.forEach(s => s.close());
+  } catch (e) { toast(e.message); }
+}
+
+/* =========================================================
+   Google Drive sync (scope: drive.file — only files this app creates)
+   ========================================================= */
+const FOLDER_NAME = 'Conference Copilot', STATE_NAME = 'copilot-state.json';
+let pendingTrash = LS.get('cc.trash', []);
+const tokenValid = () => !!drive.token && drive.exp > now() + 30000;
+function loadGis() {
+  return new Promise((res, rej) => {
+    if (window.google?.accounts?.oauth2) return res();
+    let sc = $('#gis');
+    if (!sc) { sc = document.createElement('script'); sc.id = 'gis'; sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; document.head.appendChild(sc); }
+    sc.addEventListener('load', () => res()); sc.addEventListener('error', () => rej(new Error('Could not load Google sign-in')));
+  });
+}
+let tokenClient, tokenWaiter;
+function requestToken(interactive) {
+  // Must run synchronously inside a tap on iOS Safari so the Google popup isn't blocked.
+  return new Promise((res, rej) => {
+    if (!window.google?.accounts?.oauth2) return rej(new Error('Google sign-in is still loading — tap again in a moment.'));
+    if (!tokenClient || tokenClient._cid !== settings.clientId) {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: settings.clientId, scope: 'https://www.googleapis.com/auth/drive.file',
+        callback: (r) => { const w = tokenWaiter; tokenWaiter = null; if (r.error) return w?.rej(new Error(r.error_description || r.error)); drive.token = r.access_token; drive.exp = now() + (r.expires_in || 3600) * 1000; drive.connected = true; saveDrive(); w?.res(r.access_token); },
+        error_callback: (e) => { const w = tokenWaiter; tokenWaiter = null; w?.rej(new Error(e.type === 'popup_closed' ? 'Google sign-in was closed' : e.type === 'popup_failed_to_open' ? 'Allow pop-ups for this page to sign in' : (e.message || 'Google sign-in failed'))); },
+      });
+      tokenClient._cid = settings.clientId;
+    }
+    tokenWaiter = { res, rej };
+    tokenClient.requestAccessToken({ prompt: drive.connected ? '' : 'consent' });
+  });
+}
+async function gfetch(url, opts = {}) {
+  const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + drive.token } });
+  if (r.status === 401) { drive.token = ''; drive.exp = 0; saveDrive(); throw Object.assign(new Error('Google session expired — tap Sync to reconnect'), { auth: true }); }
+  if (!r.ok) { const t = await r.text().catch(() => ''); throw new Error(`Drive error ${r.status}: ${t.slice(0, 140)}`); }
+  return r;
+}
+const q = (s) => encodeURIComponent(s);
+async function ensureFolder() {
+  if (drive.folderId) {
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${drive.folderId}?fields=id,trashed`, { headers: { Authorization: 'Bearer ' + drive.token } });
+    if (r.ok && !(await r.json()).trashed) return drive.folderId;
+    drive.folderId = ''; drive.stateFileId = '';
+  }
+  const found = await (await gfetch(`https://www.googleapis.com/drive/v3/files?q=${q(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`)}&fields=files(id)&spaces=drive`)).json();
+  if (found.files?.length) drive.folderId = found.files[0].id;
+  else drive.folderId = (await (await gfetch('https://www.googleapis.com/drive/v3/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }) })).json()).id;
+  saveDrive(); return drive.folderId;
+}
+async function multipartCreate(meta, body, type) {
+  const bnd = 'cc' + uid();
+  const blob = new Blob([`--${bnd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${bnd}\r\nContent-Type: ${type}\r\n\r\n`, body, `\r\n--${bnd}--`]);
+  return (await gfetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${bnd}` }, body: blob })).json();
+}
+async function resumableUpload(meta, blob) {
+  const init = await gfetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id', {
+    method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': blob.type || 'application/octet-stream' }, body: JSON.stringify(meta),
+  });
+  const loc = init.headers.get('Location');
+  if (!loc) return multipartCreate(meta, blob, blob.type || 'application/octet-stream');
+  const r = await fetch(loc, { method: 'PUT', headers: { 'Content-Type': blob.type || 'application/octet-stream' }, body: blob });
+  if (!r.ok) throw new Error('Upload failed (' + r.status + ')');
+  return r.json();
+}
+async function uploadPendingMedia() {
+  const ext = (m) => ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'audio/mp4': 'm4a', 'audio/webm': 'webm', 'video/webm': 'webm' }[(m || '').split(';')[0]] || 'bin');
+  for (const s of sessionsArr()) {
+    for (const n of s.notes || []) {
+      if (n.deleted && n.driveId && !n.driveTrashed) {
+        try { await gfetch(`https://www.googleapis.com/drive/v3/files/${n.driveId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) }); } catch (e) { if (e.auth) throw e; }
+        n.driveTrashed = true; n.updatedAt = now(); s.updatedAt = now();
+        continue;
+      }
+      if (n.deleted || !n.mediaId || n.driveId) continue;
+      const blob = await DB.get('media', n.mediaId).catch(() => null);
+      if (!blob) continue;
+      setSync('busy', `Uploading ${n.type}…`);
+      const safe = (s.title || 'session').replace(/[\\/:*?"<>|]+/g, '').slice(0, 60);
+      const r = await resumableUpload({ name: `${safe} — ${n.type} ${new Date(n.ts).toISOString().slice(0, 16).replace('T', ' ')}.${ext(n.mime || blob.type)}`, parents: [drive.folderId], appProperties: { ccMedia: n.mediaId } }, blob);
+      n.driveId = r.id; n.updatedAt = now(); s.updatedAt = now(); state.updatedAt = now();
+    }
+  }
+  while (pendingTrash.length) {
+    const id = pendingTrash[0];
+    try { await gfetch(`https://www.googleapis.com/drive/v3/files/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) }); } catch (e) { if (e.auth) throw e; }
+    pendingTrash.shift(); LS.set('cc.trash', pendingTrash);
+  }
+}
+async function readRemoteState() {
+  if (!drive.stateFileId) {
+    const f = await (await gfetch(`https://www.googleapis.com/drive/v3/files?q=${q(`name='${STATE_NAME}' and '${drive.folderId}' in parents and trashed=false`)}&fields=files(id,modifiedTime)&orderBy=modifiedTime desc`)).json();
+    if (!f.files?.length) return null;
+    drive.stateFileId = f.files[0].id; saveDrive();
+  }
+  try { return await (await gfetch(`https://www.googleapis.com/drive/v3/files/${drive.stateFileId}?alt=media`)).json(); }
+  catch (e) { if (e.auth) throw e; if (/404/.test(e.message)) { drive.stateFileId = ''; return null; } throw e; }
+}
+async function writeRemoteState() {
+  const body = JSON.stringify(state);
+  if (drive.stateFileId) await gfetch(`https://www.googleapis.com/upload/drive/v3/files/${drive.stateFileId}?uploadType=media`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
+  else { drive.stateFileId = (await multipartCreate({ name: STATE_NAME, parents: [drive.folderId], mimeType: 'application/json' }, body, 'application/json')).id; saveDrive(); }
+}
+function mergeNotes(a = [], b = []) {
+  const m = new Map(a.map(n => [n.id, n]));
+  for (const n of b) { const x = m.get(n.id); if (!x || (n.updatedAt || 0) > (x.updatedAt || 0)) m.set(n.id, x ? { ...n, driveId: n.driveId || x.driveId } : n); else if (!x.driveId && n.driveId) x.driveId = n.driveId; }
+  return [...m.values()];
+}
+function mergeStates(a, b) {
+  const out = { ...a, v: 1, deleted: { ...(a.deleted || {}) } };
+  for (const [k, t] of Object.entries(b.deleted || {})) out.deleted[k] = Math.max(out.deleted[k] || 0, t);
+  out.conference = (b.conference?.updatedAt || 0) > (a.conference?.updatedAt || 0) ? b.conference : a.conference;
+  const sessions = {};
+  const ids = new Set([...Object.keys(a.sessions || {}), ...Object.keys(b.sessions || {})]);
+  for (const id of ids) {
+    const x = a.sessions?.[id], y = b.sessions?.[id];
+    let m = !x ? y : !y ? x : { ...((y.updatedAt || 0) > (x.updatedAt || 0) ? y : x), notes: mergeNotes(x.notes, y.notes) };
+    if (out.deleted[id] && out.deleted[id] >= (m.updatedAt || 0)) continue;
+    sessions[id] = m;
+  }
+  out.sessions = sessions; out.updatedAt = Math.max(a.updatedAt || 0, b.updatedAt || 0);
+  return out;
+}
+
+let syncing = false, syncAgain = false, syncT, dirtySinceSync = false;
+function scheduleSync() {
+  dirtySinceSync = true;
+  if (!drive.connected) return;
+  if (tokenValid()) setSync('pending');
+  clearTimeout(syncT); syncT = setTimeout(() => tokenValid() && syncNow(false), 3500);
+}
+async function syncNow(interactive) {
+  if (!settings.clientId) { if (interactive) openSettings(); return; }
+  if (syncing) { syncAgain = true; return; }
+  if (!tokenValid()) {
+    if (!interactive) { setSync('signin'); return; }
+    try { await requestToken(true); } catch (e) { setSync('err', e.message); toast(e.message, false, 4500); return; }
+  }
+  syncing = true; setSync('busy', 'Syncing…');
+  try {
+    await ensureFolder();
+    await uploadPendingMedia();
+    const remote = await readRemoteState();
+    if (remote) state = mergeStates(state, remote);
+    await writeRemoteState();
+    await DB.put('kv', 'state', state);
+    drive.lastSync = now(); saveDrive(); dirtySinceSync = false;
+    setSync('ok'); renderList(); if (!ui.editing && !$('#noteInput:focus')) renderDetail();
+  } catch (e) {
+    console.error(e); setSync(e.auth ? 'signin' : 'err', e.message);
+    if (interactive) toast(e.message, false, 5000);
+  } finally {
+    syncing = false;
+    if (syncAgain) { syncAgain = false; setTimeout(() => syncNow(false), 600); }
+  }
+}
+function setSync(st, msg = '') { ui.sync = st; ui.syncMsg = msg; renderSync(); }
+function renderSync() {
+  const b = $('#syncBtn');
+  let st = ui.sync;
+  if (!settings.clientId || !drive.connected) st = 'off';
+  else if (!tokenValid() && st !== 'busy' && st !== 'err') st = 'signin';
+  const map = {
+    off: ['', I.cloudOff, 'On this device'],
+    signin: ['signin', I.cloud, 'Tap to sync'],
+    pending: ['busy', I.cloud, 'Saving…'],
+    busy: ['busy', I.cloud, ui.syncMsg || 'Syncing…'],
+    ok: ['ok', I.cloudOk, 'Synced'],
+    err: ['err', I.cloudAlert, 'Sync issue'],
+  };
+  const [cls, ic, label] = map[st] || map.off;
+  b.className = 'pill ' + cls; b.innerHTML = ic + `<span>${esc(label)}</span>`;
+  b.title = st === 'err' ? ui.syncMsg : drive.lastSync ? 'Last synced ' + ago(drive.lastSync) : '';
+}
+
+async function briefToDoc(s) {
+  if (!settings.clientId) { toast('Connect Google Drive in Settings to save briefs as Docs'); return openSettings(); }
+  if (!tokenValid()) { try { await requestToken(true); } catch (e) { return toast(e.message); } }
+  try {
+    toast('Saving to Google Docs…');
+    await ensureFolder();
+    const b = s.brief; const li = (a) => (a || []).map(x => `<li>${esc(x)}</li>`).join('');
+    const sec = (t, a) => a?.length ? `<h2>${t}</h2><ul>${li(a)}</ul>` : '';
+    const html = `<html><body><h1>${esc(s.title)}</h1><p><i>${esc([s.speaker, s.date && fmtDate(s.date), s.start && fmtTime(s.start), s.room].filter(Boolean).join(' · '))}</i></p>
+      ${b.headline && b.headline !== s.title ? `<p><b>${esc(b.headline)}</b></p>` : ''}<p>${esc(b.summary)}</p>
+      ${sec('Key takeaways', b.keyTakeaways)}${sec('Learnings', b.learnings)}${sec('Worth quoting', b.quotes)}${sec('Follow-ups', b.actionItems)}${sec('Open questions', b.openQuestions)}
+      <h2>My notes</h2>${liveNotes(s).filter(n => n.text).sort((x, y) => x.ts - y.ts).map(n => `<p><b>${esc(fmtClock(n.ts))}</b>${n.star ? ' ★' : ''} ${n.type === 'audio' ? '(transcript) ' : n.type !== 'text' ? `(${n.type}) ` : ''}${esc(n.text).replace(/\n/g, '<br>')}</p>`).join('')}
+      </body></html>`;
+    const r = await multipartCreate({ name: `${s.title} — Brief`, mimeType: 'application/vnd.google-apps.document', parents: [drive.folderId] }, html, 'text/html');
+    toast(`Saved to Drive · <a href="${esc(r.webViewLink || `https://docs.google.com/document/d/${r.id}`)}" target="_blank" rel="noopener">Open doc</a>`, true, 7000);
+  } catch (e) { toast(e.message, false, 5000); }
+}
+
+/* =========================================================
+   Wire-up
+   ========================================================= */
+function bindStatic() {
+  $('#addBtn').innerHTML = I.plus; $('#settingsBtn').innerHTML = I.gear; $('#searchIcon').innerHTML = I.search;
+  $('#backBtn').innerHTML = I.left + 'Agenda'; $('#moreBtn').innerHTML = I.more;
+  $('#photoBtn').innerHTML = I.camera; $('#videoBtn').innerHTML = I.video; $('#micBtn').innerHTML = I.mic; $('#sendBtn').innerHTML = I.up;
+  $('#addBtn').onclick = openImport;
+  $('#settingsBtn').onclick = openSettings;
+  $('#syncBtn').onclick = () => settings.clientId && drive.connected ? syncNow(true) : openSettings();
+  $$('#filterSeg button').forEach(b => b.onclick = () => { ui.filter = b.dataset.f; LS.set('cc.filter', ui.filter); renderList(); });
+  $('#search').oninput = (e) => { ui.q = e.target.value; renderList(); };
+  $('#backBtn').onclick = () => history.length > 1 && location.hash ? history.back() : select(null, false);
+  $('#moreBtn').onclick = sessionMenu;
+  $('#detail').addEventListener('scroll', (e) => $('#detailNav').classList.toggle('scrolled', e.target.scrollTop > 4), { passive: true });
+  const ta = $('#noteInput');
+  ta.oninput = () => { autoGrow(); $('#sendBtn').disabled = !ta.value.trim(); };
+  ta.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey && !isTouch && !e.isComposing) { e.preventDefault(); sendText(); } };
+  $('#sendBtn').onclick = sendText;
+  $('#starToggle').onclick = () => { ui.composeStar = !ui.composeStar; updateComposer(); };
+  $('#photoBtn').onclick = () => { const i = $('#photoInput'); i.value = ''; i.click(); };
+  $('#videoBtn').onclick = () => { const i = $('#videoInput'); i.value = ''; i.click(); };
+  $('#photoInput').onchange = (e) => onPhotos([...e.target.files]);
+  $('#videoInput').onchange = (e) => onVideo(e.target.files[0]);
+  $('#micBtn').onclick = () => rec.active ? stopRecording(true) : startRecording();
+  $('#wrapBtn').onclick = () => { const s = S(ui.selected); s && generateBrief(s); };
+  // Keep the composer above the on-screen keyboard on iOS
+  if (window.visualViewport) {
+    const fit = () => { $('#app').style.height = visualViewport.height + 'px'; window.scrollTo(0, 0); };
+    visualViewport.addEventListener('resize', fit);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && drive.connected && tokenValid()) syncNow(false); });
+  setInterval(() => { if (!sheetStack.length && document.visibilityState === 'visible') { renderList(); renderSync(); } }, 60000);
+  addEventListener('beforeunload', (e) => { if (rec.active) { e.preventDefault(); e.returnValue = ''; } });
+}
+
+async function boot() {
+  bindStatic();
+  try { const saved = await DB.get('kv', 'state'); if (saved?.sessions) state = Object.assign(emptyState(), saved); }
+  catch (e) { toast('Local storage is unavailable (private mode?) — notes won’t persist.', false, 6000); }
+  const m = location.hash.match(/s=([\w]+)/);
+  if (m && S(m[1])) { ui.selected = m[1]; document.body.classList.add('show-detail'); }
+  else if (wide()) { const list = filteredSessions(); ui.selected = (list.find(isLive) || list.find(s => !s.attended) || list[0])?.id || null; }
+  render();
+  if (settings.clientId) loadGis().catch(() => {});
+  if (drive.connected && tokenValid()) syncNow(false);
+}
+boot();
+</script>
+</body>
+</html>
