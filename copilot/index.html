@@ -124,9 +124,21 @@ svg{display:block;flex:none}
 @media (min-width:1080px){
   .sidebar{display:flex}
   .list-pane{width:330px}
-  .no-sidebar{display:none!important}
+  body:not(.hide-side) .no-sidebar{display:none!important}
+  body.hide-side .with-sidebar{display:none!important}
 }
-@media (max-width:1079px){ .with-sidebar{display:none!important} }
+@media (max-width:1079px){ .with-sidebar{display:none!important} .wide-only{display:none!important} }
+@media (max-width:759px){ .mid-up{display:none!important} }
+/* Collapsible columns and Focus mode (Mac and iPad) */
+@media (min-width:1080px){ body.hide-side .sidebar{display:none} }
+@media (min-width:760px){
+  body.hide-list .list-pane,body.focus .list-pane,body.focus .sidebar{display:none!important}
+  body.focus #detail{padding-left:48px;padding-right:48px}
+  body.focus .page,body.focus .composer-in{max-width:880px}
+  body.focus #detailBar .tb-mid{display:block!important}
+  body.focus #detailBar .spacer{display:none}
+  body.focus .d-title{font-size:2.4rem}
+}
 @media (max-width:759px){
   body.show-detail .list-pane{display:none}
   body.show-detail .detail-pane{display:flex}
@@ -198,8 +210,11 @@ svg{display:block;flex:none}
 .sb-item .ic svg{width:15px;height:15px}
 .sb-item .ct{margin-left:auto;font-size:.75rem;font-weight:600;color:var(--text-2);font-variant-numeric:tabular-nums;background:var(--fill);border-radius:999px;padding:2px 8px;min-width:24px;text-align:center}
 .sb-item.on .ct{background:var(--accent-soft);color:var(--accent-ink)}
+.sb-item .ct.ok{background:none;color:var(--green);padding:0;min-width:0;display:grid}
+.sb-item .ct.ok svg{width:15px;height:15px}
+@media (min-width:760px){#syncBtn2 span{display:none}}
 .sb-item .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ic-today{background:#F56300} .ic-all{background:#6E6E73} .ic-todo{background:#0071E3} .ic-done{background:#1E9E47}
+.ic-today{background:#F56300} .ic-all{background:#6E6E73} .ic-todo{background:#0071E3} .ic-done{background:#1E9E47} .ic-note{background:#8E44C9} .ic-wrap{background:#0071E3} .ic-conf{background:#1D1D1F}
 /* Day icon: a tiny calendar page */
 .sb-item .ic.cal-ic{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--sep-2);display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden;padding:0}
 .cal-ic small{display:block;width:100%;background:#F2363A;color:#fff;font-size:.5rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:9px;text-align:center}
@@ -242,6 +257,10 @@ svg{display:block;flex:none}
 .day-h .dh-main{flex:1;min-width:0}
 .day-h .dh-title{font-family:var(--font-d);font-size:1.2rem;font-weight:700;letter-spacing:-.022em;color:var(--text);line-height:1.15;display:flex;align-items:center;flex-wrap:wrap}
 .day-h .dh-sub{display:block;font-size:.8rem;color:var(--text-2);margin-top:2px}
+.day-h .dh-wrap{flex:none;display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 11px 0 9px;font-size:.75rem;font-weight:600;color:var(--accent-ink);background:var(--accent-soft);border-radius:999px;transition:filter .15s}
+.day-h .dh-wrap:hover{filter:brightness(.96)}
+.day-h .dh-wrap svg{width:14px;height:14px}
+.day-h .dh-wrap.done{color:var(--text-2);background:var(--fill)}
 .day-h .dh-ct{flex:none;font-size:.75rem;font-weight:600;color:var(--accent-ink);background:var(--accent-soft);border-radius:999px;padding:4px 10px}
 .row{display:flex;gap:10px;width:100%;text-align:left;padding:9px 10px 10px 8px;border-radius:9px;position:relative;align-items:flex-start}
 @media (hover:hover){.row:hover{background:var(--fill)}}
@@ -320,6 +339,12 @@ body.resizing iframe,body.resizing video{pointer-events:none}
 #detail{padding:4px 28px 32px}
 @media (max-width:759px){#detail{padding:0 18px 24px}}
 .page{max-width:720px;margin:0 auto}
+.kinds{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
+.kind-chip{height:28px;padding:0 12px;border-radius:999px;font-size:.8rem;font-weight:500;color:var(--text-2);background:var(--fill);transition:background .15s,color .15s}
+.kind-chip:hover{color:var(--text)}
+.kind-chip[aria-pressed=true]{background:var(--accent);color:var(--on-accent)}
+.qn-tag{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;color:var(--purple);background:color-mix(in srgb,var(--purple) 12%,transparent);border-radius:999px;padding:2px 8px}
+.qn-tag svg{width:12px;height:12px}
 .d-meta{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--text-2);font-size:.9rem;margin-top:10px}
 .d-meta span{display:inline-flex;align-items:center;gap:5px}
 .d-meta svg{width:15px;height:15px;opacity:.85}
@@ -649,13 +674,15 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
 
   <section id="listPane" class="list-pane pane" aria-label="Sessions">
     <header class="toolbar" id="listBar">
+      <button id="sideToggle" class="tb-btn wide-only" aria-label="Hide sidebar" title="Hide sidebar  ⌘⌥S"></button>
       <button id="syncBtn2" class="sync no-sidebar"></button>
       <h1 class="tb-title with-sidebar" id="listTitle"></h1>
       <div class="spacer"></div>
       <div class="mini-seg" id="modeSeg" role="tablist" aria-label="View"><button data-mode="list" aria-label="List" title="List"></button><button data-mode="calendar" aria-label="Calendar" title="Calendar"></button></div>
       <button id="sortBtn" class="tb-btn" aria-label="Sort sessions" title="Sort"></button>
+      <button id="briefingsBtn" class="tb-btn" aria-label="Day wrap-ups and conference takeaways" title="Wrap-ups and takeaways"></button>
       <button id="settingsBtn2" class="tb-btn tint no-sidebar" aria-label="Settings"></button>
-      <button id="addBtn" class="tb-btn tint" aria-label="Add sessions" title="Add sessions  ⌘N"></button>
+      <button id="addBtn" class="tb-btn tint" aria-label="Add" title="New quick note or sessions"></button>
     </header>
     <div class="list-head">
       <h2 class="large-title no-sidebar">Agenda</h2>
@@ -673,10 +700,12 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
   <section id="detailPane" class="detail-pane pane" aria-label="Session">
     <header class="toolbar" id="detailBar">
       <button id="backBtn" class="back only-narrow"></button>
+      <button id="panesBtn" class="tb-btn mid-up" aria-label="Hide sessions" title="Hide sessions  ⌘⌥L"></button>
       <div class="tb-mid only-narrow" id="detailTitle" aria-hidden="true"></div>
       <div class="spacer"></div>
       <button id="briefBtn" class="tb-prime hidden" title="Create brief  ⌘↩"></button>
       <button id="shareBtn" class="tb-btn hidden" aria-label="Share brief"></button>
+      <button id="focusBtn" class="tb-btn mid-up hidden" aria-label="Focus on this session" title="Focus  ⌘⇧F"></button>
       <button id="moreBtn" class="tb-btn hidden" aria-label="Session options"></button>
     </header>
     <div id="detail" class="scroll"></div>
@@ -788,7 +817,7 @@ const LS = {
 };
 
 /* ---------- App state ---------- */
-const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, updatedAt: 0 });
+const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, updatedAt: 0 });
 let state = emptyState();
 let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
@@ -823,6 +852,7 @@ function fmtDate(iso, opts = { weekday: 'long', month: 'long', day: 'numeric' })
 }
 const fmtClock = (ts) => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 function isLive(s) {
+  if (s.informal) return false;
   if (!s.date || !s.start || s.date !== todayISO()) return false;
   const d = new Date(); const cur = d.getHours() * 60 + d.getMinutes();
   const toMin = (hm) => { const [h, m] = hm.split(':').map(Number); return h * 60 + (m || 0); };
@@ -841,6 +871,13 @@ function ago(ts) {
 
 /* ---------- More symbols for the native chrome ---------- */
 Object.assign(I, {
+  sidebar: P('<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M9.5 4.5v15"/>'),
+  expand: P('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+  shrink: P('<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>'),
+  chat: P('<path d="M5 18.5V16a7 7 0 0 1-2-5c0-4.1 4-7.5 9-7.5s9 3.4 9 7.5-4 7.5-9 7.5c-1.2 0-2.3-.2-3.4-.5z"/>'),
+  noteNew: P('<path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><path d="M18.5 2.5 21.5 5.5 13 14l-4 1 1-4z"/>'),
+  download: P('<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/>'),
+  slides: P('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/>'),
   tray: P('<path d="M3 13h5l1.5 2.5h5L16 13h5"/><path d="M5.5 5h13L21 13v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5z"/>'),
   circle: P('<circle cx="12" cy="12" r="8.5"/>', 'stroke-width="1.6"'),
   circleCheck: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="currentColor"/><path d="m7.8 12.4 2.8 2.8 5.6-5.8" fill="none" stroke="var(--chk-ink,var(--content))" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -945,8 +982,9 @@ function confirmSheet(title, text, okLabel, danger = true) {
 const VIEWS = {
   today: { label: 'Today', icon: I.clock, cls: 'ic-today', test: s => s.date === todayISO() },
   all: { label: 'All Sessions', icon: I.tray, cls: 'ic-all', test: () => true },
-  todo: { label: 'To Attend', icon: I.circle, cls: 'ic-todo', test: s => !s.attended },
+  todo: { label: 'To Attend', icon: I.circle, cls: 'ic-todo', test: s => !s.attended && !s.informal },
   attended: { label: 'Attended', icon: I.check, cls: 'ic-done', test: s => s.attended },
+  informal: { label: 'Quick Notes', icon: I.chat, cls: 'ic-note', test: s => s.informal },
 };
 function viewDef(v = ui.view) {
   if (v.startsWith('day:')) { const d = v.slice(4); return { label: fmtDate(d, { weekday: 'long', month: 'long', day: 'numeric' }), test: s => s.date === d }; }
@@ -972,13 +1010,16 @@ function renderSidebar() {
   const all = sessionsArr();
   const count = (t) => all.filter(t).length;
   const item = (v, d, n) => `<button class="sb-item ${ui.view === v ? 'on' : ''}" data-v="${v}"><span class="ic ${d.cls}">${d.icon}</span><span class="tx">${esc(d.label)}</span><span class="ct">${n || ''}</span></button>`;
-  const att = count(VIEWS.attended.test), live = all.filter(x => isLive(x) && !x.attended).length;
-  let html = all.length ? `<div class="sb-progress" aria-label="${att} of ${all.length} sessions attended"><div class="pr-top"><b>${att}</b><span class="pr-of">of ${all.length} attended</span></div>
-    <div class="pr-bar"><i style="width:${Math.round(att / all.length * 100)}%"></i></div>
-    <div class="pr-sub"><span>${live ? `${live} happening now` : ''}</span><span>${all.length - att} to go</span></div></div>` : '';
+  const formal = all.filter(x => !x.informal);
+  const att = formal.filter(x => x.attended).length, live = formal.filter(x => isLive(x) && !x.attended).length;
+  let html = formal.length ? `<div class="sb-progress" aria-label="${att} of ${formal.length} sessions attended"><div class="pr-top"><b>${att}</b><span class="pr-of">of ${formal.length} attended</span></div>
+    <div class="pr-bar"><i style="width:${Math.round(att / formal.length * 100)}%"></i></div>
+    <div class="pr-sub"><span>${live ? `${live} happening now` : ''}</span><span>${formal.length - att} to go</span></div></div>` : '';
   const nToday = count(VIEWS.today.test);
   if (nToday) html += item('today', VIEWS.today, nToday);
   html += item('all', VIEWS.all, all.length) + item('todo', VIEWS.todo, count(VIEWS.todo.test)) + item('attended', VIEWS.attended, count(VIEWS.attended.test));
+  const nInf = count(VIEWS.informal.test);
+  if (nInf) html += item('informal', VIEWS.informal, nInf);
   const ds = days();
   if (ds.length) {
     html += `<div class="sb-group">Days</div>`;
@@ -987,8 +1028,15 @@ function renderSidebar() {
       html += `<button class="sb-item day ${ui.view === 'day:' + d ? 'on' : ''}" data-v="day:${d}"><span class="ic cal-ic" aria-hidden="true"><small>${esc(fmtDate(d, { month: 'short' }))}</small><b>${+d.slice(8)}</b></span><span class="tx">${esc(fmtDate(d, { weekday: 'long' }))}<span class="sub">${a ? `${a} of ${n} attended` : `${n} session${n > 1 ? 's' : ''}`}</span></span><span class="ct">${n}</span></button>`;
     }
   }
+  if (all.some(x => x.brief || liveNotes(x).length)) {
+    const t = todayISO(), wrapDay = dayHasContent(t) ? t : days().filter(dayHasContent).at(-1);
+    html += `<div class="sb-group">Briefings</div>`;
+    if (wrapDay) html += `<button class="sb-item" data-wrap="day:${wrapDay}"><span class="ic ic-wrap">${I.sparkles}</span><span class="tx">${wrapDay === t ? 'Today’s Wrap-up' : `${esc(fmtDate(wrapDay, { weekday: 'long' }))} Wrap-up`}</span>${state.dayBriefs?.[wrapDay] ? `<span class="ct ok" title="Ready">${I.check}</span>` : ''}</button>`;
+    html += `<button class="sb-item" data-wrap="conf"><span class="ic ic-conf">${I.book}</span><span class="tx">Conference Takeaways</span>${state.confBrief ? `<span class="ct ok" title="Ready">${I.check}</span>` : ''}</button>`;
+  }
   $('#sbNav').innerHTML = html;
   $$('[data-v]', $('#sbNav')).forEach(b => b.onclick = () => setView(b.dataset.v));
+  $$('[data-wrap]', $('#sbNav')).forEach(b => b.onclick = () => { const w = b.dataset.wrap; w === 'conf' ? openWrap('conf') : openWrap('day', w.slice(4)); });
 }
 
 function renderList() {
@@ -1027,13 +1075,13 @@ function renderList() {
   else groups.set('', items);
   const showDayHeads = byTime && !ui.view.startsWith('day:') && ui.view !== 'today';
   let html = byTime && !ui.sortRev ? '' : `<div class="sort-hint"><span>Sorted by ${esc(SORTS[ui.sort]?.[0] || 'Time')}${ui.sortRev ? ', reversed' : ''}</span><span class="spacer"></span><button id="sortReset">Sort by Time</button></div>`;
-  if (ui.view === 'attended' && items.filter(s => s.brief).length >= 2) html += `<div style="padding:6px 4px 4px"><button class="btn btn-tinted btn-sm" style="width:100%" id="recapBtn">${I.book} Conference recap</button></div>`;
+  if (ui.view === 'attended' && items.filter(s => s.brief).length >= 2) html += `<div style="padding:6px 4px 4px"><button class="btn btn-tinted btn-sm" style="width:100%" id="recapBtn">${I.book} Conference takeaways</button></div>`;
   for (const [date, ss] of groups) {
     if (showDayHeads) {
       const att = ss.filter(s => s.attended).length;
       const nowPill = ss.some(x => isLive(x) && !x.attended) ? '<span class="now-pill"><i></i>Now</span>' : '';
       html += date
-        ? `<div class="day-h" role="heading" aria-level="3"><span class="day-tile" aria-hidden="true"><small>${esc(fmtDate(date, { weekday: 'short' }))}</small><b>${+date.slice(8)}</b></span><span class="dh-main"><span class="dh-title">${esc(fmtDate(date, { weekday: 'long' }))}${nowPill}</span><span class="dh-sub">${esc(fmtDate(date, { month: 'long', day: 'numeric' }))}${att ? ` · ${att} of ${ss.length} attended` : ''}</span></span><span class="dh-ct">${ss.length} session${ss.length > 1 ? 's' : ''}</span></div>`
+        ? `<div class="day-h" role="heading" aria-level="3"><span class="day-tile" aria-hidden="true"><small>${esc(fmtDate(date, { weekday: 'short' }))}</small><b>${+date.slice(8)}</b></span><span class="dh-main"><span class="dh-title">${esc(fmtDate(date, { weekday: 'long' }))}${nowPill}</span><span class="dh-sub">${esc(fmtDate(date, { month: 'long', day: 'numeric' }))} · ${att ? `${att} of ${ss.length} attended` : `${ss.length} session${ss.length > 1 ? 's' : ''}`}</span></span>${dayHasContent(date) ? `<button class="dh-wrap ${state.dayBriefs?.[date] ? 'done' : ''}" data-wrap="${date}" title="End-of-day briefing">${I.sparkles}Day brief</button>` : `<span class="dh-ct">${ss.length}</span>`}</div>`
         : `<div class="day-h" role="heading" aria-level="3"><span class="dh-main"><span class="dh-title">No date</span></span><span class="dh-ct">${ss.length}</span></div>`;
     }
     for (const s of ss) html += rowHTML(s, !byTime);
@@ -1045,6 +1093,7 @@ function renderList() {
     $('.chk', r).onclick = (e) => { e.stopPropagation(); toggleAttended(S(r.dataset.id)); };
   });
   $('#recapBtn', list)?.addEventListener('click', openRecap);
+  $$('[data-wrap]', list).forEach(b => b.onclick = () => openWrap('day', b.dataset.wrap));
   $('#sortReset', list)?.addEventListener('click', () => { ui.sort = 'time'; ui.sortRev = false; LS.set('cc.sort', 'time'); LS.set('cc.sortRev', false); renderList(); });
 }
 function rowHTML(s, withDay = false) {
@@ -1056,7 +1105,8 @@ function rowHTML(s, withDay = false) {
     <div class="row-main">
       <div class="row-top"><div class="row-title">${esc(s.title || 'Untitled session')}</div>${time ? `<span class="row-time">${esc(time)}</span>` : ''}</div>
       ${s.speaker || s.room ? `<div class="row-meta">${esc([s.speaker, s.room].filter(Boolean).join(' · '))}</div>` : ''}
-      ${recording || live || s.brief || n ? `<div class="tags">
+      ${recording || live || s.brief || n || s.informal ? `<div class="tags">
+        ${s.informal ? `<span class="qn-tag">${I.chat}${esc(KINDS[s.kind] || 'Quick note')}</span>` : ''}
         ${recording ? `<span class="tag t-live"><i></i> Recording</span>` : live ? `<span class="tag t-live"><i></i> Now</span>` : ''}
         ${s.brief ? `<span class="tag t-brief">${I.sparkles} Brief</span>` : ''}
         ${n ? `<span class="tag t-notes">${n} note${n > 1 ? 's' : ''}</span>` : ''}</div>` : ''}
@@ -1076,6 +1126,8 @@ function toggleAttended(s) {
 }
 
 function select(id, push = true) {
+  const prev = S(ui.selected);
+  if (prev?.informal && prev.autoTitle && prev.id !== id) { clearTimeout(autoTitleT); autoTitleQuickNote(prev.id); }
   ui.selected = id; ui.editing = null; ui.editingBrief = null; ui.descOpen = false;
   if (push && !matchMedia('(min-width:760px)').matches) history.pushState({ s: id }, '', '#s=' + id);
   else history.replaceState({ s: id }, '', id ? '#s=' + id : location.pathname + location.search);
@@ -1095,7 +1147,8 @@ function renderDetail() {
   const s = S(ui.selected);
   const det = $('#detail');
   $('#composer').classList.toggle('hidden', !s);
-  ['#moreBtn', '#briefBtn'].forEach(id => $(id).classList.toggle('hidden', !s));
+  ['#moreBtn', '#briefBtn', '#focusBtn'].forEach(id => $(id).classList.toggle('hidden', !s));
+  if (!s && panes.focus) setFocus(false);
   $('#shareBtn').classList.toggle('hidden', !s?.brief);
   if (!s) {
     det.innerHTML = sessionsArr().length
@@ -1126,7 +1179,8 @@ function renderDetail() {
   det.innerHTML = `<div class="page"><div class="d-top">
     ${meta ? `<div class="d-meta">${meta}</div>` : ''}
     <h1 class="d-title">${esc(s.title || 'Untitled session')}</h1>
-    ${s.speaker ? `<div class="d-speaker">${esc(s.speaker)}</div>` : ''}
+    ${s.speaker ? `<div class="d-speaker">${s.informal ? 'With ' : ''}${esc(s.speaker)}</div>` : ''}
+    ${s.informal ? `<div class="kinds" role="group" aria-label="Kind of note">${Object.entries(KINDS).map(([k, v]) => `<button class="kind-chip" data-kind="${k}" aria-pressed="${s.kind === k}">${v}</button>`).join('')}</div>` : ''}
     ${s.description ? `<div class="d-desc ${ui.descOpen ? '' : 'clamp'}" id="dDesc" title="${ui.descOpen ? '' : 'Show more'}">${esc(s.description)}</div>` : ''}
     <div class="d-status">${s.attended ? `<span class="tag t-done">${I.check} Attended</span>` : ''}${isLive(s) && !s.attended ? `<span class="tag t-live"><i></i> Happening now</span>` : ''}</div>
     ${busy ? `<div class="sec-h"><h3>Brief</h3></div><div class="brief-pending"><span class="spin"></span>Reading your notes and writing the brief…</div>` : s.brief ? renderBrief(s) : ''}</div>
@@ -1144,6 +1198,7 @@ function renderDetail() {
   </div>`;
   $('#dDesc', det)?.addEventListener('click', () => { ui.descOpen = !ui.descOpen; renderDetail(); });
   $$('[data-way]', det).forEach(w => w.onclick = () => ({ photo: () => $('#photoBtn').click(), video: () => $('#videoBtn').click(), file: () => $('#attachBtn').click(), rec: () => $('#micBtn').click() })[w.dataset.way]());
+  $$('[data-kind]', det).forEach(b => b.onclick = () => setKind(s, b.dataset.kind));
   bindNotes(det, s);
   hydrateMedia(det);
   updateComposer();
@@ -1572,6 +1627,7 @@ function autoGrow() { const ta = $('#noteInput'); ta.style.height = 'auto'; ta.s
 function addNote(s, note) {
   const n = Object.assign({ id: uid(), ts: now(), updatedAt: now(), text: '', star: false }, note);
   s.notes = s.notes || []; s.notes.push(n); touch(s);
+  scheduleAutoTitle(s);
   return n;
 }
 function sendText() {
@@ -1790,11 +1846,11 @@ async function shrinkDataUrl(dataUrl, max = 480) {
 /* =========================================================
    Claude API (called directly from the browser with your key)
    ========================================================= */
-async function claude({ system, content, schema, maxTokens = 16000 }) {
+async function claude({ system, content, schema, maxTokens = 16000, effort = 'medium' }) {
   if (!settings.apiKey) throw Object.assign(new Error('Add your Claude API key in Settings.'), { code: 'NO_KEY' });
   const model = settings.model || 'claude-opus-5-5';
   const build = (extras) => {
-    const body = { model, max_tokens: maxTokens, system, messages: [{ role: 'user', content }], output_config: { effort: 'medium' } };
+    const body = { model, max_tokens: maxTokens, system, messages: [{ role: 'user', content }], output_config: { effort } };
     if (schema && extras) body.output_config.format = { type: 'json_schema', schema };
     const headers = { 'content-type': 'application/json', 'x-api-key': settings.apiKey, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' };
     // Organization-level keys aren't tied to a workspace and must name one on every request
@@ -1847,7 +1903,7 @@ async function generateBrief(s) {
   try {
     let brief;
     if (settings.apiKey) {
-      const content = [{ type: 'text', text: `Session: ${s.title}\n${s.speaker ? 'Speaker: ' + s.speaker + '\n' : ''}${s.date ? 'Date: ' + s.date + (s.start ? ' ' + s.start : '') + '\n' : ''}${s.room ? 'Room: ' + s.room + '\n' : ''}${s.description ? 'Abstract: ' + s.description + '\n' : ''}\nThe attendee's notes, in order:` }];
+      const content = [{ type: 'text', text: `${s.informal ? `Context: an informal ${(KINDS[s.kind] || 'encounter').toLowerCase()} at the conference, not a scheduled talk. Brief it as such: what was discussed, who was involved, what to follow up on.\n` : ''}Session: ${s.title}\n${s.speaker ? (s.informal ? 'With: ' : 'Speaker: ') + s.speaker + '\n' : ''}${s.date ? 'Date: ' + s.date + (s.start ? ' ' + s.start : '') + '\n' : ''}${s.room ? 'Room: ' + s.room + '\n' : ''}${s.description ? 'Abstract: ' + s.description + '\n' : ''}\nThe attendee's notes, in order:` }];
       let images = 0, pdfs = 0, docBudget = 150000;
       for (const n of notes) {
         const head = `[${fmtClock(n.ts)}]${n.star ? ' [KEY POINT]' : ''}`;
@@ -2401,6 +2457,10 @@ function mergeStates(a, b) {
     sessions[id] = m;
   }
   out.sessions = sessions; out.updatedAt = Math.max(a.updatedAt || 0, b.updatedAt || 0);
+  const newer = (p, q) => ((q?.generatedAt || 0) > (p?.generatedAt || 0) ? q : p) || null;
+  out.dayBriefs = { ...(a.dayBriefs || {}) };
+  for (const [d, r] of Object.entries(b.dayBriefs || {})) out.dayBriefs[d] = newer(out.dayBriefs[d], r);
+  out.confBrief = newer(a.confBrief, b.confBrief);
   return out;
 }
 
@@ -2457,30 +2517,355 @@ async function briefToDoc(s) {
 
 
 /* ---------- Conference recap ---------- */
-async function openRecap() {
-  const done = sessionsArr().filter(s => s.attended && s.brief).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
-  if (!done.length) return toast('Finish a session first');
-  const sh = openSheet({ title: 'Conference Recap', left: 'Close', cls: 'wide', body: `<div id="recapBody" class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:40px"><span class="spin"></span>Pulling your sessions together…</div>` });
-  let r;
-  try {
-    if (settings.apiKey) {
+function openRecap() { openWrap('conf'); }
+
+/* =========================================================
+   Panels: collapse the sidebar / sessions column, Focus mode
+   ========================================================= */
+const panes = { side: LS.get('cc.hideSide', false), list: LS.get('cc.hideList', false), focus: false };
+function applyPanes() {
+  const b = document.body;
+  b.classList.toggle('hide-side', panes.side);
+  b.classList.toggle('hide-list', panes.list);
+  b.classList.toggle('focus', panes.focus);
+  const fb = $('#focusBtn'); if (fb) { fb.innerHTML = panes.focus ? I.shrink : I.expand; fb.title = panes.focus ? 'Exit focus (Esc)' : 'Focus on this session'; fb.setAttribute('aria-label', fb.title); fb.setAttribute('aria-pressed', panes.focus); }
+  const pb = $('#panesBtn'); if (pb) { const hidden = panes.focus || panes.list; pb.title = hidden ? 'Show sessions' : 'Hide sessions'; pb.setAttribute('aria-label', pb.title); pb.classList.toggle('tint', hidden); }
+  const sb = $('#sideToggle'); if (sb) { sb.title = panes.side ? 'Show sidebar' : 'Hide sidebar'; sb.setAttribute('aria-label', sb.title); sb.classList.toggle('tint', panes.side); }
+}
+function toggleSide() { panes.side = !panes.side; LS.set('cc.hideSide', panes.side); applyPanes(); }
+function toggleList() {
+  if (panes.focus) return setFocus(false);
+  panes.list = !panes.list; LS.set('cc.hideList', panes.list); applyPanes();
+}
+function setFocus(on) {
+  if (panes.focus === on) return;
+  panes.focus = on; applyPanes();
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (on && !fsEl && !isTouch) (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)?.call(document.documentElement)?.catch?.(() => {});
+  if (!on && fsEl) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)?.catch?.(() => {});
+  if (on) toast('Focus mode · press Esc to exit');
+}
+['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { if (!(document.fullscreenElement || document.webkitFullscreenElement) && panes.focus) { panes.focus = false; applyPanes(); } }));
+
+/* =========================================================
+   Quick notes: booth visits, hallway conversations, meetups
+   ========================================================= */
+const KINDS = { booth: 'Booth visit', conversation: 'Conversation', meetup: 'Meetup', other: 'Other' };
+const nowHM = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function newQuickNote() {
+  const start = nowHM();
+  const id = createSession({ title: `Quick note · ${fmtTime(start)}`, date: todayISO(), start, informal: true, type: 'Quick note' });
+  Object.assign(S(id), { informal: true, autoTitle: true, kind: '' });
+  touch(S(id)); render(); select(id);
+  setTimeout(() => $('#noteInput')?.focus(), 80);
+  toast('Quick note started · it titles itself from what you write');
+}
+let autoTitleT;
+function scheduleAutoTitle(s) {
+  if (!s?.informal || !s.autoTitle) return;
+  clearTimeout(autoTitleT); autoTitleT = setTimeout(() => autoTitleQuickNote(s.id), 5000);
+}
+function guessQuickNote(text) {
+  const t = text.replace(/\s+/g, ' ').trim();
+  const kind = /\bbooth\b|\bdemo\b|\bvendor\b|\bexpo\b/i.test(t) ? 'booth' : /\b(met|meeting|spoke|talked|chat(ted)?|conversation|coffee with|lunch with)\b/i.test(t) ? 'conversation' : /\bmeet-?up|roundtable|dinner|reception\b/i.test(t) ? 'meetup' : 'other';
+  const who = t.match(/\b(?:with|met|to)\s+([A-Z][\p{L}'.-]+(?:\s+[A-Z][\p{L}'.-]+){0,2})/u)?.[1] || '';
+  const company = t.match(/\b(?:at the|at)\s+([A-Z][\p{L}&'.-]+(?:\s+[A-Z][\p{L}&'.-]+){0,2})\s+booth/u)?.[1] || t.match(/\b([A-Z][\p{L}&'.-]+)\s+booth\b/u)?.[1] || '';
+  const first = t.split(/(?<=[.!?])\s/)[0] || t;
+  const title = company && kind === 'booth' ? `${company} booth` : who && kind === 'conversation' ? `Conversation with ${who}` : first.length > 60 ? first.slice(0, 57).replace(/\s+\S*$/, '') + '…' : first;
+  return { title, kind, who: [who, company && kind !== 'booth' ? company : ''].filter(Boolean).join(', ') || (kind === 'booth' ? company : ''), where: '' };
+}
+async function autoTitleQuickNote(id) {
+  const s = S(id); if (!s?.informal || !s.autoTitle) return;
+  const notes = liveNotes(s).sort((a, b) => a.ts - b.ts);
+  const text = notes.map(n => [n.text, n.fileName].filter(Boolean).join(' ')).filter(Boolean).join('\n').slice(0, 12000);
+  if (!text.trim()) return;
+  let r = null;
+  if (settings.apiKey) {
+    try {
       r = await claude({
-        system: 'You write a conference recap for one attendee from the briefs of the sessions they attended. Stay grounded in the briefs and connect ideas across sessions where the briefs support it.',
-        content: [{ type: 'text', text: `Conference: ${state.conference.name || 'Untitled'}\n\nBriefs of attended sessions:\n\n${done.map(s => briefText(s)).join('\n\n---\n\n')}\n\nWrite: headline (one line), summary (4 to 6 sentences), themes (3 to 5 cross-session themes, one sentence each), topTakeaways (5 to 8 points), actionItems (up to 8 concrete follow-ups).` }],
-        schema: { type: 'object', additionalProperties: false, required: ['headline', 'summary', 'themes', 'topTakeaways', 'actionItems'], properties: { headline: { type: 'string' }, summary: { type: 'string' }, themes: strArr, topTakeaways: strArr, actionItems: strArr } },
+        system: 'You label an informal note an attendee took at a conference, outside the scheduled sessions: a vendor booth visit, a hallway conversation, a meetup. Use only what the note says.',
+        content: [{ type: 'text', text: `The note:\n${text}\n\nReturn: title (at most 8 words, specific, e.g. "Workday booth: skills cloud demo" or "Chat with Rebecca Lane on change fatigue"), kind (booth, conversation, meetup or other), who (people and companies involved, or an empty string), where (the place if the note says it, else an empty string).` }],
+        schema: { type: 'object', additionalProperties: false, required: ['title', 'kind', 'who', 'where'], properties: { title: { type: 'string' }, kind: { type: 'string', enum: ['booth', 'conversation', 'meetup', 'other'] }, who: { type: 'string' }, where: { type: 'string' } } },
+        maxTokens: 1000, effort: 'low',
       });
-    } else {
-      r = { headline: `${done.length} sessions attended`, summary: done.map(s => `${s.title}: ${s.brief.headline !== s.title ? s.brief.headline : (s.brief.keyTakeaways[0] || '')}`).join(' '), themes: [], topTakeaways: done.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), actionItems: done.flatMap(s => s.brief.actionItems) };
-    }
-  } catch (e) { const b = $('#recapBody', sh.el); if (b) b.textContent = e.message; return; }
-  const list = (a, cls, icon, t) => a?.length ? `<div class="brief-blk ${cls}"><h4>${icon}${t}</h4><ul>${a.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
-  const plain = `${r.headline}\n\n${r.summary}\n\nThemes\n${(r.themes || []).map(x => '• ' + x).join('\n')}\n\nTop takeaways\n${r.topTakeaways.map(x => '• ' + x).join('\n')}\n\nFollow-ups\n${r.actionItems.map(x => '• ' + x).join('\n')}`;
-  const b = $('#recapBody', sh.el); if (!b) return;
-  b.outerHTML = `<article class="brief"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${done.length} sessions · ${esc(state.conference.name || '')}</p><h2 class="brief-head">${esc(r.headline)}</h2><p class="brief-sum">${esc(r.summary)}</p>
-    ${list(r.themes, 'b-learn', I.bulb, 'Themes')}${list(r.topTakeaways, 'b-take', I.target, 'Top takeaways')}${list(r.actionItems, 'b-act', I.flag, 'Follow-ups')}
-    <div class="brief-foot"><button class="btn btn-sm btn-gray" id="rcCopy">${I.copy} Copy</button>${navigator.share ? `<button class="btn btn-sm btn-gray" id="rcShare">${I.share} Share</button>` : ''}</div></article>`;
-  $('#rcCopy', sh.el).onclick = async () => { try { await navigator.clipboard.writeText(plain); toast('Recap copied'); } catch {} };
-  $('#rcShare', sh.el)?.addEventListener('click', () => navigator.share({ title: 'Conference recap', text: plain }).catch(() => {}));
+    } catch (e) { console.warn('auto-title', e); }
+  }
+  r = r || guessQuickNote(text);
+  const fresh = S(id); if (!fresh?.autoTitle) return;
+  fresh.title = (r.title || fresh.title).slice(0, 90);
+  if (r.kind && KINDS[r.kind] && !fresh.kindSet) fresh.kind = r.kind;
+  if (r.who && !fresh.speaker) fresh.speaker = r.who;
+  if (r.where && !fresh.room) fresh.room = r.where;
+  touch(fresh); renderList(); if (ui.selected === id) renderDetail();
+}
+function setKind(s, k) { s.kind = k; s.kindSet = true; touch(s); renderDetail(); renderList(); }
+
+/* =========================================================
+   Day wrap-ups and conference takeaways
+   ========================================================= */
+const DAY_SCHEMA = { type: 'object', additionalProperties: false, required: ['headline', 'summary', 'highlights', 'themes', 'peopleAndCompanies', 'actionItems', 'openQuestions'],
+  properties: { headline: { type: 'string' }, summary: { type: 'string' }, highlights: strArr, themes: strArr, peopleAndCompanies: strArr, actionItems: strArr, openQuestions: strArr } };
+const CONF_SCHEMA = { type: 'object', additionalProperties: false, required: ['headline', 'summary', 'themes', 'topTakeaways', 'learnings', 'actionItems', 'peopleAndCompanies', 'slides'],
+  properties: { headline: { type: 'string' }, summary: { type: 'string' }, themes: strArr, topTakeaways: strArr, learnings: strArr, actionItems: strArr, peopleAndCompanies: strArr,
+    slides: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['title', 'bullets'], properties: { title: { type: 'string' }, bullets: strArr } } } } };
+const WRAP_SYSTEM = `You consolidate one attendee's conference material into a briefing they will reread and share. The material is briefs of sessions they attended, raw notes from sessions without a brief, and quick notes from informal moments (booth visits, conversations, meetups). Connect ideas across sessions when the material supports it, say which session or encounter a point came from when that helps, and never add facts the material doesn't contain. Keep each list item to one or two sentences.`;
+function sessionMaterial(s, cap = 8000) {
+  const head = `${s.informal ? `Quick note (${KINDS[s.kind] || 'informal'})` : 'Session'}: ${s.title}${s.speaker ? ` · ${s.speaker}` : ''}${s.start ? ` · ${fmtTime(s.start)}` : ''}`;
+  if (s.brief) return `${head}\n${briefText(s)}`;
+  const notes = liveNotes(s).sort((a, b) => a.ts - b.ts).map(noteAsText).filter(Boolean).join('\n').slice(0, cap);
+  return notes ? `${head}\nRaw notes (no brief yet):\n${notes}` : '';
+}
+const dayHasContent = (d) => sessionsArr().some(s => s.date === d && (s.brief || liveNotes(s).length));
+async function generateDayBrief(date) {
+  const items = sessionsArr().filter(s => s.date === date).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+  const mats = items.map(s => sessionMaterial(s)).filter(Boolean);
+  if (!mats.length) throw new Error('Nothing to wrap up yet: add notes or finish a session on this day.');
+  let r;
+  if (settings.apiKey) {
+    r = await claude({ system: WRAP_SYSTEM, schema: DAY_SCHEMA,
+      content: [{ type: 'text', text: `Conference: ${state.conference.name || 'Untitled'}\nDay: ${fmtDate(date)}\n\n${mats.join('\n\n---\n\n').slice(0, 300000)}\n\nWrite the end-of-day briefing: headline (one line capturing the day), summary (4 to 6 sentences), highlights (the 5 to 8 most important points of the day), themes (2 to 4 threads that ran through the day), peopleAndCompanies (people met and vendors visited, with why they matter; empty if none), actionItems (concrete follow-ups), openQuestions (up to 4).` }] });
+    r.source = 'ai';
+  } else {
+    const b = items.filter(s => s.brief);
+    r = { headline: `${fmtDate(date, { weekday: 'long' })}: ${b.length} session${b.length === 1 ? '' : 's'} wrapped up`, summary: b.map(s => `${s.title}: ${s.brief.headline !== s.title ? s.brief.headline : (s.brief.keyTakeaways[0] || '')}`).join(' '),
+      highlights: b.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), themes: [], peopleAndCompanies: items.filter(s => s.informal && s.speaker).map(s => `${s.speaker} (${s.title})`),
+      actionItems: b.flatMap(s => s.brief.actionItems), openQuestions: b.flatMap(s => s.brief.openQuestions).slice(0, 4), source: 'offline' };
+  }
+  r.generatedAt = now(); r.sessions = mats.length;
+  state.dayBriefs = state.dayBriefs || {}; state.dayBriefs[date] = r; touch();
+  return r;
+}
+async function generateConfBrief() {
+  const items = sessionsArr().sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+  const mats = items.map(s => sessionMaterial(s, 3000)).filter(Boolean);
+  if (!mats.length) throw new Error('Nothing to summarise yet: take notes or finish a session first.');
+  let r;
+  if (settings.apiKey) {
+    const dayWraps = Object.entries(state.dayBriefs || {}).sort().map(([d, b]) => `Day wrap-up, ${fmtDate(d)}: ${b.headline}. ${b.summary}`).join('\n');
+    r = await claude({ system: WRAP_SYSTEM, schema: CONF_SCHEMA,
+      content: [{ type: 'text', text: `Conference: ${state.conference.name || 'Untitled'}\n\n${dayWraps ? dayWraps + '\n\n' : ''}${mats.join('\n\n---\n\n').slice(0, 400000)}\n\nWrite the conference takeaways: headline (one line), summary (5 to 7 sentences for someone who wasn't there), themes (3 to 5 cross-cutting themes), topTakeaways (6 to 10), learnings (3 to 6 things the attendee can apply at work), actionItems (concrete follow-ups), peopleAndCompanies (people and vendors worth following up with; empty if none), slides (a presentation of 6 to 10 slides for sharing with colleagues: each has a short title and 3 to 5 concise bullets; start with the big picture, then one slide per theme, then what to do next).` }] });
+    r.source = 'ai';
+  } else {
+    const b = items.filter(s => s.brief);
+    const take = b.flatMap(s => s.brief.keyTakeaways.slice(0, 2));
+    r = { headline: `${state.conference.name || 'Conference'}: ${b.length} sessions`, summary: b.slice(0, 8).map(s => `${s.title}: ${s.brief.headline !== s.title ? s.brief.headline : (s.brief.keyTakeaways[0] || '')}`).join(' '),
+      themes: [], topTakeaways: take, learnings: b.flatMap(s => s.brief.learnings).slice(0, 6), actionItems: b.flatMap(s => s.brief.actionItems),
+      peopleAndCompanies: items.filter(s => s.informal && s.speaker).map(s => `${s.speaker} (${s.title})`), slides: [], source: 'offline' };
+  }
+  r.generatedAt = now(); r.sessions = mats.length;
+  state.confBrief = r; touch();
+  return r;
+}
+// A briefing as neutral sections, shared by the sheet and every export format
+function reportOf(kind, key) {
+  const conf = state.conference.name || 'Conference';
+  if (kind === 'day') {
+    const r = state.dayBriefs?.[key]; if (!r) return null;
+    return { kind, key, title: `${fmtDate(key, { weekday: 'long', month: 'long', day: 'numeric' })} wrap-up`, subtitle: conf, headline: r.headline, summary: r.summary, data: r,
+      sections: [['Highlights', r.highlights], ['Themes', r.themes], ['People and companies', r.peopleAndCompanies], ['Follow-ups', r.actionItems], ['Open questions', r.openQuestions]].filter(([, a]) => a?.length).map(([heading, items]) => ({ heading, items })) };
+  }
+  const r = state.confBrief; if (!r) return null;
+  return { kind, key: 'conf', title: `${conf}: key takeaways`, subtitle: [conf, days().length ? `${fmtDate(days()[0], { month: 'short', day: 'numeric' })}–${fmtDate(days().at(-1), { month: 'short', day: 'numeric' })}` : ''].filter(Boolean).join(' · '), headline: r.headline, summary: r.summary, data: r, slides: r.slides,
+    sections: [['Themes', r.themes], ['Top takeaways', r.topTakeaways], ['What I can apply', r.learnings], ['Follow-ups', r.actionItems], ['People and companies', r.peopleAndCompanies]].filter(([, a]) => a?.length).map(([heading, items]) => ({ heading, items })) };
+}
+const reportText = (rp) => `${rp.title}\n${rp.subtitle}\n\n${rp.headline}\n\n${rp.summary}\n${rp.sections.map(s => `\n${s.heading}\n${s.items.map(x => '• ' + x).join('\n')}`).join('\n')}`;
+const SEC_STYLE = { Highlights: ['b-take', 'target'], 'Top takeaways': ['b-take', 'target'], Themes: ['b-learn', 'bulb'], 'What I can apply': ['b-learn', 'bulb'], 'People and companies': ['b-q', 'chat'], 'Follow-ups': ['b-act', 'flag'], 'Open questions': ['b-q', 'help'] };
+function openWrap(kind, key) {
+  const label = kind === 'day' ? `${fmtDate(key, { weekday: 'long' })} Wrap-up` : 'Conference Takeaways';
+  const sh = openSheet({ title: label, left: 'Close', right: 'Export', cls: 'wide', body: `<div id="wrapBody"></div>`,
+    onRight: (api) => { const rp = reportOf(kind, key); rp && exportMenu($('[data-act=right]', api.el), rp); } });
+  const body = $('#wrapBody', sh.el);
+  const paint = () => {
+    const rp = reportOf(kind, key);
+    sh.setRight('Export', !!rp);
+    if (!rp) { body.innerHTML = `<div class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:40px"><span class="spin"></span>${kind === 'day' ? 'Pulling the day together…' : 'Pulling the whole conference together…'}</div>`; return; }
+    const r = rp.data;
+    body.innerHTML = `<article class="brief"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${esc(rp.subtitle)} · from ${r.sessions || 0} session${r.sessions === 1 ? '' : 's'} and notes · ${r.source === 'ai' ? 'written by Claude' : 'written on this device'} ${esc(ago(r.generatedAt))}</p>
+      <h2 class="brief-head">${esc(rp.headline)}</h2><p class="brief-sum">${esc(rp.summary)}</p>
+      ${rp.sections.map(s => { const [cls, ic] = SEC_STYLE[s.heading] || ['b-take', 'target']; return `<div class="brief-blk ${cls}"><h4>${I[ic]}${esc(s.heading)}</h4><ul>${s.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`; }).join('')}
+      ${kind === 'conf' && rp.slides?.length ? `<p class="f-cap" style="margin:16px 0 0">${rp.slides.length}-slide deck ready for PowerPoint export.</p>` : ''}
+      <div class="brief-foot">
+        <button class="btn btn-sm btn-primary" id="wrExport">${I.download} Export</button>
+        <button class="btn btn-sm btn-gray" id="wrCopy">${I.copy} Copy</button>
+        <button class="btn btn-sm btn-gray" id="wrRedo">${I.sparkles} Refresh</button>
+        ${r.source === 'ai' ? '' : '<small>Add a Claude key in Settings for a fuller briefing</small>'}
+      </div></article>`;
+    $('#wrCopy', body).onclick = async () => { try { await navigator.clipboard.writeText(reportText(rp)); toast('Copied'); } catch { toast('Copy failed'); } };
+    $('#wrRedo', body).onclick = () => run();
+    $('#wrExport', body).onclick = (e) => exportMenu(e.currentTarget, rp);
+  };
+  const run = async () => {
+    if (kind === 'day') delete state.dayBriefs?.[key]; else state.confBrief = null;
+    paint();
+    try { kind === 'day' ? await generateDayBrief(key) : await generateConfBrief(); }
+    catch (e) { body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">${esc(e.message)}</p>`; if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings(); return; }
+    if (body.isConnected) paint();
+  };
+  if (reportOf(kind, key)) paint(); else run();
+}
+function briefingsMenu(anchor) {
+  const ds = days().filter(dayHasContent);
+  const t = todayISO();
+  openMenu(anchor, [
+    ...ds.map(d => ({ label: `${d === t ? 'Today' : fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' })}: Wrap-up${state.dayBriefs?.[d] ? '' : '…'}`, icon: I.calendar, run: () => openWrap('day', d) })),
+    ...(ds.length ? [{ sep: true }] : []),
+    { label: `Conference Takeaways${state.confBrief ? '' : '…'}`, icon: I.book, run: () => openWrap('conf') },
+  ]);
+}
+function addMenu(anchor) {
+  openMenu(anchor, [
+    { label: 'New Quick Note', icon: I.noteNew, run: newQuickNote },
+    { label: 'Add Sessions…', icon: I.calendar, run: () => openImport() },
+  ]);
+}
+function exportMenu(anchor, rp) {
+  openMenu(anchor, [
+    { label: 'PDF…', icon: I.doc, run: () => exportPDF(rp) },
+    { label: 'Word Document (.docx)', icon: I.doc, run: () => exportDOCX(rp) },
+    { label: 'PowerPoint Presentation (.pptx)', icon: I.slides, run: () => exportPPTX(rp) },
+    { sep: true },
+    { label: 'Save to Google Docs', icon: I.cloud, run: () => reportToGoogleDoc(rp) },
+  ]);
+}
+
+/* ---------- Export: PDF (print), Word and PowerPoint built on the device ---------- */
+const fileSafe = (s) => s.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Briefing';
+function saveBlob(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000); toast(`Saved ${name}`);
+}
+function reportHTML(rp) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(rp.title)}</title><style>
+    @page{margin:18mm 16mm}body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,"Helvetica Neue",Arial,sans-serif;color:#1d1d1f;line-height:1.5;margin:0;font-size:11pt}
+    .sub{color:#6e6e73;font-size:10pt;margin:0 0 4mm}h1{font-size:24pt;letter-spacing:-.02em;margin:0 0 2mm;line-height:1.15}h2.hl{font-size:15pt;margin:6mm 0 2mm;letter-spacing:-.01em}
+    p.sum{font-size:11.5pt;margin:0 0 4mm}h3{font-size:10pt;color:#0066cc;margin:6mm 0 2mm;text-transform:none}ul{margin:0;padding-left:5mm}li{margin:0 0 1.6mm}
+    .foot{margin-top:10mm;color:#86868b;font-size:8.5pt;border-top:1px solid #d2d2d7;padding-top:3mm}</style></head><body>
+    <p class="sub">${esc(rp.subtitle)}</p><h1>${esc(rp.title)}</h1><h2 class="hl">${esc(rp.headline)}</h2><p class="sum">${esc(rp.summary)}</p>
+    ${rp.sections.map(s => `<h3>${esc(s.heading)}</h3><ul>${s.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('')}
+    <p class="foot">Made with Conference Copilot · ${esc(new Date().toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }))}</p></body></html>`;
+}
+function exportPDF(rp) {
+  const html = reportHTML(rp);
+  if (isTouch) { const w = window.open('', '_blank'); if (!w) return toast('Allow pop-ups to save as PDF'); w.document.write(html); w.document.close(); setTimeout(() => w.print(), 400); return; }
+  const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.appendChild(f); f.srcdoc = html;
+  f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch { toast('Printing was blocked'); } setTimeout(() => f.remove(), 60000); };
+  toast('Choose “Save as PDF” in the print dialog');
+}
+// Minimal zip writer (stored entries) for .docx / .pptx
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = (u8) => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function zipFiles(files, type) {
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  for (const [name, text] of files) {
+    const nm = enc.encode(name), data = enc.encode(text), crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, nm.length, true);
+    parts.push(lh.buffer, nm, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
+    central.push(ch.buffer, nm);
+    off += 30 + nm.length + data.length;
+  }
+  const cdSize = central.reduce((a, p) => a + p.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true); end.setUint32(12, cdSize, true); end.setUint32(16, off, true);
+  return new Blob([...parts, ...central, end.buffer], { type });
+}
+const xe = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+function exportDOCX(rp) {
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const para = (text, style, extra = '') => `<w:p><w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ''}${extra}</w:pPr><w:r><w:t xml:space="preserve">${xe(text)}</w:t></w:r></w:p>`;
+  const bullet = (text) => `<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:ind w:left="360" w:hanging="260"/><w:spacing w:after="80"/></w:pPr><w:r><w:t xml:space="preserve">•  ${xe(text)}</w:t></w:r></w:p>`;
+  const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>
+    ${para(rp.subtitle, 'Subtitle')}${para(rp.title, 'Title')}${para(rp.headline, 'Heading1')}${para(rp.summary)}
+    ${rp.sections.map(s => para(s.heading, 'Heading2') + s.items.map(bullet).join('')).join('')}
+    ${para(`Made with Conference Copilot · ${new Date().toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}`, 'Footer')}
+    <w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1200" w:right="1200" w:bottom="1200" w:left="1200" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const font = '<w:rFonts w:ascii="Helvetica Neue" w:hAnsi="Helvetica Neue" w:cs="Arial"/>';
+  const style = (id, name, rpr, ppr = '', based = 'Normal') => `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="${based}"/><w:qFormat/><w:pPr>${ppr}</w:pPr><w:rPr>${rpr}</w:rPr></w:style>`;
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}>
+    <w:docDefaults><w:rPrDefault><w:rPr>${font}<w:color w:val="1D1D1F"/><w:sz w:val="22"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+    <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
+    ${style('Title', 'Title', '<w:b/><w:sz w:val="52"/>', '<w:spacing w:after="160"/>')}
+    ${style('Subtitle', 'Subtitle', '<w:color w:val="6E6E73"/><w:sz w:val="20"/>', '<w:spacing w:after="60"/>')}
+    ${style('Heading1', 'heading 1', '<w:b/><w:sz w:val="30"/>', '<w:keepNext/><w:spacing w:before="240" w:after="120"/><w:outlineLvl w:val="0"/>')}
+    ${style('Heading2', 'heading 2', '<w:b/><w:color w:val="0066CC"/><w:sz w:val="22"/>', '<w:keepNext/><w:spacing w:before="280" w:after="100"/><w:outlineLvl w:val="1"/>')}
+    ${style('ListParagraph', 'List Paragraph', '')}
+    ${style('Footer', 'Footer', '<w:color w:val="86868B"/><w:sz w:val="16"/>', '<w:spacing w:before="480"/>')}
+    </w:styles>`;
+  saveBlob(zipFiles([
+    ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`],
+    ['_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`],
+    ['word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+    ['word/document.xml', doc], ['word/styles.xml', styles],
+  ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'), `${fileSafe(rp.title)}.docx`);
+}
+function deckSlides(rp) {
+  // Claude writes a deck for the conference; otherwise each section becomes slides of up to 5 bullets
+  const out = [];
+  if (rp.slides?.length) rp.slides.forEach(s => out.push({ title: s.title, bullets: s.bullets }));
+  else {
+    out.push({ title: 'In short', bullets: [rp.headline, rp.summary].filter(Boolean) });
+    for (const s of rp.sections) for (let i = 0; i < s.items.length; i += 5) out.push({ title: s.items.length > 5 ? `${s.heading} (${i / 5 + 1})` : s.heading, bullets: s.items.slice(i, i + 5) });
+  }
+  return out;
+}
+function exportPPTX(rp) {
+  const NS = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
+  const EMU = 12700; // per point
+  const W = 12192000, H = 6858000;
+  let shapeId = 2;
+  const run = (t, sz, color, bold) => `<a:r><a:rPr lang="en-US" sz="${sz * 100}"${bold ? ' b="1"' : ''} dirty="0"><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="Helvetica Neue"/><a:cs typeface="Arial"/></a:rPr><a:t>${xe(t)}</a:t></a:r>`;
+  const box = (x, y, w, h, parasXml, anchor = 't') => `<p:sp><p:nvSpPr><p:cNvPr id="${shapeId++}" name="Text ${shapeId}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" anchor="${anchor}"><a:normAutofit/></a:bodyPr><a:lstStyle/>${parasXml}</p:txBody></p:sp>`;
+  const rect = (x, y, w, h, color) => `<p:sp><p:nvSpPr><p:cNvPr id="${shapeId++}" name="Shape ${shapeId}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm><a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr></p:sp>`;
+  const p = (inner, extra = '') => `<a:p><a:pPr${extra}/>${inner}</a:p>`;
+  const bulletP = (t, sz) => `<a:p><a:pPr marL="342900" indent="-285750"><a:lnSpc><a:spcPct val="110000"/></a:lnSpc><a:spcBef><a:spcPts val="1000"/></a:spcBef><a:buClr><a:srgbClr val="0071E3"/></a:buClr><a:buFont typeface="Arial"/><a:buChar char="•"/></a:pPr>${run(t, sz, '3A3A3C')}</a:p>`;
+  const slideXml = (shapes, bg = 'FFFFFF') => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld ${NS}><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="${bg}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${shapes}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
+  const M = 72 * EMU * 0.9; // ~0.9in margin
+  const slides = [];
+  shapeId = 2;
+  slides.push(slideXml(
+    box(M, H * 0.30, W - 2 * M, 60 * EMU, p(run(rp.subtitle, 18, '6E6E73'))) +
+    box(M, H * 0.30 + 70 * EMU, W - 2 * M, 150 * EMU, p(run(rp.title, 46, '1D1D1F', true), ' algn="l"')) +
+    box(M, H * 0.30 + 230 * EMU, W - 2 * M, 90 * EMU, p(run(rp.headline, 22, '0066CC'))), 'F5F5F7'));
+  for (const s of deckSlides(rp)) {
+    shapeId = 2;
+    const bullets = s.bullets.map(b => bulletP(b, s.bullets.length > 4 ? 20 : 22)).join('');
+    slides.push(slideXml(
+      rect(M, M * 0.9, 56 * EMU, 6 * EMU, '0071E3') +
+      box(M, M * 0.9 + 22 * EMU, W - 2 * M, 80 * EMU, p(run(s.title, 34, '1D1D1F', true)), 'b') +
+      box(M, M * 0.9 + 130 * EMU, W - 2 * M, H - (M * 0.9 + 130 * EMU) - M, bullets)));
+  }
+  const n = slides.length;
+  const theme = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Copilot"><a:themeElements><a:clrScheme name="Copilot"><a:dk1><a:srgbClr val="1D1D1F"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="3A3A3C"/></a:dk2><a:lt2><a:srgbClr val="F5F5F7"/></a:lt2><a:accent1><a:srgbClr val="0071E3"/></a:accent1><a:accent2><a:srgbClr val="F56300"/></a:accent2><a:accent3><a:srgbClr val="1A7F37"/></a:accent3><a:accent4><a:srgbClr val="7A3FD0"/></a:accent4><a:accent5><a:srgbClr val="00759A"/></a:accent5><a:accent6><a:srgbClr val="D70015"/></a:accent6><a:hlink><a:srgbClr val="0066CC"/></a:hlink><a:folHlink><a:srgbClr val="7A3FD0"/></a:folHlink></a:clrScheme><a:fontScheme name="Copilot"><a:majorFont><a:latin typeface="Helvetica Neue"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Helvetica Neue"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Copilot"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+  const emptyTree = '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld>';
+  const rels = (items) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${items.map(([id, type, target]) => `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"/>`).join('')}</Relationships>`;
+  const files = [
+    ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${slides.map((_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('')}</Types>`],
+    ['_rels/.rels', rels([['rId1', 'officeDocument', 'ppt/presentation.xml']])],
+    ['ppt/presentation.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:presentation ${NS} saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${slides.map((_, i) => `<p:sldId id="${256 + i}" r:id="rId${i + 3}"/>`).join('')}</p:sldIdLst><p:sldSz cx="${W}" cy="${H}"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`],
+    ['ppt/_rels/presentation.xml.rels', rels([['rId1', 'slideMaster', 'slideMasters/slideMaster1.xml'], ['rId2', 'theme', 'theme/theme1.xml'], ...slides.map((_, i) => [`rId${i + 3}`, 'slide', `slides/slide${i + 1}.xml`])])],
+    ['ppt/slideMasters/slideMaster1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldMaster ${NS}>${emptyTree}<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>`],
+    ['ppt/slideMasters/_rels/slideMaster1.xml.rels', rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'theme', '../theme/theme1.xml']])],
+    ['ppt/slideLayouts/slideLayout1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldLayout ${NS} type="blank" preserve="1">${emptyTree.replace('<p:cSld>', '<p:cSld name="Blank">')}<p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`],
+    ['ppt/slideLayouts/_rels/slideLayout1.xml.rels', rels([['rId1', 'slideMaster', '../slideMasters/slideMaster1.xml']])],
+    ['ppt/theme/theme1.xml', theme],
+    ...slides.flatMap((x, i) => [[`ppt/slides/slide${i + 1}.xml`, x], [`ppt/slides/_rels/slide${i + 1}.xml.rels`, rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml']])]]),
+  ];
+  saveBlob(zipFiles(files, 'application/vnd.openxmlformats-officedocument.presentationml.presentation'), `${fileSafe(rp.title)}.pptx`);
+  return n;
+}
+async function reportToGoogleDoc(rp) {
+  if (!settings.clientId) { toast('Connect Google Drive in Settings to save to Google Docs'); return openSettings(); }
+  if (!tokenValid()) { try { await requestToken(true); } catch (e) { return toast(e.message); } }
+  try {
+    toast('Saving to Google Docs…'); await ensureFolder();
+    const r = await multipartCreate({ name: rp.title, mimeType: 'application/vnd.google-apps.document', parents: [drive.folderId] }, reportHTML(rp), 'text/html');
+    toast(`Saved to Drive · <a href="${esc(r.webViewLink || `https://docs.google.com/document/d/${r.id}`)}" target="_blank" rel="noopener">Open doc</a>`, true, 7000);
+  } catch (e) { toast(e.message, false, 5000); }
 }
 
 /* =========================================================
@@ -2619,7 +3004,7 @@ function openSessionForm(s) {
       const data = { title: g('#fTitle'), speaker: g('#fSpeaker'), room: g('#fRoom'), date: g('#fDate'), start: g('#fStart'), end: g('#fEnd'), description: g('#fDesc') };
       if (!data.title) { $('#fTitle', sh.el).focus(); return toast('Give the session a title'); }
       let id;
-      if (s) { Object.assign(S(s.id) || s, data); id = s.id; touch(S(id)); }
+      if (s) { const cur = S(s.id) || s; if (cur.informal && data.title !== cur.title) cur.autoTitle = false; Object.assign(cur, data); id = s.id; touch(cur); }
       else { id = createSession(data); touch(); }
       sh.close(); render(); if (!s) select(id);
     },
@@ -2771,7 +3156,12 @@ function bindStatic() {
   $('#backBtn').innerHTML = I.left + 'Agenda'; $('#moreBtn').innerHTML = I.more; $('#shareBtn').innerHTML = I.share;
   $('#photoBtn').innerHTML = I.camera; $('#videoBtn').innerHTML = I.video; $('#sendBtn').innerHTML = I.up;
   applyTheme();
-  $('#addBtn').onclick = () => openImport();
+  $('#addBtn').onclick = (e) => addMenu(e.currentTarget);
+  $('#briefingsBtn').innerHTML = I.sparkles; $('#briefingsBtn').onclick = (e) => briefingsMenu(e.currentTarget);
+  $('#sideToggle').innerHTML = I.sidebar; $('#sideToggle').onclick = toggleSide;
+  $('#panesBtn').innerHTML = I.sidebar; $('#panesBtn').onclick = toggleList;
+  $('#focusBtn').onclick = () => setFocus(!panes.focus);
+  applyPanes();
   // Drop an agenda file (spreadsheet, calendar, PDF) anywhere outside a session to import it
   addEventListener('dragover', e => { if (e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
   addEventListener('drop', e => {
@@ -2839,7 +3229,11 @@ function bindStatic() {
     const mod = e.metaKey || e.ctrlKey;
     if (e.key === 'Escape') { if (menuEl) return closeMenu(); if (sheetStack.length) return sheetStack.at(-1).close(); }
     if (sheetStack.length || menuEl) return;
-    if (mod && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#search').focus(); $('#search').select(); return; }
+    if (e.key === 'Escape' && panes.focus && !e.target.closest?.('input,textarea,[contenteditable]')) return setFocus(false);
+    if (mod && e.shiftKey && e.code === 'KeyF' && S(ui.selected)) { e.preventDefault(); return setFocus(!panes.focus); }
+    if (mod && e.altKey && e.code === 'KeyS') { e.preventDefault(); return toggleSide(); }
+    if (mod && e.altKey && e.code === 'KeyL') { e.preventDefault(); return toggleList(); }
+    if (mod && !e.shiftKey && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#search').focus(); $('#search').select(); return; }
     if (mod && e.key === 'Enter') { const s = S(ui.selected); if (s && liveNotes(s).length) { e.preventDefault(); generateBrief(s); } return; }
     if (typing()) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
