@@ -608,6 +608,20 @@ body.cal-mode #sortBtn{display:none}
 .f-row.col label{padding-top:9px;font-size:.8rem;color:var(--text-2)}
 .f-row.col input{text-align:left;padding-top:4px}
 .f-row .val{margin-left:auto;color:var(--text-2);font-size:.9333rem;text-align:right}
+.bl-row{display:flex;align-items:center;position:relative}
+.bl-row+.bl-row::before{content:"";position:absolute;top:0;left:50px;right:0;height:1px;background:var(--sep)}
+.bl-open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:9px 4px 9px 12px;text-align:left;color:var(--text)}
+.bl-open:hover{background:var(--fill)}
+.bl-open .ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:#fff;flex:none}
+.bl-open .ic svg{width:15px;height:15px}
+.bl-tx{min-width:0;display:flex;flex-direction:column;gap:2px}
+.bl-tx b{font-weight:500;font-size:.9667rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bl-tx small{font-size:.8rem;color:var(--text-2)}
+.bl-tx em{font-style:normal;white-space:nowrap;color:var(--orange);font-weight:500}
+.bl-del{flex:none;width:44px;height:44px;display:grid;place-items:center;color:var(--text-3)}
+.bl-del:hover{color:var(--red)}
+.bl-del svg{width:17px;height:17px}
+.danger-ink{color:var(--red)!important}
 .f-cap{font-size:.8rem;color:var(--text-2);margin:6px 4px 14px;line-height:1.45}
 .f-cap a{color:var(--accent)}
 .r-btn{width:100%;text-align:left;color:var(--accent);font-size:.9667rem;padding:0 12px;min-height:42px;display:flex;align-items:center;gap:10px;position:relative}
@@ -823,7 +837,7 @@ const LS = {
 };
 
 /* ---------- App state ---------- */
-const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, updatedAt: 0 });
+const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, updatedAt: 0 });
 let state = emptyState();
 let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
@@ -1039,10 +1053,13 @@ function renderSidebar() {
     html += `<div class="sb-group">Briefings</div>`;
     if (wrapDay) html += `<button class="sb-item" data-wrap="day:${wrapDay}"><span class="ic ic-wrap">${I.sparkles}</span><span class="tx">${wrapDay === t ? 'Today’s Wrap-up' : `${esc(fmtDate(wrapDay, { weekday: 'long' }))} Wrap-up`}</span>${state.dayBriefs?.[wrapDay] ? `<span class="ct ok" title="Ready">${I.check}</span>` : ''}</button>`;
     html += `<button class="sb-item" data-wrap="conf"><span class="ic ic-conf">${I.book}</span><span class="tx">Conference Takeaways</span>${state.confBrief ? `<span class="ct ok" title="Ready">${I.check}</span>` : ''}</button>`;
+    const nb = briefingsAll().length;
+    html += `<button class="sb-item" data-lib><span class="ic ic-all">${I.tray}</span><span class="tx">All Briefings</span>${nb ? `<span class="ct">${nb}</span>` : ''}</button>`;
   }
   $('#sbNav').innerHTML = html;
   $$('[data-v]', $('#sbNav')).forEach(b => b.onclick = () => setView(b.dataset.v));
   $$('[data-wrap]', $('#sbNav')).forEach(b => b.onclick = () => { const w = b.dataset.wrap; w === 'conf' ? openWrap('conf') : openWrap('day', w.slice(4)); });
+  $('[data-lib]', $('#sbNav'))?.addEventListener('click', openLibrary);
 }
 
 function renderList() {
@@ -2482,6 +2499,11 @@ function mergeStates(a, b) {
   out.dayBriefs = { ...(a.dayBriefs || {}) };
   for (const [d, r] of Object.entries(b.dayBriefs || {})) out.dayBriefs[d] = newer(out.dayBriefs[d], r);
   out.confBrief = newer(a.confBrief, b.confBrief);
+  // A deleted wrap-up or takeaways stays deleted on every device unless a newer one was written after it.
+  out.briefDeleted = { ...(a.briefDeleted || {}) };
+  for (const [k, t] of Object.entries(b.briefDeleted || {})) out.briefDeleted[k] = Math.max(out.briefDeleted[k] || 0, t);
+  for (const d of Object.keys(out.dayBriefs)) if ((out.briefDeleted['day:' + d] || 0) >= (out.dayBriefs[d]?.generatedAt || 0)) delete out.dayBriefs[d];
+  if (out.confBrief && (out.briefDeleted.conf || 0) >= (out.confBrief.generatedAt || 0)) out.confBrief = null;
   return out;
 }
 
@@ -2739,6 +2761,7 @@ function openWrap(kind, key) {
         <button class="btn btn-sm btn-primary" id="wrExport">${I.download} Export</button>
         <button class="btn btn-sm btn-gray" id="wrCopy">${I.copy} Copy</button>
         <button class="btn btn-sm btn-gray" id="wrRedo">${I.sparkles} Refresh</button>
+        <button class="btn btn-sm btn-plain danger-ink" id="wrDel">${I.trash} Delete</button>
         ${r.source === 'ai' ? '' : '<small>Add a Claude key in Settings for a fuller briefing</small>'}
       </div></article>`;
     $('#wrCopy', body).onclick = async () => { try { await navigator.clipboard.writeText(reportText(rp)); toast('Copied'); } catch { toast('Copy failed'); } };
@@ -2747,6 +2770,7 @@ function openWrap(kind, key) {
       run();
     };
     $('#wrExport', body).onclick = (e) => exportMenu(e.currentTarget, rp);
+    $('#wrDel', body).onclick = async () => { if (await confirmDeleteBriefing({ kind, key })) paint(); };
   };
   // The current briefing stays in place until a new one has been written, so a failed refresh loses nothing.
   const run = async () => {
@@ -2761,6 +2785,62 @@ function openWrap(kind, key) {
   };
   paint();
 }
+/* ---------- All briefings: one list of everything Copilot has written, to open or delete ---------- */
+function newerNotes(items, since) { return items.reduce((n, s) => n + liveNotes(s).filter(x => (x.ts || 0) > since).length, 0); }
+function briefingsAll() {
+  const out = [], ss = sessionsArr();
+  if (state.confBrief) out.push({ kind: 'conf', key: null, title: 'Conference Takeaways', r: state.confBrief, stale: newerNotes(ss, state.confBrief.generatedAt || 0) });
+  for (const [d, r] of Object.entries(state.dayBriefs || {}).sort()) out.push({ kind: 'day', key: d, title: `${fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' })} Wrap-up`, r, stale: newerNotes(ss.filter(s => s.date === d), r.generatedAt || 0) });
+  for (const s of ss.filter(s => s.brief).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1))
+    out.push({ kind: 'session', key: s.id, title: s.title || 'Untitled session', r: s.brief, stale: newerNotes([s], s.brief.generatedAt || 0), date: s.date, informal: s.informal });
+  return out;
+}
+function deleteBriefing({ kind, key }) {
+  state.briefDeleted = state.briefDeleted || {};
+  if (kind === 'session') { const s = S(key); if (s) { s.brief = null; touch(s); } }
+  else if (kind === 'day') { delete state.dayBriefs?.[key]; state.briefDeleted['day:' + key] = now(); touch(); }
+  else { state.confBrief = null; state.briefDeleted.conf = now(); touch(); }
+}
+async function confirmDeleteBriefing(b) {
+  const what = b.kind === 'session' ? 'brief' : b.kind === 'day' ? 'wrap-up' : 'set of takeaways';
+  if (!await confirmSheet(`Delete this ${what}?`, `It is removed from all your devices. Your notes stay${b.kind === 'session' ? ' and the session stays attended' : ''}, so you can create a new one.`, 'Delete')) return false;
+  deleteBriefing(b); render(); toast(b.kind === 'session' ? 'Brief deleted' : b.kind === 'day' ? 'Wrap-up deleted' : 'Takeaways deleted');
+  return true;
+}
+function openLibrary() {
+  const sh = openSheet({ title: 'All Briefings', left: 'Close', cls: 'wide', body: `<div id="libBody"></div>`, onClose: () => render() });
+  const body = $('#libBody', sh.el);
+  const row = (b) => {
+    const r = b.r, id = `${b.kind}|${b.key || ''}`;
+    const meta = [b.kind === 'session' && b.date ? fmtDate(b.date, { weekday: 'short', month: 'short', day: 'numeric' }) : '', b.informal ? 'Quick note' : '',
+      r.source === 'ai' ? 'Claude' : 'On this device', r.editedAt || r.revisedAt ? 'edited' : '', r.generatedAt ? ago(r.generatedAt) : ''].filter(Boolean).map(esc).join(' · ');
+    const ic = b.kind === 'conf' ? ['ic-conf', I.book] : b.kind === 'day' ? ['ic-wrap', I.sparkles] : b.informal ? ['ic-note', I.chat] : ['ic-done', I.check];
+    return `<div class="bl-row"><button class="bl-open" data-open="${esc(id)}"><span class="ic ${ic[0]}">${ic[1]}</span><span class="bl-tx"><b>${esc(b.title)}</b><small>${meta}${b.stale ? ` · <em>${b.stale} newer note${b.stale === 1 ? '' : 's'}</em>` : ''}</small></span></button><button class="bl-del" data-del="${esc(id)}" aria-label="Delete ${esc(b.title)}" title="Delete">${I.trash}</button></div>`;
+  };
+  const paint = () => {
+    const all = briefingsAll();
+    const conf = all.filter(b => b.kind === 'conf'), daysL = all.filter(b => b.kind === 'day'), sess = all.filter(b => b.kind === 'session');
+    if (!all.length) { body.innerHTML = `<p class="muted" style="text-align:center;padding:36px 12px">No briefings yet. Session briefs, day wrap-ups and conference takeaways appear here once you create them.</p>`; return; }
+    body.innerHTML = `<p class="f-cap" style="margin-top:2px">Everything Copilot has written for this conference. Open one to read, refresh or export it, or delete it to start fresh. Deleting never removes your notes. “Newer notes” means notes were added after it was written.</p>
+      ${conf.length ? `<div class="grp-t">Conference</div><div class="grp">${conf.map(row).join('')}</div>` : ''}
+      ${daysL.length ? `<div class="grp-t">Day wrap-ups</div><div class="grp">${daysL.map(row).join('')}</div>` : ''}
+      ${sess.length ? `<div class="grp-t">Session briefs · ${sess.length}</div><div class="grp">${sess.map(row).join('')}</div>` : ''}
+      <div class="grp" style="margin-top:18px"><button class="r-btn danger" id="libAll">${I.trash}Delete All ${all.length} Briefing${all.length === 1 ? '' : 's'}…</button></div>`;
+    const find = (id) => { const [kind, key] = id.split('|'); return { kind, key: key || null }; };
+    $$('[data-open]', body).forEach(el => el.onclick = () => {
+      const b = find(el.dataset.open); sh.close();
+      if (b.kind === 'session') { setView('all'); select(b.key); } else openWrap(b.kind, b.key);
+    });
+    $$('[data-del]', body).forEach(el => el.onclick = async () => { if (await confirmDeleteBriefing(find(el.dataset.del)) && body.isConnected) paint(); });
+    $('#libAll', body).onclick = async () => {
+      const n = briefingsAll().length;
+      if (!await confirmSheet(`Delete all ${n} briefings?`, 'Every session brief, day wrap-up and the conference takeaways are removed from all your devices. Your notes and sessions stay, and attended sessions stay attended.', 'Delete All')) return;
+      for (const b of briefingsAll()) deleteBriefing(b);
+      render(); toast('All briefings deleted'); if (body.isConnected) paint();
+    };
+  };
+  paint();
+}
 function briefingsMenu(anchor) {
   const ds = days().filter(dayHasContent);
   const t = todayISO();
@@ -2768,6 +2848,8 @@ function briefingsMenu(anchor) {
     ...ds.map(d => ({ label: `${d === t ? 'Today' : fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' })}: Wrap-up${state.dayBriefs?.[d] ? '' : '…'}`, icon: I.calendar, run: () => openWrap('day', d) })),
     ...(ds.length ? [{ sep: true }] : []),
     { label: `Conference Takeaways${state.confBrief ? '' : '…'}`, icon: I.book, run: () => openWrap('conf') },
+    { sep: true },
+    { label: 'All Briefings…', icon: I.tray, run: openLibrary },
   ]);
 }
 function addMenu(anchor) {
@@ -3077,7 +3159,7 @@ function sessionMenu(anchor, at) {
     ...(s.brief ? [{ label: 'Share Brief…', icon: I.share, run: () => shareBrief(s) }, { label: 'Save Brief to Google Docs', icon: I.doc, run: () => briefToDoc(s) }] : []),
     { sep: true },
     { label: 'Edit Session Details…', icon: I.pencil, run: () => openSessionForm(s) },
-    ...(s.brief ? [{ label: 'Remove Brief', icon: I.x, run: () => { s.brief = null; touch(s); render(); } }] : []),
+    ...(s.brief ? [{ label: 'Delete Brief…', icon: I.trash, run: () => confirmDeleteBriefing({ kind: 'session', key: s.id }) }] : []),
     { sep: true },
     { label: 'Delete Session…', icon: I.trash, danger: true, run: async () => {
       if (!await confirmSheet('Delete this session?', 'Its notes, photos and recordings will be removed from all your devices.', 'Delete Session')) return;

@@ -34,6 +34,7 @@ Conference Copilot turns the attendee's agenda into one notebook per session. Du
 - End-of-day wrap-up per day and conference takeaways across everything; exported on the device as PDF (print), Word (.docx) or PowerPoint (.pptx), or saved to Google Docs.
 - Layout: the sidebar and the sessions column collapse independently; Focus mode gives the selected session the whole window (full screen on Mac).
 - Briefs can be shared, copied or saved as a Google Doc.
+- All Briefings lists every session brief, day wrap-up and the conference takeaways, flags ones with newer notes, and deletes any or all of them across devices (notes are never deleted with them).
 - Nothing is sent to Claude without the user asking and confirming: briefs, wrap-ups, takeaways, one-tap brief changes and title suggestions each show what will be sent first.
 - No server. Local storage is IndexedDB; sync is Google Drive.
 - Live transcription depends on the browser's Web Speech API; recorded audio cannot be transcribed afterwards.
