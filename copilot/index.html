@@ -102,108 +102,29 @@ svg{display:block;flex:none}
 ::-webkit-scrollbar-track{background:transparent}
 
 /* =========================================================
-   Window layout: app bar · today column · session
+   Window layout: sidebar · list · detail
    ========================================================= */
-#app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
-#panes{flex:1;display:flex;min-height:0}
+#app{display:flex;height:100vh;height:100dvh;overflow:hidden}
 .pane{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
 .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-.sidebar{display:none}
+.sidebar{display:none;width:236px;flex:none;background:var(--side);border-right:1px solid var(--sep)}
 .list-pane{flex:1;background:var(--win)}
 .detail-pane{display:none;flex:1;background:var(--content)}
-.wide-only{display:none!important}
 @media (min-width:760px){
-  .wide-only{display:flex!important}
-  .list-pane{flex:none;width:360px;border-right:1px solid var(--sep)}
+  .list-pane{flex:none;width:340px;border-right:1px solid var(--sep)}
   .detail-pane{display:flex}
   .only-narrow{display:none!important}
 }
+@media (min-width:1080px){
+  .sidebar{display:flex}
+  .list-pane{width:330px}
+  .no-sidebar{display:none!important}
+}
+@media (max-width:1079px){ .with-sidebar{display:none!important} }
 @media (max-width:759px){
   body.show-detail .list-pane{display:none}
   body.show-detail .detail-pane{display:flex}
 }
-
-/* App bar (Mac / iPad) */
-.appbar{flex:none;align-items:center;gap:10px;min-height:54px;padding:calc(env(safe-area-inset-top) + 6px) 14px 6px;background:color-mix(in srgb,var(--win) 88%,transparent);-webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px);border-bottom:1px solid var(--sep);position:relative;z-index:6}
-.ab-conf{display:flex;flex-direction:column;min-width:0;max-width:240px;line-height:1.2}
-.ab-conf small{font-size:.7rem;color:var(--text-2);font-weight:600}
-.ab-conf b{font-size:.9667rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.day-seg{display:flex;gap:2px;background:var(--fill);border-radius:9px;padding:2px;margin-left:6px;overflow-x:auto;scrollbar-width:none;max-width:44vw}
-.day-seg::-webkit-scrollbar{display:none}
-.day-seg button{flex:none;height:28px;padding:0 12px;border-radius:7px;font-size:.8667rem;font-weight:500;color:var(--text-2);white-space:nowrap;transition:background .2s var(--ease)}
-.day-seg button:hover{color:var(--text)}
-.day-seg button.on{background:var(--seg-on,var(--surface));color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.day-seg button.today:not(.on){color:var(--red);font-weight:600}
-.appbar .search{margin-top:0;width:230px;flex:none}
-@media (max-width:1079px){.ab-conf small{display:none}.appbar .search{width:160px}.appbar .search kbd{display:none}#themeBtn{display:none}}
-.col-head{flex:none;align-items:center;gap:8px;padding:16px 16px 4px 18px}
-.col-head h2{margin:0;font-family:var(--font-d);font-size:1.3rem;font-weight:700;letter-spacing:-.015em;line-height:1.2}
-.col-head small{display:block;color:var(--text-2);font-size:.8rem;margin-top:2px}
-.col-head .tb-btn{margin-left:auto}
-body.cal-mode .col-head{display:none!important}
-
-/* Today column */
-.today{padding:4px 4px 0}
-.t-sec{margin-top:20px}
-.today>.t-sec:first-child{margin-top:6px}
-.t-sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:.8rem;font-weight:600;color:var(--text-2);padding:0 8px 6px}
-.t-sec-h span:last-child{font-weight:500;color:var(--text-3)}
-.link-btn{color:var(--accent);font-weight:600;font-size:.8rem}
-.now-card{display:block;width:100%;text-align:left;border-radius:16px;padding:16px 18px;margin-top:4px;background:var(--surface);color:var(--text);border:1px solid var(--sep);box-shadow:0 2px 6px rgba(30,30,60,.05),0 10px 28px rgba(30,30,60,.08);transition:transform .15s var(--ease),box-shadow .2s;cursor:pointer}
-.now-card:hover{transform:translateY(-1px)}
-.now-card.now .nc-label{color:var(--red)}
-.now-card.now .nc-bar{background:var(--red-soft)}
-.now-card.now .nc-bar i{background:var(--red)}
-.now-card.next{box-shadow:var(--shadow-1)}
-.now-card.sel{background:var(--sel);color:var(--on-sel);border-color:transparent}
-.now-card.sel .nc-label,.now-card.sel .nc-meta,.now-card.sel .nc-foot{color:var(--on-sel)}
-.now-card.sel .nc-bar{background:rgba(255,255,255,.3)}
-.now-card.sel .nc-bar i{background:#fff}
-.now-card.sel-ring{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent),0 10px 28px rgba(30,30,60,.12)}
-.nc-label{font-size:.75rem;font-weight:700;display:flex;align-items:center;gap:6px}
-.nc-label i{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
-.now-card.next .nc-label{color:var(--accent)}
-.nc-title{font-family:var(--font-d);font-size:1.1rem;font-weight:700;line-height:1.3;margin-top:8px;letter-spacing:-.01em}
-.nc-meta{font-size:.8667rem;margin-top:4px;color:var(--text-2)}
-.now-card.next .nc-meta{color:var(--text-2)}
-.nc-bar{height:4px;border-radius:4px;background:rgba(255,255,255,.28);margin-top:12px;overflow:hidden}
-.nc-bar i{display:block;height:100%;background:#fff;border-radius:4px}
-.nc-foot{font-size:.75rem;margin-top:7px;color:var(--text-2)}
-.now-card.next .nc-foot{color:var(--text-2)}
-.also{font-size:.8rem;color:var(--text-2);padding:8px 8px 0;line-height:1.5}
-.also button{color:var(--accent);font-weight:500;text-align:left}
-.now-m{background:var(--surface);border-radius:20px;padding:18px;box-shadow:var(--shadow-2);border:1px solid var(--sep);margin-top:4px}
-.now-m .nc-label{color:var(--red)}
-.now-m.next .nc-label{color:var(--accent)}
-.nc-open{display:block;width:100%;text-align:left;color:var(--text);cursor:pointer}
-.now-m .nc-title{font-size:1.25rem}
-.now-m .nc-meta{color:var(--text-2)}
-.nc-acts{display:flex;gap:8px;margin-top:16px}
-.nc-acts .btn{flex:1}
-.nc-ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;flex:none}
-.nc-ic.rec{background:var(--red-soft)}
-.nc-ic.rec i{width:14px;height:14px;border-radius:50%;background:var(--red)}
-.nc-ic.snap{background:var(--accent-soft);color:var(--accent)}
-.nc-ic svg{width:21px;height:21px}
-
-/* Phone header, day chips, tab bar */
-.m-head{display:flex;flex:none;flex-direction:column;padding:calc(env(safe-area-inset-top) + 8px) 16px 8px;background:var(--win)}
-.m-row{display:flex;align-items:center;gap:4px;min-height:36px}
-.m-eyebrow{font-size:.8125rem;font-weight:600;color:var(--text-2);margin-top:6px;min-height:1em}
-.m-head .large-title{margin-top:0}
-.day-chips{display:flex;gap:6px;overflow-x:auto;margin:12px -16px 0;padding:0 16px 2px;scrollbar-width:none}
-.day-chips::-webkit-scrollbar{display:none}
-.day-chips button{flex:none;height:34px;padding:0 14px;border-radius:999px;background:var(--fill);font-size:.875rem;font-weight:500;color:var(--text)}
-.day-chips button.on{background:var(--sel);color:var(--on-sel);font-weight:600}
-.day-chips button.today:not(.on){color:var(--red);font-weight:600}
-.tabbar{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:4px 6px calc(env(safe-area-inset-bottom) + 4px);background:color-mix(in srgb,var(--win) 92%,transparent);-webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px);border-top:1px solid var(--sep)}
-.tabbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.6875rem;font-weight:500;color:var(--text-2);min-height:50px}
-.tabbar button svg{width:25px;height:25px}
-.tabbar button.on{color:var(--accent);font-weight:600}
-.bcard{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--sep);border-radius:16px;padding:14px 16px;margin-top:10px;cursor:pointer}
-.bcard small{font-size:.75rem;color:var(--text-2)}
-.bcard b{display:block;font-size:1rem;margin-top:3px;line-height:1.3}
-.bcard p{margin:6px 0 0;font-size:.9rem;color:var(--text-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 /* Toolbars (unified title bar feel) */
 .toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:4px;min-height:52px;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px}
@@ -409,7 +330,7 @@ body.cal-mode .col-head{display:none!important}
 .mini-seg button{width:30px;height:26px;border-radius:6px;display:grid;place-items:center;color:var(--text-2);transition:background .15s}
 .mini-seg button svg{width:16px;height:16px}
 .mini-seg button.on{background:var(--seg-on,var(--surface));color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-body.cal-mode .sort-btn{display:none}
+body.cal-mode #sortBtn{display:none}
 @media (min-width:760px){body.cal-mode .list-pane{flex:1.3 1 0;width:auto;min-width:380px}}
 .sort-hint{font-size:.8rem;color:var(--text-2);padding:10px 8px 4px;display:flex;gap:6px;align-items:center}
 .sort-hint button{color:var(--accent);font-weight:500}
@@ -667,41 +588,37 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
 </head>
 <body>
 <div id="app">
-  <header class="appbar wide-only" id="appBar">
-    <div class="ab-conf"><small>Conference Copilot</small><b id="abConf"></b></div>
-    <nav class="day-seg" id="daySeg" aria-label="Conference days"></nav>
-    <div class="spacer"></div>
-    <label class="search ab-search"><span class="search-ic"></span><input id="search" type="search" placeholder="Search sessions and notes" autocomplete="off" aria-label="Search sessions and notes"><kbd>⌘F</kbd></label>
-    <div class="mini-seg mode-seg" role="tablist" aria-label="View"><button data-mode="list" aria-label="Today and list" title="List"></button><button data-mode="calendar" aria-label="Calendar" title="Calendar"></button></div>
-    <button id="syncBtn" class="sync"></button>
-    <button id="themeBtn" class="tb-btn" aria-label="Appearance"></button>
-    <button id="settingsBtn" class="tb-btn" aria-label="Settings" title="Settings"></button>
-    <button id="addBtn" class="tb-btn tint" aria-label="Add sessions" title="Add sessions"></button>
-  </header>
-  <div id="panes">
+  <aside id="sidebar" class="sidebar pane" aria-label="Library">
+    <div class="sb-head"><div class="sb-app">Conference Copilot</div><div class="sb-conf" id="sbConf"></div></div>
+    <nav id="sbNav" class="sb-nav"></nav>
+    <div class="sb-foot">
+      <button id="syncBtn" class="sync"></button>
+      <div class="spacer"></div>
+      <button id="themeBtn" class="tb-btn" aria-label="Appearance"></button>
+      <button id="settingsBtn" class="tb-btn" aria-label="Settings" title="Settings  ⌘,"></button>
+    </div>
+  </aside>
+
   <section id="listPane" class="list-pane pane" aria-label="Sessions">
-    <header class="m-head only-narrow" id="mHead">
-      <div class="m-row">
-        <button id="syncBtn2" class="sync"></button>
-        <div class="spacer"></div>
-        <div class="mini-seg mode-seg" id="mModes" role="tablist" aria-label="View"><button data-mode="list" aria-label="List" title="List"></button><button data-mode="calendar" aria-label="Calendar" title="Calendar"></button></div>
-        <button id="sortBtn2" class="tb-btn sort-btn" aria-label="Sort sessions" title="Sort"></button>
-        <button id="addBtn2" class="tb-btn tint" aria-label="Add sessions"></button>
-      </div>
-      <div class="m-eyebrow" id="mEyebrow"></div>
-      <h1 class="large-title" id="mTitle">Today</h1>
-      <div class="day-chips" id="dayChips" role="group" aria-label="Conference days"></div>
-      <label class="search" id="mSearch"><span class="search-ic"></span><input id="search2" type="search" placeholder="Search sessions and notes" autocomplete="off" aria-label="Search sessions and notes"></label>
+    <header class="toolbar" id="listBar">
+      <button id="syncBtn2" class="sync no-sidebar"></button>
+      <h1 class="tb-title with-sidebar" id="listTitle"></h1>
+      <div class="spacer"></div>
+      <div class="mini-seg" id="modeSeg" role="tablist" aria-label="View"><button data-mode="list" aria-label="List" title="List"></button><button data-mode="calendar" aria-label="Calendar" title="Calendar"></button></div>
+      <button id="sortBtn" class="tb-btn" aria-label="Sort sessions" title="Sort"></button>
+      <button id="settingsBtn2" class="tb-btn tint no-sidebar" aria-label="Settings"></button>
+      <button id="addBtn" class="tb-btn tint" aria-label="Add sessions" title="Add sessions  ⌘N"></button>
     </header>
-    <div class="col-head wide-only" id="colHead"></div>
+    <div class="list-head">
+      <h2 class="large-title no-sidebar">Agenda</h2>
+      <div class="list-sub no-sidebar" id="confName"></div>
+      <div class="seg no-sidebar" id="filterSeg" role="tablist">
+        <button data-f="all" role="tab">All</button><button data-f="todo" role="tab">To Attend</button><button data-f="attended" role="tab">Attended</button>
+      </div>
+      <label class="search"><span id="searchIcon"></span><input id="search" type="search" placeholder="Search" autocomplete="off" aria-label="Search sessions and notes"><kbd>⌘F</kbd></label>
+    </div>
     <div id="list" class="scroll"></div>
     <div id="calendar" class="cal hidden"></div>
-    <nav class="tabbar only-narrow" id="tabBar" aria-label="Main">
-      <button data-tab="today">Today</button>
-      <button data-tab="schedule">Schedule</button>
-      <button data-tab="briefs">Briefs</button>
-      <button data-tab="settings">Settings</button>
-    </nav>
   </section>
 
   <section id="detailPane" class="detail-pane pane" aria-label="Session">
@@ -732,7 +649,6 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
       </div>
     </div>
   </section>
-  </div>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input id="photoInput" type="file" accept="image/*" multiple hidden>
@@ -827,7 +743,7 @@ const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessio
 let state = emptyState();
 let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
-const ui = { editingBrief: null, busyRevise: null, view: 'all', day: null, tab: 'today', mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
+const ui = { editingBrief: null, busyRevise: null, view: LS.get('cc.view', 'today'), mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
 const saveSettings = () => LS.set('cc.settings', settings);
 const saveDrive = () => LS.set('cc.drive', drive);
 
@@ -1002,125 +918,37 @@ function filteredSessions() {
 }
 
 function renderSidebar() {
-  // Mac / iPad app bar: conference name and the day switcher
   const name = state.conference.name;
-  $('#abConf').textContent = name || 'Your conference';
-  const ds = days(), day = currentDay(), today = todayISO(), seg = $('#daySeg');
-  seg.classList.toggle('hidden', !ds.length);
-  seg.innerHTML = ds.map(d => `<button data-day="${d}" class="${d === day ? 'on' : ''} ${d === today ? 'today' : ''}" aria-pressed="${d === day}">${esc(d === today ? 'Today' : dayShort(d))}</button>`).join('')
-    + (ds.length ? `<button data-day="all" class="${day === 'all' ? 'on' : ''}" aria-pressed="${day === 'all'}">All</button>` : '');
-  $$('[data-day]', seg).forEach(b => b.onclick = () => setDay(b.dataset.day));
-}
-
-/* ---------- Today-first navigation ---------- */
-const dayShort = (d) => `${fmtDate(d, { weekday: 'short' })} ${+d.slice(8)}`;
-const narrowUI = () => !matchMedia('(min-width:760px)').matches;
-const minsNow = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
-// The day the Today column shows: the one picked, else today, else the next conference day
-function currentDay() {
-  const ds = days(); if (!ds.length) return 'all';
-  if (ui.day === 'all') return 'all';
-  if (ui.day && ds.includes(ui.day)) return ui.day;
-  const t = todayISO(); if (ds.includes(t)) return t;
-  return ds.find(d => d > t) || ds.at(-1);
-}
-function setDay(d) { ui.day = d; if (ui.mode === 'calendar' && d !== 'all') ui.calDay = d; $('#list').scrollTop = 0; renderList(); }
-function todaySections(day) {
-  const items = sessionsArr().filter(s => s.date === day).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
-  const isToday = day === todayISO(), nowM = minsNow();
-  const live = isToday ? items.filter(s => s.start && isLive(s) && !s.attended) : [];
-  const done = items.filter(s => s.attended);
-  const rest = items.filter(s => !s.attended && !live.includes(s));
-  const upcoming = isToday ? rest.filter(s => !s.start || hm2m(s.start) > nowM) : rest;
-  const missed = isToday ? rest.filter(s => s.start && hm2m(s.start) <= nowM) : [];
-  return { items, isToday, live, done, upcoming, missed };
-}
-function nowCard(s, kind, N) {
-  const nowM = minsNow(), st = hm2m(s.start), en = s.end && hm2m(s.end) > st ? hm2m(s.end) : st + 45, diff = st - nowM;
-  const label = kind === 'now' ? `Happening now · ${Math.max(1, en - nowM)} min left` : diff <= 0 ? 'Starting now' : diff < 90 ? `Next · starts in ${diff} min` : `Next · ${fmtTime(s.start)}`;
-  const n = liveNotes(s).length, pct = Math.round(Math.min(100, Math.max(0, (nowM - st) / (en - st) * 100)));
-  const meta = esc([s.speaker, s.room].filter(Boolean).join(' · '));
-  const foot = esc(`${fmtTime(s.start)}${s.end ? '–' + fmtTime(s.end) : ''}${n ? ` · ${n} note${n > 1 ? 's' : ''}` : ''}`);
-  const dot = kind === 'now' ? '<i></i>' : '';
-  if (!N) return `<button class="now-card ${kind} ${s.id === ui.selected ? 'sel' : ''}" data-id="${s.id}"><div class="nc-label">${dot}${esc(label)}</div><div class="nc-title">${esc(s.title)}</div>${meta ? `<div class="nc-meta">${meta}</div>` : ''}${kind === 'now' ? `<div class="nc-bar"><i style="width:${pct}%"></i></div>` : ''}<div class="nc-foot">${foot}</div></button>`;
-  return `<section class="now-m ${kind}" aria-label="${esc(label)}"><button class="nc-open" data-id="${s.id}"><div class="nc-label">${dot}${esc(label)}</div><div class="nc-title">${esc(s.title)}</div>${meta ? `<div class="nc-meta">${meta}</div>` : ''}</button>
-    <div class="nc-acts"><button class="btn btn-primary" data-take="${s.id}">${I.pencil} Take notes</button><button class="nc-ic rec" data-rec="${s.id}" aria-label="Record the speaker" title="Record the speaker"><i></i></button><button class="nc-ic snap" data-snap="${s.id}" aria-label="Photo of a slide" title="Photo of a slide">${I.camera}</button></div></section>`;
-}
-function bindRows(list) {
-  $$('.row', list).forEach(r => {
-    r.onclick = (e) => { if (e.target.closest('.chk')) return; select(r.dataset.id); };
-    r.oncontextmenu = (e) => { e.preventDefault(); select(r.dataset.id, false); sessionMenu(null, { x: e.clientX, y: e.clientY }); };
-    $('.chk', r).onclick = (e) => { e.stopPropagation(); toggleAttended(S(r.dataset.id)); };
-  });
-}
-function renderToday(list, day) {
-  const N = narrowUI();
-  const { items, isToday, live, done, upcoming, missed } = todaySections(day);
-  const lead = live[0] || (isToday ? upcoming[0] : null);
-  const sec = (label, arr, extra = '') => arr.length ? `<section class="t-sec" aria-label="${esc(label)}"><div class="t-sec-h"><span>${esc(label)}</span>${extra}</div>${arr.map(s => rowHTML(s)).join('')}</section>` : '';
-  const rest = upcoming.filter(s => s !== lead);
-  const briefs = sessionsArr().filter(s => s.brief).length;
-  let html = lead ? nowCard(lead, live[0] ? 'now' : 'next', N) : '';
-  if (live.length > 1) html += `<div class="also">Also now: ${live.slice(1).map(s => `<button data-id="${s.id}">${esc(s.title)}</button>`).join(' · ')}</div>`;
-  html += sec(isToday ? (lead ? 'Up next' : 'Coming up') : 'Sessions', rest, `<span>${rest.length}</span>`);
-  html += sec('Earlier, not attended', missed, `<span>${missed.length}</span>`);
-  html += sec(isToday ? 'Done today' : 'Done', done, briefs >= 2 ? `<button class="link-btn" id="recapBtn">Conference recap</button>` : `<span>${done.length}</span>`);
-  list.innerHTML = items.length ? `<div class="today">${html}</div>` : `<div class="empty"><p>No sessions on this day.</p></div>`;
-  bindRows(list);
-  $$('.now-card[data-id], .nc-open, .also [data-id]', list).forEach(b => b.onclick = () => select(b.dataset.id));
-  $$('[data-take]', list).forEach(b => b.onclick = () => { select(b.dataset.take); setTimeout(() => $('#noteInput').focus(), 60); });
-  $$('[data-rec]', list).forEach(b => b.onclick = () => { select(b.dataset.rec); if (!rec.active) startRecording(); });
-  $$('[data-snap]', list).forEach(b => b.onclick = () => { select(b.dataset.snap); const i = $('#photoInput'); i.value = ''; i.click(); });
-  $('#recapBtn', list)?.addEventListener('click', openRecap);
-}
-function renderBriefs(list) {
-  const items = sessionsArr().filter(s => s.brief).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
-  if (!items.length) { list.innerHTML = `<div class="empty"><div class="empty-art">${I.sparkles}</div><h2>No briefs yet</h2><p>When a session ends, tap Finish in it. Its brief appears here.</p></div>`; return; }
-  list.innerHTML = `<div class="today">${items.length >= 2 ? `<button class="btn btn-tinted" style="width:100%;margin-top:6px" id="recapBtn">${I.book} Conference recap</button>` : ''}${items.map(s => `<button class="bcard" data-id="${s.id}"><small>${esc([s.date && fmtDate(s.date, { weekday: 'short', month: 'short', day: 'numeric' }), s.start && fmtTime(s.start)].filter(Boolean).join(' · '))}</small><b>${esc(s.title)}</b>${s.brief.headline && s.brief.headline !== s.title ? `<p>${esc(s.brief.headline)}</p>` : s.brief.summary ? `<p>${esc(s.brief.summary)}</p>` : ''}</button>`).join('')}</div>`;
-  $$('.bcard', list).forEach(b => b.onclick = () => select(b.dataset.id));
-  $('#recapBtn', list)?.addEventListener('click', openRecap);
-}
-function renderMobileHead(day) {
-  const tab = ui.tab, today = todayISO();
-  $$('#tabBar [data-tab]').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
-  const sched = tab === 'schedule';
-  $('#mModes').classList.toggle('hidden', !sched);
-  $('#sortBtn2').classList.toggle('hidden', !sched || ui.mode === 'calendar');
-  $('#mSearch').classList.toggle('hidden', !sched);
-  let eyebrow = '', title = '';
-  if (tab === 'today') { eyebrow = day === 'all' ? (state.conference.name || '') : fmtDate(day, { weekday: 'long', month: 'long', day: 'numeric' }); title = day === today ? 'Today' : day === 'all' ? 'Agenda' : fmtDate(day, { weekday: 'long' }); }
-  if (sched) { eyebrow = state.conference.name || ''; title = 'Schedule'; }
-  if (tab === 'briefs') { const n = sessionsArr().filter(s => s.brief).length; eyebrow = n ? `${n} session${n > 1 ? 's' : ''}` : ''; title = 'Briefs'; }
-  $('#mEyebrow').textContent = eyebrow; $('#mTitle').textContent = title;
-  const ds = days(), chips = $('#dayChips'), show = tab === 'today' && ds.length > 1;
-  chips.classList.toggle('hidden', !show);
-  if (show) {
-    chips.innerHTML = ds.map(d => `<button data-day="${d}" class="${d === day ? 'on' : ''} ${d === today ? 'today' : ''}" aria-pressed="${d === day}">${esc(d === today ? 'Today' : dayShort(d))}</button>`).join('');
-    $$('[data-day]', chips).forEach(b => b.onclick = () => setDay(b.dataset.day));
+  const c = $('#sbConf'); c.textContent = name || 'Your conference'; c.classList.toggle('ph', !name);
+  const all = sessionsArr();
+  const count = (t) => all.filter(t).length;
+  const item = (v, d, n) => `<button class="sb-item ${ui.view === v ? 'on' : ''}" data-v="${v}"><span class="ic ${d.cls}">${d.icon}</span><span class="tx">${esc(d.label)}</span><span class="ct">${n || ''}</span></button>`;
+  let html = '';
+  const nToday = count(VIEWS.today.test);
+  if (nToday) html += item('today', VIEWS.today, nToday);
+  html += item('all', VIEWS.all, all.length) + item('todo', VIEWS.todo, count(VIEWS.todo.test)) + item('attended', VIEWS.attended, count(VIEWS.attended.test));
+  const ds = days();
+  if (ds.length) {
+    html += `<div class="sb-group">Days</div>`;
+    for (const d of ds) html += item('day:' + d, { label: fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' }), icon: I.calendar, cls: 'ic-day' }, all.filter(s => s.date === d).length);
   }
-}
-function renderColHead(day) {
-  const h = $('#colHead');
-  let title, sub = '', sortable = false;
-  if (ui.q) { title = 'Search'; sub = `${filteredSessions().length} matching sessions`; sortable = true; }
-  else if (day === 'all') { const all = sessionsArr(); title = 'All sessions'; sub = `${all.length} sessions · ${all.filter(s => s.attended).length} attended`; sortable = true; }
-  else { const t = todaySections(day); title = day === todayISO() ? 'Today' : fmtDate(day, { weekday: 'long' }); sub = `${fmtDate(day, { month: 'long', day: 'numeric' })} · ${t.items.length} sessions · ${t.done.length} attended`; }
-  h.innerHTML = `<div style="min-width:0"><h2>${esc(title)}</h2><small>${esc(sub)}</small></div>${sortable ? `<button class="tb-btn sort-btn" aria-label="Sort sessions" title="Sort">${I.sort}</button>` : ''}`;
-  $('.sort-btn', h)?.addEventListener('click', (e) => sortMenu(e.currentTarget));
+  $('#sbNav').innerHTML = html;
+  $$('[data-v]', $('#sbNav')).forEach(b => b.onclick = () => setView(b.dataset.v));
 }
 
 function renderList() {
   renderSidebar();
-  const N = narrowUI(), list = $('#list'), all = sessionsArr(), day = currentDay();
-  $$('.mode-seg button').forEach(b => { b.classList.toggle('on', b.dataset.mode === ui.mode); b.setAttribute('aria-selected', b.dataset.mode === ui.mode); });
-  $('#backBtn').innerHTML = I.left + ({ today: day === todayISO() ? 'Today' : 'Agenda', schedule: 'Schedule', briefs: 'Briefs' }[ui.tab] || 'Back');
-  if (N) renderMobileHead(day);
-  const cal = ui.mode === 'calendar' && (!N || ui.tab === 'schedule');
-  document.body.classList.toggle('cal-mode', cal);
+  $('#confName').textContent = state.conference.name || '';
+  $$('#filterSeg button').forEach(b => b.classList.toggle('on', b.dataset.f === ui.view || (b.dataset.f === 'all' && !['todo', 'attended'].includes(ui.view))));
+  const vd = viewDef();
+  const list = $('#list');
+  const all = sessionsArr();
+  const items = listedSessions();
+  $('#listTitle').innerHTML = `${esc(vd.label)}`;
+  $$('#modeSeg button').forEach(b => { b.classList.toggle('on', b.dataset.mode === ui.mode); b.setAttribute('aria-selected', b.dataset.mode === ui.mode); });
+  const cal = ui.mode === 'calendar';
   list.classList.toggle('hidden', cal); $('#calendar').classList.toggle('hidden', !cal);
-  ui.view = 'all';
-  if (!N) renderColHead(day);
-  if (cal) { if (day !== 'all' && !ui.calDay) ui.calDay = day; renderCalendar(); return; }
+  if (cal) { renderCalendar(); return; }
   if (!all.length) {
     list.innerHTML = matchMedia('(min-width:760px)').matches
       ? `<div class="empty"><p>No sessions yet.</p></div>`
@@ -1134,9 +962,6 @@ function renderList() {
     bindGo(list);
     return;
   }
-  if (!ui.q && N && ui.tab === 'briefs') return renderBriefs(list);
-  if (!ui.q && day !== 'all' && (N ? ui.tab === 'today' : true)) return renderToday(list, day);
-  const items = listedSessions();
   if (!items.length) {
     list.innerHTML = `<div class="empty"><p>${ui.q ? 'No matches.' : ui.view === 'attended' ? 'Sessions you wrap up appear here, with their briefs.' : ui.view === 'todo' ? 'You’ve attended everything.' : 'Nothing here.'}</p></div>`;
     return;
@@ -1156,7 +981,11 @@ function renderList() {
     for (const s of ss) html += rowHTML(s, !byTime);
   }
   list.innerHTML = html;
-  bindRows(list);
+  $$('.row', list).forEach(r => {
+    r.onclick = (e) => { if (e.target.closest('.chk')) return; select(r.dataset.id); };
+    r.oncontextmenu = (e) => { e.preventDefault(); select(r.dataset.id, false); sessionMenu(null, { x: e.clientX, y: e.clientY }); };
+    $('.chk', r).onclick = (e) => { e.stopPropagation(); toggleAttended(S(r.dataset.id)); };
+  });
   $('#recapBtn', list)?.addEventListener('click', openRecap);
   $('#sortReset', list)?.addEventListener('click', () => { ui.sort = 'time'; ui.sortRev = false; LS.set('cc.sort', 'time'); LS.set('cc.sortRev', false); renderList(); });
 }
@@ -2838,7 +2667,7 @@ function renderSync() {
   };
   const [cls, ic, label] = map[st] || map.off;
   const tip = st === 'off' ? 'Saved on this device. Connect Google Drive in Settings to sync.' : st === 'signin' ? 'Click to reconnect Google Drive' : st === 'err' ? ui.syncMsg : drive.lastSync ? 'Last synced ' + ago(drive.lastSync) : '';
-  for (const b of [$('#syncBtn'), $('#syncBtn2')]) { b.className = `sync ${cls}`; b.innerHTML = ic + `<span>${esc(label)}</span>`; b.title = tip; }
+  for (const b of [$('#syncBtn'), $('#syncBtn2')]) { b.className = `sync ${cls} ${b.id === 'syncBtn2' ? 'no-sidebar' : ''}`; b.innerHTML = ic + `<span>${esc(label)}</span>`; b.title = tip; }
 }
 
 /* =========================================================
@@ -2846,13 +2675,11 @@ function renderSync() {
    ========================================================= */
 const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
 function bindStatic() {
-  $('#addBtn').innerHTML = $('#addBtn2').innerHTML = I.plus; $('#settingsBtn').innerHTML = I.gear; $$('.search-ic').forEach(e => e.innerHTML = I.search);
-  const tabIcons = { today: I.clock, schedule: I.calendar, briefs: I.sparkles, settings: I.gear };
-  $$('#tabBar [data-tab]').forEach(b => { b.insertAdjacentHTML('afterbegin', tabIcons[b.dataset.tab]); b.onclick = () => { if (b.dataset.tab === 'settings') return openSettings(); ui.tab = b.dataset.tab; $('#list').scrollTop = 0; renderList(); }; });
+  $('#addBtn').innerHTML = I.plus; $('#settingsBtn').innerHTML = I.gear; $('#settingsBtn2').innerHTML = I.gear; $('#searchIcon').innerHTML = I.search;
   $('#backBtn').innerHTML = I.left + 'Agenda'; $('#moreBtn').innerHTML = I.more; $('#shareBtn').innerHTML = I.share;
   $('#photoBtn').innerHTML = I.camera; $('#videoBtn').innerHTML = I.video; $('#sendBtn').innerHTML = I.up;
   applyTheme();
-  $('#addBtn').onclick = $('#addBtn2').onclick = () => openImport();
+  $('#addBtn').onclick = () => openImport();
   // Drop an agenda file (spreadsheet, calendar, PDF) anywhere outside a session to import it
   addEventListener('dragover', e => { if (e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
   addEventListener('drop', e => {
@@ -2860,13 +2687,12 @@ function bindStatic() {
     const m = agendaFileMode(f); e.preventDefault();
     if (m && !sheetStack.length) openImport(m, f);
   });
-  $('#settingsBtn').onclick = openSettings;
+  $('#settingsBtn').onclick = $('#settingsBtn2').onclick = openSettings;
   $('#themeBtn').onclick = () => { const order = ['auto', 'light', 'dark']; const t = order[(order.indexOf(settings.theme || 'auto') + 1) % 3]; setTheme(t); toast(`Appearance: ${THEMES[t][0]}`); };
   $('#syncBtn').onclick = $('#syncBtn2').onclick = () => settings.clientId && drive.connected ? syncNow(true) : openSettings();
-  for (const id of ['#search', '#search2']) {
-    $(id).oninput = (e) => { ui.q = e.target.value; $$('#search, #search2').forEach(x => { if (x !== e.target) x.value = ui.q; }); renderList(); };
-    $(id).onkeydown = (e) => { if (e.key === 'Escape') { $$('#search, #search2').forEach(x => x.value = ''); ui.q = ''; renderList(); e.target.blur(); } };
-  }
+  $$('#filterSeg button').forEach(b => b.onclick = () => setView(b.dataset.f));
+  $('#search').oninput = (e) => { ui.q = e.target.value; renderList(); };
+  $('#search').onkeydown = (e) => { if (e.key === 'Escape') { e.target.value = ''; ui.q = ''; renderList(); e.target.blur(); } };
   $('#backBtn').onclick = () => history.length > 1 && location.hash ? history.back() : select(null, false);
   $('#moreBtn').onclick = (e) => sessionMenu(e.currentTarget);
   $('#shareBtn').onclick = () => { const s = S(ui.selected); s?.brief && shareBrief(s); };
@@ -2897,8 +2723,8 @@ function bindStatic() {
   $('#attachBtn').innerHTML = I.clip;
   $('#attachBtn').onclick = () => { const i = $('#docInput'); i.value = ''; i.click(); };
   $('#docInput').onchange = (e) => onFiles([...e.target.files]);
-  $('#sortBtn2').innerHTML = I.sort; $('#sortBtn2').onclick = (e) => sortMenu(e.currentTarget);
-  $$('.mode-seg button').forEach(b => { b.innerHTML = b.dataset.mode === 'list' ? I.list : I.calendar; b.onclick = () => setMode(b.dataset.mode); });
+  $('#sortBtn').innerHTML = I.sort; $('#sortBtn').onclick = (e) => sortMenu(e.currentTarget);
+  $$('#modeSeg button').forEach(b => { b.innerHTML = b.dataset.mode === 'list' ? I.list : I.calendar; b.onclick = () => setMode(b.dataset.mode); });
   new ResizeObserver(() => { if (ui.mode === 'calendar') { clearTimeout(calRT); calRT = setTimeout(renderCalendar, 80); } }).observe($('#listPane'));
   $('#photoInput').onchange = (e) => onPhotos([...e.target.files]);
   $('#videoInput').onchange = (e) => onVideo(e.target.files[0]);
@@ -2920,11 +2746,11 @@ function bindStatic() {
     const mod = e.metaKey || e.ctrlKey;
     if (e.key === 'Escape') { if (menuEl) return closeMenu(); if (sheetStack.length) return sheetStack.at(-1).close(); }
     if (sheetStack.length || menuEl) return;
-    if (mod && e.key.toLowerCase() === 'f') { e.preventDefault(); if (narrowUI() && ui.tab !== 'schedule') { ui.tab = 'schedule'; renderList(); } const sb = narrowUI() ? $('#search2') : $('#search'); sb.focus(); sb.select(); return; }
+    if (mod && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#search').focus(); $('#search').select(); return; }
     if (mod && e.key === 'Enter') { const s = S(ui.selected); if (s && liveNotes(s).length) { e.preventDefault(); generateBrief(s); } return; }
     if (typing()) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      const list = [...new Set($$(ui.mode === 'calendar' ? '#calendar [data-id]' : '#list [data-id]').map(e => e.dataset.id))].map(S).filter(Boolean); if (!list.length) return;
+      const list = ui.mode === 'calendar' ? filteredSessions() : listedSessions(); if (!list.length) return;
       e.preventDefault();
       const i = list.findIndex(s => s.id === ui.selected);
       const next = list[Math.max(0, Math.min(list.length - 1, i < 0 ? 0 : i + (e.key === 'ArrowDown' ? 1 : -1)))];
@@ -2939,16 +2765,18 @@ function bindStatic() {
   setInterval(() => { if (!sheetStack.length && !menuEl && document.visibilityState === 'visible') { renderList(); renderSync(); } }, 60000);
   addEventListener('beforeunload', (e) => { if (rec.active) { e.preventDefault(); e.returnValue = ''; } });
   addEventListener('resize', () => { closeMenu(); });
-  matchMedia('(min-width:760px)').addEventListener?.('change', () => render());
 }
 
 async function boot() {
   bindStatic();
   try { const saved = await DB.get('kv', 'state'); if (saved?.sessions) state = Object.assign(emptyState(), saved); }
   catch { toast('Local storage is unavailable (private browsing?). Notes won’t be kept.', false, 6000); }
+  if (ui.view === 'today' && !sessionsArr().some(VIEWS.today.test)) ui.view = 'all';
+  if (ui.view.startsWith('day:') && !days().includes(ui.view.slice(4))) ui.view = 'all';
+  document.body.classList.toggle('cal-mode', ui.mode === 'calendar');
   const m = location.hash.match(/s=([\w]+)/);
   if (m && S(m[1])) { ui.selected = m[1]; document.body.classList.add('show-detail'); }
-  else if (matchMedia('(min-width:760px)').matches) { const d = currentDay(), t = d === 'all' ? null : todaySections(d); ui.selected = ((t && (t.live[0] || (t.isToday && t.upcoming[0]) || t.items.find(x => !x.attended) || t.items[0])) || filteredSessions()[0])?.id || null; }
+  else if (matchMedia('(min-width:760px)').matches) { const list = filteredSessions(); ui.selected = (list.find(isLive) || list.find(s => !s.attended) || list[0])?.id || null; }
   render();
   if (settings.clientId) loadGis().catch(() => {});
   if (drive.connected && tokenValid()) syncNow(false);
