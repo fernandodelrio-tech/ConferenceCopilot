@@ -7,362 +7,549 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Copilot">
-<meta name="theme-color" content="#F5F3EF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F6F5F2" id="themeColor">
 <title>Conference Copilot</title>
+<script>
+  /* Apply the saved appearance before first paint */
+  try { const t = (JSON.parse(localStorage.getItem('cc.settings') || '{}').theme) || 'auto'; if (t !== 'auto') document.documentElement.dataset.theme = t; } catch {}
+</script>
 <style>
+/* =========================================================
+   Tokens — soft, warm neutrals; Apple-style semantic roles
+   ========================================================= */
 :root{
-  --bg:#F5F3EF; --bg-2:#EFECE7; --surface:#FFFFFF; --surface-2:#FAF9F7; --elev:rgba(255,255,255,.78);
-  --text:#1D1D1F; --text-2:#636368; --text-3:#76767B; --sep:rgba(60,60,67,.12); --sep-strong:rgba(60,60,67,.2);
-  --accent:#5868C4; --accent-ink:#45539F; --accent-soft:#E8EBF9;
-  --sage:#3E7A5D; --sage-soft:#E3F0E8; --peach:#A9623A; --peach-soft:#FBEDE3;
-  --rose:#B54C5B; --rose-soft:#FAE6E9; --lav:#7459B0; --lav-soft:#EEE9F8; --sky:#3A77A3; --sky-soft:#E4EFF7;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 24px rgba(30,30,40,.06);
-  --shadow-lg:0 20px 60px rgba(20,20,30,.18);
-  --r-sm:10px; --r:14px; --r-lg:20px; --r-xl:28px;
-  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",system-ui,"Segoe UI",Roboto,sans-serif;
+  --win:#F6F5F2;          /* list column / window */
+  --side:#ECEAE4;         /* sidebar */
+  --content:#FCFBF9;      /* detail page */
+  --surface:#FFFFFF;      /* inputs, grouped rows, popovers */
+  --fill:rgba(60,55,45,.06);
+  --fill-2:rgba(60,55,45,.1);
+  --text:#1D1D1F; --text-2:#5E5E63; --text-3:#727277;
+  --sep:rgba(60,55,45,.12); --sep-2:rgba(60,55,45,.2);
+  --accent:#5468C2; --accent-ink:#3F51A3; --accent-soft:#E6E9F6; --on-accent:#FFFFFF;
+  --sel:#5468C2; --on-sel:#FFFFFF; --sel-quiet:rgba(60,55,45,.09);
+  --green:#3B7759; --green-soft:#E1EEE6;
+  --orange:#A35E37; --orange-soft:#F7EADF;
+  --red:#B04857; --red-soft:#F7E3E6;
+  --purple:#6F55AB; --purple-soft:#ECE7F5;
+  --teal:#2C7480; --teal-soft:#DFEDEF;
+  --shadow-1:0 1px 2px rgba(30,25,15,.06),0 1px 1px rgba(30,25,15,.04);
+  --shadow-2:0 2px 6px rgba(30,25,15,.06),0 10px 28px rgba(30,25,15,.08);
+  --shadow-3:0 10px 30px rgba(30,25,15,.14),0 30px 70px rgba(30,25,15,.16);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro","Helvetica Neue",system-ui,sans-serif;
+  --font-d:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro","Helvetica Neue",system-ui,sans-serif;
+  --ease:cubic-bezier(.22,1,.36,1);
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
-  :root{
-    --bg:#141416; --bg-2:#1A1A1D; --surface:#1F1F22; --surface-2:#252529; --elev:rgba(31,31,34,.78);
-    --text:#F5F5F7; --text-2:#A8A8AF; --text-3:#8C8C93; --sep:rgba(235,235,245,.1); --sep-strong:rgba(235,235,245,.18);
-    --accent:#8F9DEB; --accent-ink:#AEB8F2; --accent-soft:rgba(143,157,235,.16);
-    --sage:#82C3A2; --sage-soft:rgba(130,195,162,.15); --peach:#EDAA84; --peach-soft:rgba(237,170,132,.15);
-    --rose:#EE8E9A; --rose-soft:rgba(238,142,154,.15); --lav:#B6A2E6; --lav-soft:rgba(182,162,230,.15); --sky:#86BCE2; --sky-soft:rgba(134,188,226,.15);
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 24px rgba(0,0,0,.25); --shadow-lg:0 20px 60px rgba(0,0,0,.5);
+  :root:not([data-theme="light"]){
+    --win:#1E1E20; --side:#262528; --content:#19191B; --surface:#2A2A2D;
+    --fill:rgba(255,255,255,.06); --fill-2:rgba(255,255,255,.1);
+    --text:#F2F2F4; --text-2:#ADADB3; --text-3:#909097;
+    --sep:rgba(255,255,255,.09); --sep-2:rgba(255,255,255,.16);
+    --accent:#9AAAF0; --accent-ink:#B6C1F5; --accent-soft:rgba(154,170,240,.15); --on-accent:#15172A;
+    --sel:#4D5EB5; --on-sel:#FFFFFF; --sel-quiet:rgba(255,255,255,.09); --seg-on:#505055;
+    --green:#8ACBA9; --green-soft:rgba(138,203,169,.14);
+    --orange:#EDB08B; --orange-soft:rgba(237,176,139,.14);
+    --red:#F09AA6; --red-soft:rgba(240,154,166,.14);
+    --purple:#BCA9EA; --purple-soft:rgba(188,169,234,.14);
+    --teal:#86C7D1; --teal-soft:rgba(134,199,209,.14);
+    --shadow-1:0 1px 2px rgba(0,0,0,.3);
+    --shadow-2:0 2px 8px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.3);
+    --shadow-3:0 12px 36px rgba(0,0,0,.45),0 30px 80px rgba(0,0,0,.4);
     color-scheme:dark;
   }
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.4;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
-button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
-input,textarea,select{font:inherit;color:inherit}
-svg{display:block}
-.hidden{display:none!important}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+:root[data-theme="dark"]{
+  --win:#1E1E20; --side:#262528; --content:#19191B; --surface:#2A2A2D;
+  --fill:rgba(255,255,255,.06); --fill-2:rgba(255,255,255,.1);
+  --text:#F2F2F4; --text-2:#ADADB3; --text-3:#909097;
+  --sep:rgba(255,255,255,.09); --sep-2:rgba(255,255,255,.16);
+  --accent:#9AAAF0; --accent-ink:#B6C1F5; --accent-soft:rgba(154,170,240,.15); --on-accent:#15172A;
+  --sel:#4D5EB5; --on-sel:#FFFFFF; --sel-quiet:rgba(255,255,255,.09); --seg-on:#505055;
+  --green:#8ACBA9; --green-soft:rgba(138,203,169,.14);
+  --orange:#EDB08B; --orange-soft:rgba(237,176,139,.14);
+  --red:#F09AA6; --red-soft:rgba(240,154,166,.14);
+  --purple:#BCA9EA; --purple-soft:rgba(188,169,234,.14);
+  --teal:#86C7D1; --teal-soft:rgba(134,199,209,.14);
+  --shadow-1:0 1px 2px rgba(0,0,0,.3);
+  --shadow-2:0 2px 8px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.3);
+  --shadow-3:0 12px 36px rgba(0,0,0,.45),0 30px 80px rgba(0,0,0,.4);
+  color-scheme:dark;
+}
 
-/* ---------- Shell ---------- */
+/* =========================================================
+   Base
+   ========================================================= */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:15px}
+@media (max-width:759px){html{font-size:16px}}
+html,body{margin:0;height:100%;background:var(--win);color:var(--text);font-family:var(--font);line-height:1.42;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior:none}
+body{caret-color:var(--accent)}
+::selection{background:color-mix(in srgb,var(--accent) 28%,transparent)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:default}
+input,textarea,select{font:inherit;color:inherit}
+@media (max-width:759px){input,textarea,select{font-size:16px!important}}
+svg{display:block;flex:none}
+:focus{outline:none}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:1px;border-radius:8px}
+.hidden{display:none!important}
+.spacer{flex:1}
+.muted{color:var(--text-2)}
+*{scrollbar-width:thin;scrollbar-color:var(--fill-2) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--fill-2);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+
+/* =========================================================
+   Window layout: sidebar · list · detail
+   ========================================================= */
 #app{display:flex;height:100vh;height:100dvh;overflow:hidden}
 .pane{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
-#listPane{flex:1;background:var(--bg)}
-#detailPane{display:none;flex:1;background:var(--bg-2)}
 .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-@media (min-width:860px){
-  #listPane{flex:none;width:380px;border-right:1px solid var(--sep)}
-  #detailPane{display:flex}
+.sidebar{display:none;width:236px;flex:none;background:var(--side);border-right:1px solid var(--sep)}
+.list-pane{flex:1;background:var(--win)}
+.detail-pane{display:none;flex:1;background:var(--content)}
+@media (min-width:760px){
+  .list-pane{flex:none;width:340px;border-right:1px solid var(--sep)}
+  .detail-pane{display:flex}
   .only-narrow{display:none!important}
 }
-@media (max-width:859px){
-  body.show-detail #listPane{display:none}
-  body.show-detail #detailPane{display:flex}
+@media (min-width:1080px){
+  .sidebar{display:flex}
+  .list-pane{width:330px}
+  .no-sidebar{display:none!important}
+}
+@media (max-width:1079px){ .with-sidebar{display:none!important} }
+@media (max-width:759px){
+  body.show-detail .list-pane{display:none}
+  body.show-detail .detail-pane{display:flex}
 }
 
-/* ---------- Nav ---------- */
-.nav{position:sticky;top:0;z-index:5;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;background:color-mix(in srgb,var(--bg) 80%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
-#detailPane .nav{background:color-mix(in srgb,var(--bg-2) 80%,transparent);border-bottom:1px solid transparent;transition:border-color .2s}
-#detailPane .nav.scrolled{border-bottom-color:var(--sep)}
-.nav-row{display:flex;align-items:center;gap:6px;min-height:36px}
-.spacer{flex:1}
-.icon-btn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--accent);transition:background .15s}
-.icon-btn:hover{background:var(--accent-soft)}
-.icon-btn svg{width:22px;height:22px}
-.back{display:flex;align-items:center;gap:2px;color:var(--accent);font-size:17px;padding:6px 8px 6px 0}
+/* Toolbars (unified title bar feel) */
+.toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:4px;min-height:52px;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px}
+.list-pane .toolbar{background:color-mix(in srgb,var(--win) 82%,transparent);-webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px)}
+.detail-pane .toolbar{background:color-mix(in srgb,var(--content) 82%,transparent);-webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px);border-bottom:1px solid transparent;transition:border-color .2s}
+.detail-pane .toolbar.scrolled{border-bottom-color:var(--sep)}
+.tb-title{font-family:var(--font-d);font-size:1.0667rem;font-weight:600;letter-spacing:-.01em;margin:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tb-sub{font-size:.8rem;color:var(--text-2);margin-left:6px;white-space:nowrap}
+.tb-btn{width:32px;height:30px;border-radius:7px;display:grid;place-items:center;color:var(--text-2);transition:background .15s,color .15s}
+.tb-btn:hover{background:var(--fill);color:var(--text)}
+.tb-btn:active{background:var(--fill-2)}
+.tb-btn svg{width:19px;height:19px}
+.tb-btn.tint{color:var(--accent)}
+.tb-text{height:30px;padding:0 10px;border-radius:7px;font-size:.9333rem;font-weight:500;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.tb-text:hover{background:var(--fill)}
+.tb-text svg{width:18px;height:18px}
+.tb-prime{height:30px;padding:0 13px 0 11px;border-radius:999px;font-size:.9rem;font-weight:600;background:var(--accent);color:var(--on-accent);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:filter .15s,transform .1s,opacity .15s}
+.tb-prime:hover{filter:brightness(1.06)}
+.tb-prime:active{transform:scale(.97)}
+.tb-prime svg{width:16px;height:16px}
+.tb-prime[disabled]{opacity:.4;pointer-events:none}
+.tb-prime.busy svg{animation:spin 1.3s linear infinite}
+.back{display:inline-flex;align-items:center;gap:1px;color:var(--accent);font-size:1.0625rem;height:34px;padding:0 8px 0 0}
 .back svg{width:22px;height:22px}
-.large-title{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:6px 0 0;line-height:1.1}
-.subtitle{color:var(--text-2);font-size:15px;margin-top:2px;min-height:20px}
-.pill{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 10px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-size:13px;font-weight:500;color:var(--text-2);white-space:nowrap}
-.pill svg{width:16px;height:16px}
-.pill.ok{color:var(--sage)} .pill.err{color:var(--rose)} .pill.busy{color:var(--accent)} .pill.signin{color:var(--accent)}
-.pill.busy svg{animation:pulse 1.2s ease-in-out infinite}
-@keyframes pulse{50%{opacity:.35}}
 
-.segmented{display:flex;background:color-mix(in srgb,var(--text) 7%,transparent);border-radius:9px;padding:2px;margin-top:14px}
-.segmented button{flex:1;height:30px;border-radius:7px;font-size:13px;font-weight:500;color:var(--text);transition:background .2s,box-shadow .2s}
-.segmented button.on{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.1),0 0 0 .5px rgba(0,0,0,.04)}
-.search{display:flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--text) 6%,transparent);border-radius:10px;height:36px;padding:0 10px;margin-top:10px;color:var(--text-3)}
-.search svg{width:16px;height:16px;flex:none}
-.search input{flex:1;border:0;background:transparent;outline:0;font-size:16px;color:var(--text);min-width:0}
+/* =========================================================
+   Sidebar
+   ========================================================= */
+.sb-head{padding:calc(env(safe-area-inset-top) + 18px) 18px 10px}
+.sb-app{font-size:.8rem;font-weight:600;color:var(--text-2);letter-spacing:.01em}
+.sb-conf{font-family:var(--font-d);font-size:1.2rem;font-weight:700;letter-spacing:-.015em;margin-top:2px;line-height:1.2;overflow-wrap:anywhere}
+.sb-conf.ph{color:var(--text-3);font-weight:600}
+.sb-nav{flex:1;overflow-y:auto;padding:6px 10px 12px}
+.sb-group{font-size:.75rem;font-weight:600;color:var(--text-3);margin:16px 8px 4px}
+.sb-item{display:flex;align-items:center;gap:9px;width:100%;height:30px;padding:0 8px;border-radius:7px;font-size:.9333rem;text-align:left;color:var(--text)}
+.sb-item:hover{background:var(--fill)}
+.sb-item.on{background:var(--sel-quiet);font-weight:600}
+.sb-item .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:#fff}
+.sb-item .ic svg{width:14px;height:14px}
+.sb-item .ct{margin-left:auto;font-size:.8rem;color:var(--text-2);font-variant-numeric:tabular-nums}
+.sb-item .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ic-today{background:#D9875C} .ic-all{background:#8A8780} .ic-todo{background:#5E78C9} .ic-done{background:#4E9A73} .ic-day{background:#C76B79}
+:root[data-theme="dark"] .ic-today{background:#C2754E}
+.sb-foot{display:flex;align-items:center;gap:2px;padding:8px 10px calc(env(safe-area-inset-bottom) + 10px);border-top:1px solid var(--sep)}
+
+/* Sync status */
+.sync{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 9px 0 7px;border-radius:7px;font-size:.8rem;font-weight:500;color:var(--text-2);white-space:nowrap;max-width:100%;overflow:hidden}
+.sync:hover{background:var(--fill)}
+.sync svg{width:16px;height:16px}
+.sync.ok{color:var(--green)} .sync.err{color:var(--red)} .sync.busy,.sync.signin{color:var(--accent)}
+.sync.busy svg{animation:breathe 1.6s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.4}}
+
+/* =========================================================
+   List column
+   ========================================================= */
+.list-head{padding:0 16px 8px}
+.large-title{font-family:var(--font-d);font-size:2.125rem;font-weight:700;letter-spacing:-.025em;margin:2px 0 0;line-height:1.1}
+.list-sub{color:var(--text-2);font-size:.9375rem;margin-top:2px;min-height:1.2em}
+.seg{display:flex;background:var(--fill);border-radius:9px;padding:2px;margin-top:12px}
+.seg button{flex:1;height:28px;border-radius:7px;font-size:.8667rem;font-weight:500;transition:background .2s var(--ease),box-shadow .2s}
+.seg button.on{background:var(--seg-on,var(--surface));box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+.search{display:flex;align-items:center;gap:6px;background:var(--fill);border-radius:9px;height:32px;padding:0 9px;margin-top:10px;color:var(--text-3)}
+.search svg{width:15px;height:15px}
+.search input{flex:1;border:0;background:transparent;outline:0;font-size:.9333rem;color:var(--text);min-width:0}
 .search input::placeholder{color:var(--text-3)}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none}
+.search kbd{font:inherit;font-size:.75rem;color:var(--text-3);border:1px solid var(--sep-2);border-radius:6px;padding:2px 7px;line-height:1.3}
+@media (hover:none){.search kbd{display:none}}
 
-/* ---------- Agenda list ---------- */
-#list{padding:4px 16px calc(env(safe-area-inset-bottom) + 24px)}
-.group-h{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-2);margin:18px 4px 8px;display:flex;justify-content:space-between}
-.group-h span:last-child{font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)}
-.cells{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
-.cell{display:flex;gap:12px;width:100%;text-align:left;padding:12px 14px;position:relative;transition:background .15s}
-.cell+.cell::before{content:"";position:absolute;top:0;left:98px;right:0;height:1px;background:var(--sep)}
-.cell:hover{background:var(--surface-2)}
-.cell.sel{background:var(--accent-soft)}
-.cell-time{width:72px;flex:none;white-space:nowrap;font-size:13px;color:var(--text-2);font-variant-numeric:tabular-nums;padding-top:2px}
-.cell-time b{display:block;color:var(--text);font-weight:600;font-size:14px}
-.cell-body{flex:1;min-width:0}
-.cell-title{font-weight:600;font-size:16px;line-height:1.3;letter-spacing:-.01em}
-.cell.done .cell-title{color:var(--text-2)}
-.cell-meta{font-size:13px;color:var(--text-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
-.badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px}
-.badge svg{width:12px;height:12px}
-.b-done{background:var(--sage-soft);color:var(--sage)}
-.b-live{background:var(--rose-soft);color:var(--rose)}
-.b-live i{width:6px;height:6px;border-radius:50%;background:currentColor}
-.b-notes{background:color-mix(in srgb,var(--text) 6%,transparent);color:var(--text-2);font-weight:500}
-.b-brief{background:var(--lav-soft);color:var(--lav)}
-.chev{color:var(--text-3);align-self:center;width:14px;height:14px;flex:none}
+#list{padding:2px 10px calc(env(safe-area-inset-bottom) + 24px)}
+.day-h{position:sticky;top:0;z-index:1;display:flex;align-items:baseline;justify-content:space-between;font-size:.8rem;font-weight:600;color:var(--text-2);padding:14px 8px 6px;background:var(--win)}
+.day-h span:last-child{font-weight:500;color:var(--text-3)}
+.row{display:flex;gap:10px;width:100%;text-align:left;padding:9px 10px 10px 8px;border-radius:9px;position:relative;align-items:flex-start}
+@media (hover:hover){.row:hover{background:var(--fill)}}
+.row+.row::after{content:"";position:absolute;top:0;left:40px;right:10px;height:1px;background:var(--sep)}
+.row.sel+.row::after,.row.sel::after,.row:hover::after,.row:hover+.row::after{opacity:0}
+.row.sel{background:var(--sel);color:var(--on-sel)}
+.row .chk{width:22px;height:22px;margin-top:1px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--text-3);cursor:pointer}
+.row .chk svg{width:21px;height:21px}
+.row .chk.done{color:var(--green)}
+.row .chk.live{color:var(--red)}
+.row.sel .chk,.row.sel .chk.done,.row.sel .chk.live{color:var(--on-sel);--chk-ink:var(--sel)}
+.row-main{flex:1;min-width:0}
+.row-top{display:flex;gap:8px;align-items:baseline}
+.row-title{flex:1;font-weight:600;font-size:.9667rem;line-height:1.3;letter-spacing:-.005em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.row-time{font-size:.8rem;color:var(--text-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.row-meta{font-size:.8667rem;color:var(--text-2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.sel .row-time,.row.sel .row-meta{color:color-mix(in srgb,var(--on-sel) 82%,transparent)}
+.tags{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:.75rem;font-weight:600;line-height:1;padding:5px 10px;border-radius:999px}
+.tag svg{width:11px;height:11px}
+.t-live{background:var(--red-soft);color:var(--red)}
+.t-live i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.t-brief{background:var(--purple-soft);color:var(--purple)}
+.t-notes{background:var(--fill);color:var(--text-2);font-weight:500}
+.t-done{background:var(--green-soft);color:var(--green)}
+.row.sel .tag{background:rgba(255,255,255,.2);color:var(--on-sel)}
+.row.done:not(.sel) .row-title{color:var(--text-2)}
 
-.empty{text-align:center;padding:40px 16px;color:var(--text-2)}
-.empty h2{color:var(--text);font-size:22px;letter-spacing:-.01em;margin:14px 0 6px}
-.empty p{margin:0 auto 20px;max-width:340px;font-size:15px}
-.empty .art{width:84px;height:84px;margin:0 auto;border-radius:24px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent-soft),var(--lav-soft));color:var(--accent)}
-.empty .art svg{width:40px;height:40px}
-.stack{display:flex;flex-direction:column;gap:10px;max-width:300px;margin:0 auto}
+.empty{text-align:center;padding:48px 20px;color:var(--text-2)}
+.empty h2{font-family:var(--font-d);color:var(--text);font-size:1.4rem;letter-spacing:-.015em;margin:16px 0 6px}
+.empty p{margin:0 auto 22px;max-width:330px;font-size:.9667rem}
+.empty-art{width:72px;height:72px;margin:0 auto;border-radius:18px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.empty-art svg{width:34px;height:34px}
+.stack{display:flex;flex-direction:column;gap:8px;max-width:300px;margin:0 auto}
 
-/* ---------- Buttons ---------- */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:12px;font-weight:600;font-size:16px;transition:transform .1s,filter .15s,background .15s}
+/* =========================================================
+   Buttons & controls
+   ========================================================= */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;padding:0 16px;border-radius:10px;font-weight:600;font-size:.9667rem;transition:transform .1s,filter .15s,background .15s}
 .btn:active{transform:scale(.98)}
-.btn svg{width:18px;height:18px}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:hover{filter:brightness(1.05)}
+.btn svg{width:17px;height:17px}
+.btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-primary:hover{filter:brightness(1.06)}
 .btn-tinted{background:var(--accent-soft);color:var(--accent-ink)}
-.btn-plain{color:var(--accent)}
-.btn-danger{background:var(--rose-soft);color:var(--rose)}
-.btn-sm{height:34px;padding:0 12px;font-size:14px;border-radius:10px}
-.btn[disabled]{opacity:.45;pointer-events:none}
+.btn-tinted:hover{filter:brightness(.98)}
+.btn-gray{background:var(--fill);color:var(--text)}
+.btn-gray:hover{background:var(--fill-2)}
+.btn-plain{color:var(--accent);font-weight:500}
+.btn-danger{background:var(--red-soft);color:var(--red)}
+.btn-sm{height:30px;padding:0 11px;font-size:.8667rem;border-radius:8px}
+.btn[disabled]{opacity:.4;pointer-events:none}
+@media (max-width:759px){.btn{height:46px;font-size:1.0625rem;border-radius:12px}.btn-sm{height:34px;font-size:.9375rem}}
 
-/* ---------- Detail ---------- */
-#detail{padding:0 20px 24px}
-.detail-wrap{max-width:760px;margin:0 auto}
-.d-eyebrow{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--text-2);font-size:14px;margin-top:4px}
-.d-eyebrow span{display:inline-flex;align-items:center;gap:5px}
-.d-eyebrow svg{width:15px;height:15px}
-.d-title{font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.02em;margin:10px 0 6px}
-.d-speaker{font-size:17px;color:var(--text-2);display:flex;align-items:center;gap:6px}
-.d-speaker svg{width:17px;height:17px}
-.d-desc{color:var(--text-2);font-size:15px;margin-top:10px;white-space:pre-wrap}
-.d-status{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
-.section-h{display:flex;align-items:baseline;justify-content:space-between;margin:28px 2px 10px}
-.section-h h3{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
-.section-h small{color:var(--text-3);font-size:13px}
+/* =========================================================
+   Detail
+   ========================================================= */
+#detail{padding:4px 28px 32px}
+@media (max-width:759px){#detail{padding:0 18px 24px}}
+.page{max-width:720px;margin:0 auto}
+.d-meta{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--text-2);font-size:.9rem;margin-top:10px}
+.d-meta span{display:inline-flex;align-items:center;gap:5px}
+.d-meta svg{width:15px;height:15px;opacity:.85}
+.d-title{font-family:var(--font-d);font-size:1.9rem;line-height:1.15;font-weight:700;letter-spacing:-.022em;margin:8px 0 4px;text-wrap:balance}
+@media (max-width:759px){.d-title{font-size:1.75rem}}
+.d-speaker{font-size:1.0333rem;color:var(--text-2)}
+.d-desc{color:var(--text-2);font-size:.9333rem;margin-top:10px;white-space:pre-wrap;max-width:65ch}
+.d-desc.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.d-status{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.d-status:empty{display:none}
+.sec-h{display:flex;align-items:baseline;gap:10px;margin:32px 0 12px}
+.sec-h h3{margin:0;font-family:var(--font-d);font-size:1.2rem;font-weight:700;letter-spacing:-.012em}
+.sec-h small{color:var(--text-3);font-size:.8rem}
+.sec-h .spacer+*{margin-left:auto}
 
-.card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:16px}
-.brief{position:relative;overflow:hidden;padding:20px;background:
-  radial-gradient(120% 80% at 100% 0%,var(--lav-soft),transparent 60%),
-  radial-gradient(100% 70% at 0% 100%,var(--sky-soft),transparent 60%),var(--surface)}
-.brief .tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--lav)}
-.brief .tag svg{width:14px;height:14px}
-.brief h4{font-size:21px;line-height:1.25;letter-spacing:-.01em;margin:8px 0 8px}
-.brief p.sum{margin:0;color:var(--text);font-size:16px;line-height:1.5}
-.brief .blk{margin-top:18px}
-.brief .blk h5{margin:0 0 8px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:6px}
-.brief .blk h5 i{width:8px;height:8px;border-radius:3px;background:currentColor}
-.brief ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
-.brief li{position:relative;padding-left:18px;font-size:15.5px;line-height:1.45}
-.brief li::before{content:"";position:absolute;left:3px;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--dot,var(--text-3))}
-.brief .q li{font-style:italic;color:var(--text-2)}
-.k-take h5{color:var(--accent)} .k-take{--dot:var(--accent)}
-.k-learn h5{color:var(--sage)} .k-learn{--dot:var(--sage)}
-.k-act h5{color:var(--peach)} .k-act{--dot:var(--peach)}
-.k-q h5{color:var(--sky)} .k-q{--dot:var(--sky)}
-.k-quote h5{color:var(--lav)} .k-quote{--dot:var(--lav)}
-.brief-foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;align-items:center}
-.brief-foot small{color:var(--text-3);font-size:12px;margin-left:auto}
+/* Brief */
+.brief{background:var(--surface);border-radius:14px;box-shadow:var(--shadow-2);padding:22px 24px;border:1px solid var(--sep)}
+@media (max-width:759px){.brief{padding:18px}}
+.brief-head{font-family:var(--font-d);font-size:1.3rem;line-height:1.28;font-weight:700;letter-spacing:-.015em;margin:0 0 8px;text-wrap:balance}
+.brief-sum{margin:0;font-size:1rem;line-height:1.55;max-width:68ch}
+.brief-blk{margin-top:20px}
+.brief-blk h4{margin:0 0 8px;font-size:.8rem;font-weight:700;letter-spacing:.02em;display:flex;align-items:center;gap:7px}
+.brief-blk h4 svg{width:15px;height:15px}
+.brief-blk ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+.brief-blk li{position:relative;padding-left:16px;font-size:.9667rem;line-height:1.5;max-width:68ch}
+.brief-blk li::before{content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--dot)}
+.b-take{--dot:var(--accent)} .b-take h4{color:var(--accent)}
+.b-learn{--dot:var(--green)} .b-learn h4{color:var(--green)}
+.b-quote{--dot:var(--purple)} .b-quote h4{color:var(--purple)} .b-quote li{font-style:italic;color:var(--text-2)}
+.b-act{--dot:var(--orange)} .b-act h4{color:var(--orange)}
+.b-q{--dot:var(--teal)} .b-q h4{color:var(--teal)}
+.brief-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:22px;padding-top:14px;border-top:1px solid var(--sep)}
+.brief-foot small{color:var(--text-3);font-size:.8rem;margin-left:auto}
+.brief-pending{display:flex;align-items:center;gap:12px;padding:18px 20px;border-radius:14px;background:var(--accent-soft);color:var(--accent-ink);font-weight:500}
 
-.notes{display:flex;flex-direction:column;gap:10px}
-.note{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px;position:relative}
-.note.star{box-shadow:var(--shadow),inset 3px 0 0 var(--peach)}
-.note-meta{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3);margin-bottom:6px}
-.note-meta .ty{display:inline-flex;align-items:center;gap:4px;font-weight:600;color:var(--text-2)}
-.note-meta svg{width:13px;height:13px}
-.note-acts{margin-left:auto;display:flex;gap:2px;opacity:.75}
-.note-acts button{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--text-3)}
-.note-acts button:hover{background:var(--surface-2);color:var(--text)}
-.note-acts button.on{color:var(--peach)}
-.note-acts svg{width:16px;height:16px}
-.note-text{white-space:pre-wrap;word-wrap:break-word;font-size:16px;line-height:1.45}
-.note-media{margin:-2px -4px 6px;border-radius:10px;overflow:hidden;background:var(--surface-2)}
-.note-media img,.note-media video{display:block;width:100%;max-height:420px;object-fit:contain;background:#0000}
+/* Notes timeline */
+.notes{display:flex;flex-direction:column}
+.note{display:grid;grid-template-columns:64px 1fr;gap:0 14px;padding:12px 0;position:relative;border-top:1px solid var(--sep)}
+.note:first-child{border-top:0}
+@media (max-width:759px){.note{grid-template-columns:1fr}}
+.note-when{font-size:.8rem;color:var(--text-3);font-variant-numeric:tabular-nums;padding-top:2px;display:flex;flex-direction:column;gap:3px}
+@media (max-width:759px){.note-when{flex-direction:row;align-items:center;gap:6px;margin-bottom:4px}}
+.note-when .kp{display:inline-flex;align-items:center;gap:3px;color:var(--orange);font-weight:600}
+.note-when .kp svg{width:12px;height:12px}
+.note-body{min-width:0}
+.note-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:1rem;line-height:1.5;max-width:68ch}
+.note-media{border-radius:10px;overflow:hidden;background:var(--fill);max-width:560px}
+.note-media img,.note-media video{display:block;width:100%;max-height:440px;object-fit:contain}
 .note-media img{cursor:zoom-in}
-.note-media audio{width:100%;display:block}
-.note-media .miss{padding:28px 12px;text-align:center;font-size:13px;color:var(--text-3)}
-.note-cap{font-size:15px;color:var(--text-2);white-space:pre-wrap}
-.note-cap.ph{color:var(--text-3);font-style:italic;cursor:pointer}
-.transcript{font-size:15px;line-height:1.5;color:var(--text);background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-top:8px;white-space:pre-wrap;max-height:260px;overflow:auto}
-.transcript-h{font-size:12px;font-weight:600;color:var(--text-3);margin-top:8px;text-transform:uppercase;letter-spacing:.05em}
-.edit-area{width:100%;border:1px solid var(--sep-strong);border-radius:10px;padding:10px;background:var(--surface-2);resize:vertical;min-height:80px;font-size:16px;outline:0}
-.edit-area:focus{border-color:var(--accent)}
-.edit-row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.note-media audio{width:100%;display:block;height:40px}
+.note-media.audio{background:transparent}
+.miss{padding:26px 14px;text-align:center;font-size:.8667rem;color:var(--text-2)}
+.note-cap{font-size:.9333rem;color:var(--text-2);margin-top:6px;white-space:pre-wrap}
+.note-cap.ph{color:var(--text-3);cursor:text}
+.note-cap.ph:hover{color:var(--text-2)}
+.tx-label{font-size:.75rem;font-weight:600;color:var(--text-3);margin:8px 0 4px;display:flex;align-items:center;gap:5px}
+.tx-label svg{width:13px;height:13px}
+.transcript{font-size:.9667rem;line-height:1.55;white-space:pre-wrap;max-height:220px;overflow:auto;max-width:68ch;color:var(--text)}
+.note-acts{position:absolute;right:0;top:8px;display:flex;gap:2px;opacity:0;transition:opacity .15s;background:var(--content);padding-left:6px}
+.note:hover .note-acts,.note:focus-within .note-acts{opacity:1}
+@media (hover:none){.note-acts{opacity:.8;top:6px}}
+.note-acts button{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:var(--text-3)}
+.note-acts button:hover{background:var(--fill);color:var(--text)}
+.note-acts button.on{color:var(--orange)}
+.note-acts svg{width:16px;height:16px}
+.edit-area{width:100%;border:1px solid var(--sep-2);border-radius:10px;padding:10px 12px;background:var(--surface);resize:vertical;min-height:84px;font-size:1rem;line-height:1.5}
+.edit-area:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.edit-row{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
+.notes-empty{padding:30px 10px 12px;text-align:center;color:var(--text-2);font-size:.9667rem}
+.notes-empty b{display:block;color:var(--text);font-size:1.0667rem;margin-bottom:4px}
+.ways{display:flex;justify-content:center;gap:22px;margin-top:18px;flex-wrap:wrap}
+.ways span{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.8rem;color:var(--text-2)}
+.ways i{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--fill);color:var(--accent)}
+.ways svg{width:20px;height:20px}
+.ways kbd{font:inherit;font-size:.7rem;color:var(--text-3)}
+@media (hover:none){.ways kbd{display:none}}
 
-.notes-empty{border:1.5px dashed var(--sep-strong);border-radius:var(--r-lg);padding:28px 18px;text-align:center;color:var(--text-2);font-size:15px}
-.notes-empty b{color:var(--text);display:block;font-size:17px;margin-bottom:4px}
-.hint-row{display:flex;justify-content:center;gap:18px;margin-top:14px;color:var(--text-3);font-size:12px}
-.hint-row span{display:flex;flex-direction:column;align-items:center;gap:4px}
-.hint-row svg{width:22px;height:22px;color:var(--accent)}
+.welcome{flex:1;display:grid;place-items:center;padding:40px;text-align:center}
+.welcome .empty-art{width:84px;height:84px;border-radius:22px}
+.welcome .empty-art svg{width:40px;height:40px}
+.welcome h2{font-family:var(--font-d);font-size:1.7rem;letter-spacing:-.02em;margin:18px 0 6px}
+.welcome p{color:var(--text-2);max-width:380px;margin:0 auto 24px}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:520px;margin:0 auto}
+.choice{background:var(--surface);border:1px solid var(--sep);border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:600;font-size:.9rem;transition:transform .12s var(--ease),box-shadow .2s}
+.choice:hover{box-shadow:var(--shadow-2);transform:translateY(-1px)}
+.choice i{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.choice svg{width:20px;height:20px}
+.choice small{font-weight:400;color:var(--text-2);font-size:.8rem}
+.nosel{color:var(--text-3)}
+.nosel svg{width:48px;height:48px;margin:0 auto 10px;opacity:.6}
 
-.no-sel{flex:1;display:grid;place-items:center;color:var(--text-3);text-align:center;padding:40px}
-.no-sel svg{width:56px;height:56px;margin:0 auto 12px;color:var(--text-3);opacity:.6}
-
-/* ---------- Composer ---------- */
-.composer{padding:8px 12px calc(env(safe-area-inset-bottom) + 10px);background:color-mix(in srgb,var(--bg-2) 82%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:1px solid var(--sep)}
-.composer-in{max-width:760px;margin:0 auto}
-.wrap-row{display:flex;justify-content:center;margin-bottom:8px}
-.wrap-btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;font-weight:600;font-size:15px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--lav));box-shadow:0 1px 2px rgba(0,0,0,.08),0 4px 12px rgba(20,20,30,.12);transition:transform .1s}
-.wrap-btn:active{transform:scale(.97)}
-.wrap-btn svg{width:17px;height:17px}
-.wrap-btn[disabled]{opacity:.5;pointer-events:none;box-shadow:none}
-.wrap-btn.busy svg{animation:spin 1.4s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* =========================================================
+   Composer & recording dock
+   ========================================================= */
+.composer{padding:10px 20px calc(env(safe-area-inset-bottom) + 12px);background:color-mix(in srgb,var(--content) 86%,transparent);-webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px);border-top:1px solid var(--sep)}
+@media (max-width:759px){.composer{padding:8px 10px calc(env(safe-area-inset-bottom) + 8px)}}
+.composer-in{max-width:720px;margin:0 auto}
 .bar{display:flex;align-items:flex-end;gap:6px}
-.tool{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--accent);background:var(--surface);box-shadow:var(--shadow);transition:transform .1s}
+.field{flex:1;min-width:0;display:flex;align-items:flex-end;background:var(--surface);border:1px solid var(--sep-2);border-radius:20px;padding:0 4px 0 14px;transition:border-color .15s,box-shadow .15s}
+.field:focus-within{border-color:color-mix(in srgb,var(--accent) 60%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent)}
+.field textarea{flex:1;border:0;outline:0;background:transparent;resize:none;font-size:1rem;line-height:22px;padding:8px 0;max-height:180px;min-height:38px}
+.field textarea::placeholder{color:var(--text-3)}
+.in-btn{width:30px;height:30px;margin:4px 0;border-radius:50%;display:grid;place-items:center;color:var(--text-3);flex:none}
+.in-btn:hover{color:var(--text)}
+.in-btn.on{color:var(--orange)}
+.in-btn svg{width:18px;height:18px}
+.send{background:var(--accent);color:var(--on-accent);transition:opacity .15s,transform .1s}
+.send:hover{color:var(--on-accent)}
+.send[disabled]{opacity:.25}
+.send svg{width:16px;height:16px}
+.tool{width:38px;height:38px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--text-2);transition:background .15s,color .15s,transform .1s}
+.tool:hover{background:var(--fill);color:var(--accent)}
 .tool:active{transform:scale(.94)}
 .tool svg{width:21px;height:21px}
-.tool.rec{color:#fff;background:var(--rose)}
-.field{flex:1;min-width:0;background:var(--surface);border-radius:20px;box-shadow:var(--shadow);display:flex;align-items:flex-end;padding:0 4px 0 14px}
-.field textarea{flex:1;border:0;outline:0;background:transparent;resize:none;font-size:16px;line-height:22px;padding:9px 0;max-height:160px;min-height:40px}
-.field textarea::placeholder{color:var(--text-3)}
-.send{width:32px;height:32px;margin:4px 0;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;flex:none;transition:opacity .15s,transform .1s}
-.send:active{transform:scale(.92)}
-.send[disabled]{opacity:.3}
-.send svg{width:18px;height:18px}
-.star-toggle{width:32px;height:32px;margin:4px 0;border-radius:50%;display:grid;place-items:center;color:var(--text-3);flex:none}
-.star-toggle.on{color:var(--peach)}
-.star-toggle svg{width:18px;height:18px}
+.rec-btn{height:38px;flex:none;border-radius:999px;display:inline-flex;align-items:center;gap:6px;padding:0 14px 0 11px;font-weight:600;font-size:.9rem;background:var(--red-soft);color:var(--red);transition:filter .15s,transform .1s}
+.rec-btn:hover{filter:brightness(.97)}
+.rec-btn:active{transform:scale(.97)}
+.rec-btn svg{width:18px;height:18px}
+@media (max-width:759px){.rec-btn span{display:none}.rec-btn{padding:0 10px;width:38px;justify-content:center}}
+.hint{font-size:.75rem;color:var(--text-3);text-align:center;margin-top:7px}
+@media (hover:none){.hint{display:none}}
 
-/* ---------- Sheets ---------- */
-.overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.28);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease}
+.dock{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--sep);box-shadow:var(--shadow-2);border-radius:16px;padding:10px 10px 10px 14px;margin-bottom:10px;animation:rise .35s var(--ease)}
+@keyframes rise{from{transform:translateY(8px);opacity:0}}
+.dock-dot{width:12px;height:12px;border-radius:50%;background:var(--red);flex:none}
+.dock.paused .dock-dot{opacity:.35}
+@keyframes recblink{50%{opacity:.35}}
+.dock-time{font-variant-numeric:tabular-nums;font-weight:600;font-size:.9667rem;min-width:44px}
+.dock-tx{flex:1;min-width:0;font-size:.9rem;color:var(--text-2);line-height:1.35;max-height:2.7em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.dock-tx .interim{color:var(--text-3)}
+.dock-tx.expanded{max-height:40vh;overflow:auto;-webkit-line-clamp:unset;display:block;white-space:pre-wrap}
+.dock-levels{display:flex;gap:2px;align-items:center;height:22px}
+.dock-levels i{width:3px;border-radius:2px;background:var(--red);height:3px;opacity:.75}
+.dock-btn{height:30px;border-radius:8px;padding:0 10px;font-size:.8667rem;font-weight:600;background:var(--fill);flex:none}
+.dock-btn:hover{background:var(--fill-2)}
+.dock-btn.stop{background:var(--red);color:#fff}
+.dock-btn.stop:hover{filter:brightness(1.06);background:var(--red)}
+@media (max-width:759px){.dock{flex-wrap:wrap}.dock-tx{flex-basis:100%;order:5}.dock-levels{display:none}}
+
+/* =========================================================
+   Sheets, menus, popovers
+   ========================================================= */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(10,10,15,.22);display:flex;align-items:center;justify-content:center;padding:24px;animation:fade .18s ease}
+:root[data-theme="dark"] .overlay{background:rgba(0,0,0,.45)}
 @keyframes fade{from{opacity:0}}
-.sheet{width:100%;max-width:640px;max-height:92vh;max-height:92dvh;background:var(--bg);border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;animation:up .32s cubic-bezier(.2,.9,.3,1)}
-@keyframes up{from{transform:translateY(40px);opacity:0}}
-@media (min-width:700px){.overlay{align-items:center;padding:24px}.sheet{border-radius:var(--r-xl);max-height:86vh}}
-.sheet-h{display:flex;align-items:center;padding:14px 16px 8px;gap:8px}
-.sheet-h h2{flex:1;text-align:center;font-size:17px;font-weight:600;margin:0}
-.sheet-h .btn-plain{font-size:17px;font-weight:400;min-width:64px;text-align:left;height:auto;padding:4px 0}
-.sheet-h .btn-plain.r{text-align:right;font-weight:600}
-.grabber{width:36px;height:5px;border-radius:3px;background:var(--sep-strong);margin:8px auto 0}
-@media (min-width:700px){.grabber{display:none}}
-.sheet-b{overflow-y:auto;padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);-webkit-overflow-scrolling:touch}
-.form-group{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:8px}
-.form-row{display:flex;align-items:center;gap:12px;padding:0 14px;min-height:48px;position:relative}
-.form-row+.form-row::before{content:"";position:absolute;top:0;left:14px;right:0;height:1px;background:var(--sep)}
-.form-row label{flex:none;width:96px;color:var(--text);font-size:16px}
-.form-row input,.form-row select{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:16px;padding:12px 0;text-align:right}
-.form-row input[type=text],.form-row input[type=password],.form-row input[type=url]{text-align:left}
-.form-row textarea{flex:1;border:0;outline:0;background:transparent;resize:vertical;font-size:16px;padding:12px 0;min-height:80px}
-.form-row.col{flex-direction:column;align-items:stretch;gap:0}
-.form-row.col label{width:auto;padding-top:10px;font-size:13px;color:var(--text-2)}
-.form-cap{font-size:13px;color:var(--text-2);margin:6px 14px 18px;line-height:1.45}
-.form-cap a{color:var(--accent)}
-.group-title{font-size:13px;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin:18px 14px 6px}
-.switch{position:relative;width:51px;height:31px;flex:none}
+.sheet{width:100%;max-width:560px;max-height:86vh;max-height:86dvh;background:var(--win);border-radius:14px;box-shadow:var(--shadow-3);border:1px solid var(--sep);display:flex;flex-direction:column;animation:pop .28s var(--ease)}
+.sheet.wide{max-width:640px}
+@keyframes pop{from{transform:scale(.97) translateY(6px);opacity:0}}
+@media (max-width:759px){
+  .overlay{align-items:flex-end;padding:0}
+  .sheet{max-width:none;max-height:93dvh;border-radius:14px 14px 0 0;border:0;animation:up .34s var(--ease)}
+  @keyframes up{from{transform:translateY(60px);opacity:0}}
+}
+.sheet-h{display:flex;align-items:center;gap:8px;padding:12px 14px 6px}
+.sheet-h h2{flex:1;text-align:center;font-size:1rem;font-weight:600;margin:0}
+.sheet-h .btn-plain{font-size:.9667rem;min-width:70px;height:30px;padding:0 6px;border-radius:7px;text-align:left;justify-content:flex-start}
+.sheet-h .btn-plain:hover{background:var(--fill)}
+.sheet-h .btn-plain.r{text-align:right;justify-content:flex-end;font-weight:600}
+@media (max-width:759px){.sheet-h{padding-top:14px}.sheet-h h2{font-size:1.0625rem}.sheet-h .btn-plain{font-size:1.0625rem}}
+.sheet-b{overflow-y:auto;padding:8px 18px calc(env(safe-area-inset-bottom) + 20px)}
+.grp{background:var(--surface);border-radius:10px;border:1px solid var(--sep);overflow:hidden;margin-bottom:6px}
+.grp-t{font-size:.8rem;font-weight:600;color:var(--text-2);margin:18px 4px 6px}
+.grp-t:first-child{margin-top:6px}
+.f-row{display:flex;align-items:center;gap:12px;padding:0 12px;min-height:42px;position:relative}
+.f-row+.f-row::before,.f-row+.r-btn::before,.r-btn+.r-btn::before,.r-btn+.f-row::before{content:"";position:absolute;top:0;left:12px;right:0;height:1px;background:var(--sep)}
+@media (max-width:759px){.f-row{min-height:48px}}
+.f-row label{flex:none;min-width:96px;font-size:.9667rem}
+.f-row input,.f-row select{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:.9667rem;padding:10px 0;text-align:right;color:var(--text)}
+.f-row input[type=text],.f-row input[type=password]{text-align:left}
+.f-row textarea{flex:1;border:0;outline:0;background:transparent;resize:vertical;font-size:.9667rem;padding:10px 0;min-height:76px}
+.f-row.col{flex-direction:column;align-items:stretch;gap:0}
+.f-row.col label{padding-top:9px;font-size:.8rem;color:var(--text-2)}
+.f-row.col input{text-align:left;padding-top:4px}
+.f-row .val{margin-left:auto;color:var(--text-2);font-size:.9333rem;text-align:right}
+.f-cap{font-size:.8rem;color:var(--text-2);margin:6px 4px 14px;line-height:1.45}
+.f-cap a{color:var(--accent)}
+.r-btn{width:100%;text-align:left;color:var(--accent);font-size:.9667rem;padding:0 12px;min-height:42px;display:flex;align-items:center;gap:10px;position:relative}
+.r-btn:hover{background:var(--fill)}
+.r-btn.danger{color:var(--red)}
+.r-btn svg{width:18px;height:18px}
+@media (max-width:759px){.r-btn{min-height:48px}}
+.seg.in-form{margin:0;flex:1;max-width:260px;margin-left:auto}
+.switch{position:relative;width:42px;height:25px;flex:none;margin-left:auto}
 .switch input{opacity:0;width:0;height:0;position:absolute}
-.switch span{position:absolute;inset:0;border-radius:999px;background:color-mix(in srgb,var(--text) 16%,transparent);transition:background .2s}
-.switch span::after{content:"";position:absolute;width:27px;height:27px;top:2px;left:2px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2);transition:transform .25s cubic-bezier(.3,.9,.3,1)}
-.switch input:checked+span{background:var(--sage)}
-.switch input:checked+span::after{transform:translateX(20px)}
-.row-btn{width:100%;text-align:left;color:var(--accent);font-size:16px;padding:0 14px;min-height:48px;display:flex;align-items:center;gap:10px;position:relative}
-.row-btn+.row-btn::before{content:"";position:absolute;top:0;left:14px;right:0;height:1px;background:var(--sep)}
-.row-btn.danger{color:var(--rose)}
-.row-btn svg{width:20px;height:20px}
-.row-btn small{margin-left:auto;color:var(--text-3);font-size:14px}
-details.help{background:var(--surface-2);border-radius:var(--r);padding:12px 14px;margin:0 0 12px;font-size:14px;color:var(--text-2)}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--fill-2);transition:background .2s}
+.switch span::after{content:"";position:absolute;width:21px;height:21px;top:2px;left:2px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .25s var(--ease)}
+.switch input:checked+span{background:var(--green)}
+.switch input:checked+span::after{transform:translateX(17px)}
+.switch input:focus-visible+span{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:2px}
+details.help{background:var(--fill);border-radius:10px;padding:10px 12px;margin:0 0 10px;font-size:.8667rem;color:var(--text-2)}
 details.help summary{cursor:pointer;color:var(--accent);font-weight:500}
 details.help ol{padding-left:20px;margin:10px 0 0}
 details.help li{margin-bottom:6px}
-details.help code{background:var(--surface);padding:2px 8px;border-radius:6px;font-size:13px;word-break:break-all}
-.big-text{width:100%;min-height:200px;border:0;outline:0;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;font-size:15px;line-height:1.45;resize:vertical}
-.tabs{display:flex;gap:8px;margin:4px 0 14px;flex-wrap:wrap}
-.chip{height:34px;padding:0 14px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-size:14px;font-weight:500;color:var(--text-2);display:inline-flex;align-items:center;gap:6px}
-.chip svg{width:16px;height:16px}
-.chip.on{background:var(--accent);color:#fff}
-.preview-list{display:flex;flex-direction:column;gap:6px;margin-top:12px}
-.preview-item{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);font-size:14px}
-.preview-item input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent)}
-.preview-item b{display:block;font-size:15px}
-.preview-item span{color:var(--text-2)}
-.action-list .row-btn{justify-content:center;font-size:17px}
-.action-list .row-btn svg{display:none}
+details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;font-size:.8rem;word-break:break-all}
+.big-text{width:100%;min-height:210px;border:1px solid var(--sep);outline:0;background:var(--surface);border-radius:10px;padding:12px 14px;font-size:.9333rem;line-height:1.5;resize:vertical}
+.big-text:focus{border-color:color-mix(in srgb,var(--accent) 60%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent)}
+.drop{border:1.5px dashed var(--sep-2);border-radius:12px;padding:28px 16px;text-align:center;color:var(--text-2);font-size:.9333rem;cursor:pointer}
+.drop:hover{border-color:var(--accent);color:var(--text)}
+.drop b{display:block;color:var(--text);margin-bottom:3px}
+.preview{display:flex;flex-direction:column;margin-top:10px;background:var(--surface);border:1px solid var(--sep);border-radius:10px;overflow:hidden}
+.pv-item{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;font-size:.8667rem;position:relative}
+.pv-item+.pv-item::before{content:"";position:absolute;top:0;left:40px;right:0;height:1px;background:var(--sep)}
+.pv-item input{margin-top:2px;width:17px;height:17px;accent-color:var(--accent)}
+.pv-item b{display:block;font-size:.9333rem;font-weight:600}
+.pv-item span{color:var(--text-2)}
 
-/* Recording */
-.rec-wrap{text-align:center;padding:8px 4px 4px}
-.rec-dot{width:96px;height:96px;margin:6px auto 12px;border-radius:50%;background:var(--rose-soft);display:grid;place-items:center;position:relative}
-.rec-dot::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--rose);opacity:.18;animation:ring 1.8s ease-out infinite}
-@keyframes ring{from{transform:scale(.8);opacity:.35}to{transform:scale(1.35);opacity:0}}
-.rec-dot i{width:30px;height:30px;border-radius:50%;background:var(--rose)}
-.rec-dot.paused::before{animation:none;opacity:0}
-.rec-time{font-size:40px;font-weight:300;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.rec-sub{color:var(--text-2);font-size:14px;margin:2px 0 14px}
-.levels{display:flex;gap:3px;justify-content:center;align-items:center;height:36px;margin-bottom:12px}
-.levels i{width:4px;border-radius:2px;background:var(--rose);opacity:.7;height:4px;transition:height .08s}
-.live-tx{text-align:left;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;min-height:120px;max-height:34vh;overflow:auto;font-size:16px;line-height:1.5;white-space:pre-wrap}
-.live-tx .interim{color:var(--text-3)}
-.live-tx .ph{color:var(--text-3);font-style:italic}
-.rec-actions{display:flex;gap:10px;justify-content:center;margin-top:16px}
+.menu{position:fixed;z-index:60;min-width:220px;max-width:300px;background:color-mix(in srgb,var(--surface) 90%,transparent);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);border:1px solid var(--sep-2);border-radius:10px;box-shadow:var(--shadow-3);padding:5px;animation:menu .14s var(--ease);transform-origin:top right}
+@keyframes menu{from{transform:scale(.96);opacity:0}}
+.menu button{display:flex;align-items:center;gap:9px;width:100%;height:28px;padding:0 9px;border-radius:6px;font-size:.9rem;text-align:left}
+.menu button svg{width:16px;height:16px;color:var(--text-2)}
+.menu button:hover,.menu button:focus-visible{background:var(--sel);color:var(--on-sel);outline:0}
+.menu button:hover svg,.menu button:focus-visible svg{color:var(--on-sel)}
+.menu button.danger{color:var(--red)}
+.menu button.danger:hover{background:var(--red);color:#fff}
+.menu button kbd{margin-left:auto;font:inherit;font-size:.8rem;opacity:.6}
+.menu hr{border:0;height:1px;background:var(--sep);margin:5px 8px}
+.action-list .r-btn{justify-content:center;font-size:1.0625rem;min-height:52px}
+.action-list .r-btn svg{display:none}
 
-/* Toast & viewer */
-#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%) translateY(-20px);z-index:80;background:color-mix(in srgb,var(--text) 88%,transparent);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:all .25s;max-width:calc(100% - 32px);text-align:center;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
-#toast a{color:inherit;font-weight:700}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translate(-50%,12px);z-index:80;background:color-mix(in srgb,var(--surface) 92%,transparent);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:var(--text);border:1px solid var(--sep-2);box-shadow:var(--shadow-2);padding:9px 16px;border-radius:999px;font-size:.8667rem;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s var(--ease),transform .35s var(--ease);max-width:calc(100% - 32px);text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#toast a{color:var(--accent);font-weight:600}
 .viewer{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.92);display:grid;place-items:center;animation:fade .2s}
 .viewer img{max-width:100%;max-height:100%;object-fit:contain}
-.viewer button{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:14px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center}
-.viewer button svg{width:18px;height:18px}
-.spin{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite;display:inline-block}
-.muted{color:var(--text-2)}
-.kbd-hint{font-size:11px;color:var(--text-3);text-align:center;margin-top:6px}
-@media (hover:none){.kbd-hint{display:none}}
+.viewer button{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:14px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center}
+.viewer button svg{width:16px;height:16px}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite;display:inline-block;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
 <div id="app">
-  <section id="listPane" class="pane">
-    <header class="nav">
-      <div class="nav-row">
-        <button id="syncBtn" class="pill" aria-live="polite"></button>
-        <div class="spacer"></div>
-        <button id="addBtn" class="icon-btn" aria-label="Add sessions"></button>
-        <button id="settingsBtn" class="icon-btn" aria-label="Settings"></button>
-      </div>
-      <h1 class="large-title">Agenda</h1>
-      <div class="subtitle" id="confName"></div>
-      <div class="segmented" id="filterSeg" role="tablist">
-        <button data-f="all">All</button><button data-f="todo">To attend</button><button data-f="attended">Attended</button>
-      </div>
-      <label class="search"><span id="searchIcon"></span><input id="search" type="search" placeholder="Search sessions, speakers, notes" autocomplete="off"></label>
+  <aside id="sidebar" class="sidebar pane" aria-label="Library">
+    <div class="sb-head"><div class="sb-app">Conference Copilot</div><div class="sb-conf" id="sbConf"></div></div>
+    <nav id="sbNav" class="sb-nav"></nav>
+    <div class="sb-foot">
+      <button id="syncBtn" class="sync"></button>
+      <div class="spacer"></div>
+      <button id="themeBtn" class="tb-btn" aria-label="Appearance"></button>
+      <button id="settingsBtn" class="tb-btn" aria-label="Settings" title="Settings  ⌘,"></button>
+    </div>
+  </aside>
+
+  <section id="listPane" class="list-pane pane" aria-label="Sessions">
+    <header class="toolbar" id="listBar">
+      <button id="syncBtn2" class="sync no-sidebar"></button>
+      <h1 class="tb-title with-sidebar" id="listTitle"></h1>
+      <div class="spacer"></div>
+      <button id="settingsBtn2" class="tb-btn tint no-sidebar" aria-label="Settings"></button>
+      <button id="addBtn" class="tb-btn tint" aria-label="Add sessions" title="Add sessions  ⌘N"></button>
     </header>
+    <div class="list-head">
+      <h2 class="large-title no-sidebar">Agenda</h2>
+      <div class="list-sub no-sidebar" id="confName"></div>
+      <div class="seg no-sidebar" id="filterSeg" role="tablist">
+        <button data-f="all" role="tab">All</button><button data-f="todo" role="tab">To Attend</button><button data-f="attended" role="tab">Attended</button>
+      </div>
+      <label class="search"><span id="searchIcon"></span><input id="search" type="search" placeholder="Search" autocomplete="off" aria-label="Search sessions and notes"><kbd>⌘F</kbd></label>
+    </div>
     <div id="list" class="scroll"></div>
   </section>
 
-  <section id="detailPane" class="pane">
-    <header class="nav" id="detailNav">
-      <div class="nav-row">
-        <button id="backBtn" class="back only-narrow"></button>
-        <div class="spacer"></div>
-        <button id="moreBtn" class="icon-btn" aria-label="Session options"></button>
-      </div>
+  <section id="detailPane" class="detail-pane pane" aria-label="Session">
+    <header class="toolbar" id="detailBar">
+      <button id="backBtn" class="back only-narrow"></button>
+      <div class="spacer"></div>
+      <button id="briefBtn" class="tb-prime hidden" title="Create brief  ⌘↩"></button>
+      <button id="shareBtn" class="tb-btn hidden" aria-label="Share brief"></button>
+      <button id="moreBtn" class="tb-btn hidden" aria-label="Session options"></button>
     </header>
     <div id="detail" class="scroll"></div>
     <div id="composer" class="composer hidden">
       <div class="composer-in">
-        <div class="wrap-row"><button id="wrapBtn" class="wrap-btn"></button></div>
+        <div id="dock" class="dock hidden"></div>
         <div class="bar">
-          <button class="tool" id="photoBtn" aria-label="Add photo"></button>
-          <button class="tool" id="videoBtn" aria-label="Add video"></button>
-          <button class="tool" id="micBtn" aria-label="Record speaker"></button>
+          <button class="tool" id="photoBtn" aria-label="Add photo" title="Add photo"></button>
+          <button class="tool" id="videoBtn" aria-label="Add video" title="Add video"></button>
           <div class="field">
-            <textarea id="noteInput" rows="1" placeholder="Write a note…" enterkeyhint="send"></textarea>
-            <button id="starToggle" class="star-toggle" aria-label="Mark as key point" title="Mark as key point"></button>
-            <button id="sendBtn" class="send" aria-label="Add note" disabled></button>
+            <textarea id="noteInput" rows="1" placeholder="Add a note" enterkeyhint="send" aria-label="Note"></textarea>
+            <button id="starToggle" class="in-btn" aria-label="Mark as key point" title="Mark as key point"></button>
+            <button id="sendBtn" class="in-btn send" aria-label="Add note" disabled></button>
           </div>
+          <button class="rec-btn" id="micBtn" title="Record the speaker  ⌘⇧R"></button>
         </div>
-        <div class="kbd-hint">Enter to add · Shift+Enter for a new line</div>
+        <div class="hint">Return adds the note · Shift-Return for a new line</div>
       </div>
     </div>
   </section>
 </div>
-<div id="toast" role="status"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 <input id="photoInput" type="file" accept="image/*" multiple hidden>
 <input id="videoInput" type="file" accept="video/*" hidden>
 <input id="fileInput" type="file" hidden>
-
 <script>
 'use strict';
 /* =========================================================
@@ -377,7 +564,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const now = () => Date.now();
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isTouch = matchMedia('(hover: none)').matches;
-const wide = () => matchMedia('(min-width: 860px)').matches;
+const wide = () => matchMedia('(min-width: 760px)').matches;
 
 /* ---------- Icons (SF Symbols–style strokes) ---------- */
 const P = (d, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${extra}>${d}</svg>`;
@@ -449,9 +636,9 @@ const LS = {
 /* ---------- App state ---------- */
 const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, updatedAt: 0 });
 let state = emptyState();
-let settings = Object.assign({ apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '' }, LS.get('cc.settings', {}));
+let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
-const ui = { filter: LS.get('cc.filter', 'all'), q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
+const ui = { view: LS.get('cc.view', 'today'), descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
 const saveSettings = () => LS.set('cc.settings', settings);
 const saveDrive = () => LS.set('cc.drive', drive);
 
@@ -497,125 +684,233 @@ function ago(ts) {
   return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-/* ---------- Toast & sheets ---------- */
+
+/* ---------- More symbols for the native chrome ---------- */
+Object.assign(I, {
+  tray: P('<path d="M3 13h5l1.5 2.5h5L16 13h5"/><path d="M5.5 5h13L21 13v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5z"/>'),
+  circle: P('<circle cx="12" cy="12" r="8.5"/>', 'stroke-width="1.6"'),
+  circleCheck: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="currentColor"/><path d="m7.8 12.4 2.8 2.8 5.6-5.8" fill="none" stroke="var(--chk-ink,var(--content))" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  circleLive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg>',
+  sun: P('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>'),
+  moon: P('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'),
+  auto: P('<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none"/>'),
+  sun2: P('<circle cx="12" cy="12" r="4"/>'),
+  stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="6.5" width="11" height="11" rx="2.5"/></svg>',
+  recDot: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>',
+  bulb: P('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.9V16h5v-.2c0-.8.4-1.5 1-1.9A6 6 0 0 0 12 3z"/>'),
+  quote: P('<path d="M7 7h4v4c0 3-1.5 5-4 6M14 7h4v4c0 3-1.5 5-4 6"/>'),
+  flag: P('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'),
+  help: P('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/>'),
+  target: P('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8" fill="currentColor"/>'),
+});
+
+/* =========================================================
+   Appearance (Auto / Light / Dark)
+   ========================================================= */
+const THEMES = { auto: ['Auto', I.auto], light: ['Light', I.sun], dark: ['Dark', I.moon] };
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+function applyTheme(t = settings.theme || 'auto') {
+  if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  const dark = t === 'dark' || (t === 'auto' && darkMQ.matches);
+  $('#themeColor').content = dark ? '#1E1E20' : '#F6F5F2';
+  const b = $('#themeBtn'); if (b) { b.innerHTML = THEMES[t][1]; b.title = `Appearance: ${THEMES[t][0]}`; }
+}
+function setTheme(t) { settings.theme = t; saveSettings(); applyTheme(t); }
+darkMQ.addEventListener?.('change', () => applyTheme());
+
+/* =========================================================
+   Toast, sheets, menus
+   ========================================================= */
 let toastT;
-function toast(msg, html = false, ms = 3200) {
+function toast(msg, html = false, ms = 3000) {
   const t = $('#toast'); t[html ? 'innerHTML' : 'textContent'] = msg; t.classList.add('show');
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms);
 }
 let sheetStack = [];
 function openSheet({ title, left = 'Cancel', right = '', onRight, body, onMount, onClose, cls = '' }) {
+  closeMenu();
   const ov = document.createElement('div'); ov.className = 'overlay';
   ov.innerHTML = `<div class="sheet ${cls}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
-    <div class="grabber"></div>
-    <div class="sheet-h"><button class="btn-plain" data-act="left">${esc(left)}</button><h2>${esc(title)}</h2>
-    <button class="btn-plain r" data-act="right" ${right ? '' : 'style="visibility:hidden"'}>${esc(right || '.')}</button></div>
+    <div class="sheet-h"><button class="btn btn-plain" data-act="left">${esc(left)}</button><h2>${esc(title)}</h2>
+    <button class="btn btn-plain r" data-act="right" ${right ? '' : 'style="visibility:hidden"'}>${esc(right || '.')}</button></div>
     <div class="sheet-b">${body}</div></div>`;
-  const close = () => { ov.remove(); sheetStack = sheetStack.filter(x => x !== api); onClose?.(); };
-  const api = { el: ov, close };
-  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  const prevFocus = document.activeElement;
+  const close = () => { ov.remove(); sheetStack = sheetStack.filter(x => x !== api); onClose?.(); prevFocus?.focus?.({ preventScroll: true }); };
+  const api = { el: ov, close, setRight(label, enabled = true) { const r = $('[data-act=right]', ov); r.textContent = label; r.disabled = !enabled; r.style.opacity = enabled ? '' : '.4'; } };
+  ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
   $('[data-act=left]', ov).onclick = close;
   $('[data-act=right]', ov).onclick = () => onRight?.(api);
   document.body.appendChild(ov); sheetStack.push(api);
   onMount?.(api);
   return api;
 }
-addEventListener('keydown', e => { if (e.key === 'Escape' && sheetStack.length && !rec.active) sheetStack.at(-1).close(); });
 function actionSheet(title, actions) {
-  const sh = openSheet({
+  return openSheet({
     title, left: 'Close', cls: 'action-list',
-    body: `<div class="form-group">${actions.map((a, i) => `<button class="row-btn ${a.danger ? 'danger' : ''}" data-i="${i}">${a.icon || ''}${esc(a.label)}</button>`).join('')}</div>`,
-    onMount: (s) => $$('[data-i]', s.el).forEach(b => b.onclick = () => { s.close(); actions[+b.dataset.i].run(); }),
+    body: `<div class="grp">${actions.filter(a => !a.sep).map((a, i) => `<button class="r-btn ${a.danger ? 'danger' : ''}" data-i="${i}">${esc(a.label)}</button>`).join('')}</div>`,
+    onMount: (s) => { const list = actions.filter(a => !a.sep); $$('[data-i]', s.el).forEach(b => b.onclick = () => { s.close(); list[+b.dataset.i].run(); }); },
   });
-  return sh;
+}
+let menuEl = null;
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+function openMenu(anchor, items, at) {
+  if (!matchMedia('(min-width:760px)').matches && !at) return actionSheet('', items);
+  closeMenu();
+  const m = document.createElement('div'); m.className = 'menu'; m.setAttribute('role', 'menu');
+  m.innerHTML = items.map((a, i) => a.sep ? '<hr>' : `<button role="menuitem" data-i="${i}" class="${a.danger ? 'danger' : ''}">${a.icon || ''}<span>${esc(a.label)}</span>${a.kbd ? `<kbd>${a.kbd}</kbd>` : ''}</button>`).join('');
+  document.body.appendChild(m); menuEl = m;
+  const r = at ? { left: at.x, right: at.x, bottom: at.y, top: at.y } : anchor.getBoundingClientRect();
+  const w = m.offsetWidth, h = m.offsetHeight;
+  let x = at ? r.left : r.right - w; let y = r.bottom + 6;
+  x = Math.max(8, Math.min(x, innerWidth - w - 8)); if (y + h > innerHeight - 8) y = Math.max(8, r.top - h - 6);
+  m.style.left = x + 'px'; m.style.top = y + 'px'; if (at) m.style.transformOrigin = 'top left';
+  $$('[data-i]', m).forEach(b => b.onclick = () => { closeMenu(); items[+b.dataset.i].run(); });
+  const btns = $$('button', m); btns[0]?.focus({ preventScroll: true });
+  m.addEventListener('keydown', e => {
+    const i = btns.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); btns[(i + 1) % btns.length].focus(); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); btns[(i - 1 + btns.length) % btns.length].focus(); }
+  });
+  setTimeout(() => addEventListener('mousedown', function off(e) { if (!m.contains(e.target)) { closeMenu(); removeEventListener('mousedown', off); } }), 0);
 }
 function confirmSheet(title, text, okLabel, danger = true) {
   return new Promise(res => {
     let done = false;
-    const sh = openSheet({
+    openSheet({
       title, left: 'Cancel', onClose: () => !done && res(false),
-      body: `<p class="muted" style="text-align:center;margin:4px 8px 18px">${esc(text)}</p>
+      body: `<p class="muted" style="text-align:center;margin:6px 8px 20px">${esc(text)}</p>
         <div class="stack" style="max-width:none"><button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="cfOk">${esc(okLabel)}</button></div>`,
-      onMount: (s) => $('#cfOk', s.el).onclick = () => { done = true; s.close(); res(true); },
+      onMount: (s) => { const b = $('#cfOk', s.el); b.focus(); b.onclick = () => { done = true; s.close(); res(true); }; },
     });
   });
 }
 
 /* =========================================================
-   Rendering
+   Views & rendering
    ========================================================= */
-function render() { renderSync(); renderList(); renderDetail(); }
+const VIEWS = {
+  today: { label: 'Today', icon: I.clock, cls: 'ic-today', test: s => s.date === todayISO() },
+  all: { label: 'All Sessions', icon: I.tray, cls: 'ic-all', test: () => true },
+  todo: { label: 'To Attend', icon: I.circle, cls: 'ic-todo', test: s => !s.attended },
+  attended: { label: 'Attended', icon: I.check, cls: 'ic-done', test: s => s.attended },
+};
+function viewDef(v = ui.view) {
+  if (v.startsWith('day:')) { const d = v.slice(4); return { label: fmtDate(d, { weekday: 'long', month: 'long', day: 'numeric' }), test: s => s.date === d }; }
+  return VIEWS[v] || VIEWS.all;
+}
+function setView(v) { ui.view = v; LS.set('cc.view', v); renderSidebar(); renderList(); }
+const days = () => [...new Set(sessionsArr().map(s => s.date).filter(Boolean))].sort();
+
+function render() { renderSync(); renderSidebar(); renderList(); renderDetail(); }
 
 function filteredSessions() {
   const q = ui.q.trim().toLowerCase();
+  const test = viewDef().test;
   return sessionsArr()
-    .filter(s => ui.filter === 'all' || (ui.filter === 'attended' ? s.attended : !s.attended))
+    .filter(test)
     .filter(s => !q || [s.title, s.speaker, s.room, s.description, ...liveNotes(s).map(n => n.text)].join(' ').toLowerCase().includes(q))
     .sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
 }
 
+function renderSidebar() {
+  const name = state.conference.name;
+  const c = $('#sbConf'); c.textContent = name || 'Your conference'; c.classList.toggle('ph', !name);
+  const all = sessionsArr();
+  const count = (t) => all.filter(t).length;
+  const item = (v, d, n) => `<button class="sb-item ${ui.view === v ? 'on' : ''}" data-v="${v}"><span class="ic ${d.cls}">${d.icon}</span><span class="tx">${esc(d.label)}</span><span class="ct">${n || ''}</span></button>`;
+  let html = '';
+  const nToday = count(VIEWS.today.test);
+  if (nToday) html += item('today', VIEWS.today, nToday);
+  html += item('all', VIEWS.all, all.length) + item('todo', VIEWS.todo, count(VIEWS.todo.test)) + item('attended', VIEWS.attended, count(VIEWS.attended.test));
+  const ds = days();
+  if (ds.length) {
+    html += `<div class="sb-group">Days</div>`;
+    for (const d of ds) html += item('day:' + d, { label: fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' }), icon: I.calendar, cls: 'ic-day' }, all.filter(s => s.date === d).length);
+  }
+  $('#sbNav').innerHTML = html;
+  $$('[data-v]', $('#sbNav')).forEach(b => b.onclick = () => setView(b.dataset.v));
+}
+
 function renderList() {
-  $('#confName').textContent = state.conference.name || (sessionsArr().length ? 'My conference' : '');
-  $$('#filterSeg button').forEach(b => b.classList.toggle('on', b.dataset.f === ui.filter));
+  renderSidebar();
+  $('#confName').textContent = state.conference.name || '';
+  $$('#filterSeg button').forEach(b => b.classList.toggle('on', b.dataset.f === ui.view || (b.dataset.f === 'all' && !['todo', 'attended'].includes(ui.view))));
+  const vd = viewDef();
   const list = $('#list');
   const all = sessionsArr();
+  const items = filteredSessions();
+  $('#listTitle').innerHTML = `${esc(vd.label)}`;
   if (!all.length) {
-    list.innerHTML = `<div class="empty">
-      <div class="art">${I.calendar}</div>
-      <h2>Bring your agenda</h2>
-      <p>Paste your sessions, import a calendar file, or snap a photo of the printed program. Each one becomes a notebook for the talk.</p>
-      <div class="stack">
-        <button class="btn btn-primary" data-go="import">${I.plus} Import agenda</button>
-        <button class="btn btn-tinted" data-go="manual">Add a session</button>
-        <button class="btn btn-plain" data-go="sample">Try a sample agenda</button>
-      </div></div>`;
-    $$('[data-go]', list).forEach(b => b.onclick = () => ({ import: openImport, manual: () => openSessionForm(), sample: loadSample })[b.dataset.go]());
+    list.innerHTML = matchMedia('(min-width:760px)').matches
+      ? `<div class="empty"><p>No sessions yet.</p></div>`
+      : `<div class="empty"><div class="empty-art">${I.calendar}</div><h2>Bring your agenda</h2>
+          <p>Each session becomes a notebook. Take notes during the talk; get a brief when it ends.</p>
+          <div class="stack"><button class="btn btn-primary" data-go="paste">${I.text} Paste agenda</button>
+          <button class="btn btn-tinted" data-go="photo">${I.camera} Photo of the program</button>
+          <button class="btn btn-tinted" data-go="ics">${I.calendar} Calendar file</button>
+          <button class="btn btn-plain" data-go="sample">Try a sample agenda</button></div></div>`;
+    bindGo(list);
     return;
   }
-  const items = filteredSessions();
   if (!items.length) {
-    list.innerHTML = `<div class="empty"><p>${ui.filter === 'attended' ? 'Sessions you wrap up will appear here, with their briefs.' : ui.q ? 'No matches.' : 'Nothing left — you’ve attended everything. 🎉'}</p></div>`;
+    list.innerHTML = `<div class="empty"><p>${ui.q ? 'No matches.' : ui.view === 'attended' ? 'Sessions you wrap up appear here, with their briefs.' : ui.view === 'todo' ? 'You’ve attended everything.' : 'Nothing here.'}</p></div>`;
     return;
   }
   const groups = new Map();
   for (const s of items) { const k = s.date || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); }
+  const showDayHeads = !ui.view.startsWith('day:') && ui.view !== 'today';
   let html = '';
-  if (ui.filter === 'attended' && items.length >= 2) {
-    html += `<div style="margin-top:12px"><button class="btn btn-tinted" style="width:100%" id="recapBtn">${I.book} Conference recap</button></div>`;
-  }
+  if (ui.view === 'attended' && items.filter(s => s.brief).length >= 2) html += `<div style="padding:6px 4px 4px"><button class="btn btn-tinted btn-sm" style="width:100%" id="recapBtn">${I.book} Conference recap</button></div>`;
   for (const [date, ss] of groups) {
-    const att = ss.filter(s => s.attended).length;
-    html += `<div class="group-h"><span>${date ? esc(fmtDate(date)) : 'Sessions'}</span><span>${att ? `${att}/${ss.length} attended` : `${ss.length} session${ss.length > 1 ? 's' : ''}`}</span></div><div class="cells">`;
-    for (const s of ss) {
-      const n = liveNotes(s).length, live = isLive(s);
-      html += `<button class="cell ${s.id === ui.selected ? 'sel' : ''} ${s.attended ? 'done' : ''}" data-id="${s.id}">
-        <div class="cell-time">${s.start ? `<b>${esc(fmtTime(s.start))}</b>${s.end ? esc(fmtTime(s.end)) : ''}` : '<b>—</b>'}</div>
-        <div class="cell-body">
-          <div class="cell-title">${esc(s.title || 'Untitled session')}</div>
-          ${s.speaker || s.room ? `<div class="cell-meta">${esc([s.speaker, s.room].filter(Boolean).join(' · '))}</div>` : ''}
-          ${s.attended || live || n ? `<div class="badges">
-            ${s.attended ? `<span class="badge b-done">${I.check} Attended</span>` : ''}
-            ${live && !s.attended ? `<span class="badge b-live"><i></i> Live now</span>` : ''}
-            ${s.brief ? `<span class="badge b-brief">${I.sparkles} Brief</span>` : ''}
-            ${n ? `<span class="badge b-notes">${n} note${n > 1 ? 's' : ''}</span>` : ''}</div>` : ''}
-        </div>
-        <span class="chev only-narrow">${I.right}</span>
-      </button>`;
+    if (showDayHeads) {
+      const att = ss.filter(s => s.attended).length;
+      html += `<div class="day-h"><span>${date ? esc(fmtDate(date)) : 'No date'}</span><span>${att ? `${att} of ${ss.length} attended` : ss.length}</span></div>`;
     }
-    html += '</div>';
+    for (const s of ss) html += rowHTML(s);
   }
   list.innerHTML = html;
-  $$('.cell', list).forEach(c => c.onclick = () => select(c.dataset.id));
+  $$('.row', list).forEach(r => {
+    r.onclick = (e) => { if (e.target.closest('.chk')) return; select(r.dataset.id); };
+    r.oncontextmenu = (e) => { e.preventDefault(); select(r.dataset.id, false); sessionMenu(null, { x: e.clientX, y: e.clientY }); };
+    $('.chk', r).onclick = (e) => { e.stopPropagation(); toggleAttended(S(r.dataset.id)); };
+  });
   $('#recapBtn', list)?.addEventListener('click', openRecap);
+}
+function rowHTML(s) {
+  const n = liveNotes(s).length, live = isLive(s) && !s.attended, recording = rec.active && rec.sessionId === s.id;
+  const time = s.start ? fmtTime(s.start) : '';
+  return `<div class="row ${s.id === ui.selected ? 'sel' : ''} ${s.attended ? 'done' : ''}" data-id="${s.id}" role="button" tabindex="-1" aria-current="${s.id === ui.selected}">
+    <span class="chk ${s.attended ? 'done' : live ? 'live' : ''}" role="checkbox" aria-checked="${!!s.attended}" title="${s.attended ? 'Attended — click to undo' : 'Mark as attended'}">${s.attended ? I.circleCheck : live ? I.circleLive : I.circle}</span>
+    <div class="row-main">
+      <div class="row-top"><div class="row-title">${esc(s.title || 'Untitled session')}</div>${time ? `<span class="row-time">${esc(time)}</span>` : ''}</div>
+      ${s.speaker || s.room ? `<div class="row-meta">${esc([s.speaker, s.room].filter(Boolean).join(' · '))}</div>` : ''}
+      ${recording || live || s.brief || n ? `<div class="tags">
+        ${recording ? `<span class="tag t-live"><i></i> Recording</span>` : live ? `<span class="tag t-live"><i></i> Now</span>` : ''}
+        ${s.brief ? `<span class="tag t-brief">${I.sparkles} Brief</span>` : ''}
+        ${n ? `<span class="tag t-notes">${n} note${n > 1 ? 's' : ''}</span>` : ''}</div>` : ''}
+    </div></div>`;
+}
+function bindGo(root) {
+  $$('[data-go]', root).forEach(b => b.onclick = () => {
+    const g = b.dataset.go;
+    if (g === 'sample') loadSample(); else if (g === 'manual') openSessionForm(); else openImport(g);
+  });
+}
+function toggleAttended(s) {
+  if (!s) return;
+  s.attended = !s.attended; s.attendedAt = s.attended ? now() : 0; touch(s);
+  renderSidebar(); renderList(); if (ui.selected === s.id) renderDetail();
+  toast(s.attended ? 'Marked as attended' : 'Marked as not attended');
 }
 
 function select(id, push = true) {
-  ui.selected = id; ui.editing = null;
-  if (push && !wide()) history.pushState({ s: id }, '', '#s=' + id);
+  ui.selected = id; ui.editing = null; ui.descOpen = false;
+  if (push && !matchMedia('(min-width:760px)').matches) history.pushState({ s: id }, '', '#s=' + id);
   else history.replaceState({ s: id }, '', id ? '#s=' + id : location.pathname + location.search);
   document.body.classList.toggle('show-detail', !!id);
   renderList(); renderDetail();
   $('#detail').scrollTop = 0;
+  $(`.row[data-id="${id}"]`)?.scrollIntoView({ block: 'nearest' });
 }
 addEventListener('popstate', () => {
   const m = location.hash.match(/s=([\w]+)/);
@@ -628,33 +923,52 @@ function renderDetail() {
   const s = S(ui.selected);
   const det = $('#detail');
   $('#composer').classList.toggle('hidden', !s);
-  $('#moreBtn').classList.toggle('hidden', !s);
+  ['#moreBtn', '#briefBtn'].forEach(id => $(id).classList.toggle('hidden', !s));
+  $('#shareBtn').classList.toggle('hidden', !s?.brief);
   if (!s) {
-    det.innerHTML = `<div class="no-sel" style="height:100%"><div>${I.list}<div>Select a session to take notes</div></div></div>`;
+    det.innerHTML = sessionsArr().length
+      ? `<div class="welcome" style="height:100%"><div class="nosel">${I.list}<div>Select a session to take notes</div></div></div>`
+      : `<div class="welcome" style="min-height:100%"><div>
+          <div class="empty-art">${I.calendar}</div>
+          <h2>Bring your agenda</h2>
+          <p>Each session becomes a notebook. Take notes during the talk, and get a brief with the key takeaways when it ends.</p>
+          <div class="choices">
+            <button class="choice" data-go="paste"><i>${I.text}</i>Paste text<small>From the site or an email</small></button>
+            <button class="choice" data-go="photo"><i>${I.camera}</i>Photo or PDF<small>Of the printed program</small></button>
+            <button class="choice" data-go="ics"><i>${I.calendar}</i>Calendar file<small>Exported .ics</small></button>
+          </div>
+          <p style="margin:18px 0 0"><button class="btn btn-plain" data-go="manual">Add a single session</button> <span class="muted">·</span> <button class="btn btn-plain" data-go="sample">Try a sample agenda</button></p>
+        </div></div>`;
+    bindGo(det);
     return;
   }
   const notes = liveNotes(s).sort((a, b) => a.ts - b.ts);
-  const eyebrow = [
+  const meta = [
     s.date ? `<span>${I.calendar}${esc(fmtDate(s.date, { weekday: 'short', month: 'short', day: 'numeric' }))}</span>` : '',
-    s.start ? `<span>${I.clock}${esc(fmtTime(s.start))}${s.end ? ' – ' + esc(fmtTime(s.end)) : ''}</span>` : '',
+    s.start ? `<span>${I.clock}${esc(fmtTime(s.start))}${s.end ? '–' + esc(fmtTime(s.end)) : ''}</span>` : '',
     s.room ? `<span>${I.pin}${esc(s.room)}</span>` : '',
   ].join('');
-  det.innerHTML = `<div class="detail-wrap">
-    ${eyebrow ? `<div class="d-eyebrow">${eyebrow}</div>` : ''}
-    <h2 class="d-title">${esc(s.title || 'Untitled session')}</h2>
-    ${s.speaker ? `<div class="d-speaker">${I.person}${esc(s.speaker)}</div>` : ''}
-    ${s.description ? `<div class="d-desc">${esc(s.description)}</div>` : ''}
-    <div class="d-status">
-      ${s.attended ? `<span class="badge b-done">${I.check} Attended${s.attendedAt ? ' · ' + esc(new Date(s.attendedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })) : ''}</span>` : ''}
-      ${isLive(s) && !s.attended ? `<span class="badge b-live"><i></i> Happening now</span>` : ''}
-    </div>
-    ${s.brief ? renderBrief(s) : ''}
-    <div class="section-h"><h3>Notes</h3><small>${notes.length ? `${notes.length} item${notes.length > 1 ? 's' : ''}` : ''}</small></div>
-    <div class="notes">${notes.length ? notes.map(n => renderNote(n)).join('') : `
-      <div class="notes-empty"><b>Capture the session your way</b>Type thoughts, snap slides, film a demo, or record the speaker and get a live transcript.
-        <div class="hint-row"><span>${I.text}Type</span><span>${I.camera}Photo</span><span>${I.video}Video</span><span>${I.mic}Record</span></div></div>`}
+  const busy = ui.busyBrief === s.id;
+  det.innerHTML = `<div class="page">
+    ${meta ? `<div class="d-meta">${meta}</div>` : ''}
+    <h1 class="d-title">${esc(s.title || 'Untitled session')}</h1>
+    ${s.speaker ? `<div class="d-speaker">${esc(s.speaker)}</div>` : ''}
+    ${s.description ? `<div class="d-desc ${ui.descOpen ? '' : 'clamp'}" id="dDesc" title="${ui.descOpen ? '' : 'Show more'}">${esc(s.description)}</div>` : ''}
+    <div class="d-status">${s.attended ? `<span class="tag t-done">${I.check} Attended</span>` : ''}${isLive(s) && !s.attended ? `<span class="tag t-live"><i></i> Happening now</span>` : ''}</div>
+    ${busy ? `<div class="sec-h"><h3>Brief</h3></div><div class="brief-pending"><span class="spin"></span>Reading your notes and writing the brief…</div>` : s.brief ? renderBrief(s) : ''}
+    <div class="sec-h"><h3>Notes</h3><small>${notes.length || ''}</small></div>
+    <div class="notes">${notes.length ? notes.map(renderNote).join('') : `
+      <div class="notes-empty"><b>Capture the talk your way</b>Type below, add a photo of a slide, or record the speaker for a live transcript.
+        <div class="ways">
+          <span><i>${I.text}</i>Type</span>
+          <span data-way="photo" style="cursor:pointer"><i>${I.camera}</i>Photo</span>
+          <span data-way="video" style="cursor:pointer"><i>${I.video}</i>Video</span>
+          <span data-way="rec" style="cursor:pointer"><i style="color:var(--red)">${I.mic}</i>Record</span>
+        </div></div>`}
     </div>
   </div>`;
+  $('#dDesc', det)?.addEventListener('click', () => { ui.descOpen = !ui.descOpen; renderDetail(); });
+  $$('[data-way]', det).forEach(w => w.onclick = () => ({ photo: () => $('#photoBtn').click(), video: () => $('#videoBtn').click(), rec: () => $('#micBtn').click() })[w.dataset.way]());
   bindNotes(det, s);
   hydrateMedia(det);
   updateComposer();
@@ -662,50 +976,46 @@ function renderDetail() {
 
 function renderBrief(s) {
   const b = s.brief;
-  const list = (arr, cls, label, q = '') => arr?.length ? `<div class="blk ${cls} ${q}"><h5><i></i>${label}</h5><ul>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
-  return `<div class="section-h"><h3>Session brief</h3><small>${b.source === 'ai' ? 'by Claude' : 'on-device'}</small></div>
-  <div class="card brief">
-    <span class="tag">${I.sparkles} Brief</span>
-    ${b.headline ? `<h4>${esc(b.headline)}</h4>` : ''}
-    ${b.summary ? `<p class="sum">${esc(b.summary)}</p>` : ''}
-    ${list(b.keyTakeaways, 'k-take', 'Key takeaways')}
-    ${list(b.learnings, 'k-learn', 'Learnings')}
-    ${list(b.quotes, 'k-quote', 'Worth quoting', 'q')}
-    ${list(b.actionItems, 'k-act', 'Follow-ups')}
-    ${list(b.openQuestions, 'k-q', 'Open questions')}
+  const list = (arr, cls, icon, label) => arr?.length ? `<div class="brief-blk ${cls}"><h4>${icon}${label}</h4><ul>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+  return `<div class="sec-h"><h3>Brief</h3><small>${b.source === 'ai' ? 'Written by Claude' : 'Written on this device'} · ${esc(ago(b.generatedAt))}</small></div>
+  <article class="brief">
+    ${b.headline ? `<h2 class="brief-head">${esc(b.headline)}</h2>` : ''}
+    ${b.summary ? `<p class="brief-sum">${esc(b.summary)}</p>` : ''}
+    ${list(b.keyTakeaways, 'b-take', I.target, 'Key takeaways')}
+    ${list(b.learnings, 'b-learn', I.bulb, 'What I learned')}
+    ${list(b.quotes, 'b-quote', I.quote, 'Worth quoting')}
+    ${list(b.actionItems, 'b-act', I.flag, 'Follow-ups')}
+    ${list(b.openQuestions, 'b-q', I.help, 'Open questions')}
     <div class="brief-foot">
-      <button class="btn btn-sm btn-tinted" data-b="share">${I.share} Share</button>
-      <button class="btn btn-sm btn-tinted" data-b="copy">${I.copy} Copy</button>
-      <button class="btn btn-sm btn-tinted" data-b="doc">${I.doc} Google Doc</button>
-      <small>${b.source === 'ai' ? '' : 'Add a Claude key in Settings for a richer brief · '}${esc(ago(b.generatedAt))}</small>
+      <button class="btn btn-sm btn-gray" data-b="copy">${I.copy} Copy</button>
+      <button class="btn btn-sm btn-gray" data-b="doc">${I.doc} Save to Google Docs</button>
+      ${b.source === 'ai' ? '' : `<small>Add a Claude key in Settings for a fuller brief</small>`}
     </div>
-  </div>`;
+  </article>`;
 }
 
 function renderNote(n) {
   const types = { text: [I.text, 'Note'], photo: [I.photo, 'Photo'], video: [I.video, 'Video'], audio: [I.wave, 'Recording'] };
-  const [ic, label] = types[n.type] || types.text;
   const editing = ui.editing === n.id;
-  let body = '';
-  if (n.type === 'photo') body = `<div class="note-media"><img data-media="${n.mediaId}" alt="${esc(n.text || 'Photo')}"></div>`;
-  if (n.type === 'video') body = `<div class="note-media"><video data-media="${n.mediaId}" controls playsinline preload="metadata" ${n.thumb ? `poster="${n.thumb}"` : ''}></video></div>`;
-  if (n.type === 'audio') body = n.mediaId ? `<div class="note-media"><audio data-media="${n.mediaId}" controls preload="metadata"></audio></div>` : '';
-  let text = '';
-  if (editing) {
-    text = `<textarea class="edit-area" id="editArea">${esc(n.text || '')}</textarea>
-      <div class="edit-row"><button class="btn btn-sm btn-plain" data-e="cancel">Cancel</button><button class="btn btn-sm btn-primary" data-e="save">Save</button></div>`;
-  } else if (n.type === 'text') text = `<div class="note-text">${esc(n.text)}</div>`;
-  else if (n.type === 'audio') text = n.text ? `<div class="transcript-h">Transcript</div><div class="transcript">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">No transcript captured — tap to add a summary</div>`;
+  let media = '';
+  if (n.type === 'photo') media = `<div class="note-media"><img data-media="${n.mediaId}" alt="${esc(n.text || 'Photo')}"></div>`;
+  if (n.type === 'video') media = `<div class="note-media"><video data-media="${n.mediaId}" controls playsinline preload="metadata" ${n.thumb ? `poster="${n.thumb}"` : ''}></video></div>`;
+  if (n.type === 'audio' && n.mediaId) media = `<div class="note-media audio"><audio data-media="${n.mediaId}" controls preload="metadata"></audio></div>`;
+  let text;
+  if (editing) text = `<textarea class="edit-area" id="editArea" aria-label="Edit note">${esc(n.text || '')}</textarea>
+      <div class="edit-row"><button class="btn btn-sm btn-gray" data-e="cancel">Cancel</button><button class="btn btn-sm btn-primary" data-e="save">Save</button></div>`;
+  else if (n.type === 'text') text = `<div class="note-text">${esc(n.text)}</div>`;
+  else if (n.type === 'audio') text = n.text ? `<div class="tx-label">${I.wave} Transcript</div><div class="transcript">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">No transcript was captured. Add a summary…</div>`;
   else text = n.text ? `<div class="note-cap">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">Add a caption…</div>`;
-  const dur = n.duration ? ` · ${Math.floor(n.duration / 60)}:${pad(Math.round(n.duration % 60))}` : '';
-  return `<div class="note ${n.star ? 'star' : ''}" data-note="${n.id}">
-    <div class="note-meta"><span class="ty">${ic}${label}</span><span>${esc(fmtClock(n.ts))}${dur}</span>
-      <div class="note-acts">
-        <button data-n="star" class="${n.star ? 'on' : ''}" aria-label="Key point">${n.star ? I.starFill : I.star}</button>
-        <button data-n="edit" aria-label="Edit">${I.pencil}</button>
-        <button data-n="del" aria-label="Delete">${I.trash}</button>
-      </div></div>
-    ${body}${text}</div>`;
+  const dur = n.duration ? `${Math.floor(n.duration / 60)}:${pad(Math.round(n.duration % 60))}` : '';
+  return `<div class="note" data-note="${n.id}">
+    <div class="note-when"><span>${esc(fmtClock(n.ts))}</span>${dur ? `<span>${dur}</span>` : ''}${n.star ? `<span class="kp">${I.starFill}Key</span>` : ''}</div>
+    <div class="note-body">${media}${text}</div>
+    ${editing ? '' : `<div class="note-acts">
+      <button data-n="star" class="${n.star ? 'on' : ''}" aria-label="${n.star ? 'Unmark key point' : 'Mark as key point'}" title="${n.star ? 'Unmark key point' : 'Key point'}">${n.star ? I.starFill : I.star}</button>
+      <button data-n="edit" aria-label="Edit" title="Edit">${I.pencil}</button>
+      <button data-n="del" aria-label="Delete" title="Delete">${I.trash}</button>
+    </div>`}</div>`;
 }
 
 function bindNotes(root, s) {
@@ -716,24 +1026,172 @@ function bindNotes(root, s) {
       if (a === 'star') { n.star = !n.star; n.updatedAt = now(); touch(s); renderDetail(); }
       if (a === 'edit') { ui.editing = n.id; renderDetail(); const ta = $('#editArea'); ta?.focus(); ta?.setSelectionRange(ta.value.length, ta.value.length); }
       if (a === 'del') {
-        if (await confirmSheet('Delete note?', 'This removes it from this session on all your devices.', 'Delete')) {
+        if (await confirmSheet('Delete this note?', 'It will be removed from this session on all your devices.', 'Delete')) {
           n.deleted = true; n.updatedAt = now(); touch(s); renderDetail(); renderList();
         }
       }
     });
-    $$('[data-e]', el).forEach(b => b.onclick = () => {
-      if (b.dataset.e === 'save') { n.text = $('#editArea').value.trim(); n.updatedAt = now(); touch(s); }
-      ui.editing = null; renderDetail();
+    const save = () => { n.text = $('#editArea').value.trim(); n.updatedAt = now(); touch(s); ui.editing = null; renderDetail(); };
+    $$('[data-e]', el).forEach(b => b.onclick = () => { if (b.dataset.e === 'save') save(); else { ui.editing = null; renderDetail(); } });
+    $('#editArea', el)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
+      if (e.key === 'Escape') { e.stopPropagation(); ui.editing = null; renderDetail(); }
     });
     $('img', el)?.addEventListener('click', e => { if (e.target.src) openViewer(e.target.src); });
   });
-  $$('[data-b]', root).forEach(b => b.onclick = () => ({ share: () => shareBrief(s), copy: () => copyBrief(s), doc: () => briefToDoc(s) })[b.dataset.b]());
+  $$('[data-b]', root).forEach(b => b.onclick = () => ({ copy: () => copyBrief(s), doc: () => briefToDoc(s) })[b.dataset.b]());
 }
 
 function openViewer(src) {
   const v = document.createElement('div'); v.className = 'viewer';
   v.innerHTML = `<img src="${src}" alt=""><button aria-label="Close">${I.x}</button>`;
   v.onclick = () => v.remove(); document.body.appendChild(v);
+}
+
+/* ---------- Composer ---------- */
+function updateComposer() {
+  const s = S(ui.selected); if (!s) return;
+  const n = liveNotes(s).length;
+  const narrow = !matchMedia('(min-width:760px)').matches;
+  const bb = $('#briefBtn'); const busy = ui.busyBrief === s.id;
+  bb.disabled = !n || busy;
+  bb.classList.toggle('busy', busy);
+  bb.title = n ? (s.brief ? 'Rewrite the brief with your latest notes  ⌘↩' : 'Finish the session and write the brief  ⌘↩') : 'Add a note first';
+  bb.innerHTML = busy ? `${I.sparkles}<span>Writing…</span>` : `${I.sparkles}<span>${s.brief ? (narrow ? 'Update' : 'Update Brief') : (narrow ? 'Finish' : 'Finish & Brief')}</span>`;
+  $('#sendBtn').disabled = !$('#noteInput').value.trim();
+  const st = $('#starToggle'); st.classList.toggle('on', ui.composeStar); st.innerHTML = ui.composeStar ? I.starFill : I.star;
+  st.setAttribute('aria-pressed', ui.composeStar);
+  paintMic();
+}
+function paintMic() {
+  const b = $('#micBtn');
+  b.innerHTML = rec.active ? `${I.stop}<span>Stop</span>` : `${I.mic}<span>Record</span>`;
+  b.setAttribute('aria-label', rec.active ? 'Stop and save recording' : 'Record the speaker');
+}
+function autoGrow() { const ta = $('#noteInput'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 180) + 'px'; }
+function addNote(s, note) {
+  const n = Object.assign({ id: uid(), ts: now(), updatedAt: now(), text: '', star: false }, note);
+  s.notes = s.notes || []; s.notes.push(n); touch(s);
+  return n;
+}
+function sendText() {
+  const s = S(ui.selected); const ta = $('#noteInput'); const text = ta.value.trim();
+  if (!s || !text) return;
+  addNote(s, { type: 'text', text, star: ui.composeStar });
+  ta.value = ''; ui.composeStar = false; autoGrow();
+  renderDetail(); renderList(); scrollNotesEnd();
+}
+function scrollNotesEnd() { const d = $('#detail'); requestAnimationFrame(() => d.scrollTo({ top: d.scrollHeight, behavior: 'smooth' })); }
+
+/* ---------- Recording dock + live transcription ---------- */
+const rec = { active: false };
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+async function startRecording() {
+  const s = S(ui.selected); if (!s) return;
+  if (!navigator.mediaDevices?.getUserMedia) { toast('Recording needs the page to be opened from an https address.'); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+  catch { toast('Microphone access is blocked. Allow it in your browser settings.', false, 4500); return; }
+  Object.assign(rec, { active: true, sessionId: s.id, stream, chunks: [], finalText: '', interim: '', started: now(), elapsed: 0, paused: false, srErrors: 0, srDenied: false, mr: null, sr: null, wake: null, mime: '', an: null, ac: null });
+  if (settings.keepAudio && window.MediaRecorder) {
+    const mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find(m => MediaRecorder.isTypeSupported?.(m)) || '';
+    try {
+      rec.mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      rec.mime = rec.mr.mimeType || mime || 'audio/mp4';
+      rec.mr.ondataavailable = e => e.data.size && rec.chunks.push(e.data);
+      rec.mr.start(1000);
+    } catch (e) { console.warn(e); rec.mr = null; }
+  }
+  if (SR) startRecognition();
+  try { rec.wake = await navigator.wakeLock?.request('screen'); } catch {}
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)(); const an = ac.createAnalyser(); an.fftSize = 128;
+    ac.createMediaStreamSource(stream).connect(an); rec.ac = ac; rec.an = an;
+  } catch {}
+  const dock = $('#dock');
+  dock.innerHTML = `<span class="dock-dot" aria-hidden="true"></span><span class="dock-time" id="recTime">0:00</span>
+    <span class="dock-levels" aria-hidden="true">${'<i></i>'.repeat(10)}</span>
+    <div class="dock-tx" id="liveTx" title="Show full transcript"></div>
+    <button class="dock-btn" id="recPause">Pause</button>
+    <button class="dock-btn stop" id="recStop">Save</button>
+    <button class="tb-btn" id="recDiscard" aria-label="Discard recording" title="Discard">${I.x}</button>`;
+  dock.classList.remove('hidden', 'paused');
+  paintTranscript();
+  $('#recPause').onclick = togglePause;
+  $('#recStop').onclick = () => stopRecording(true);
+  $('#recDiscard').onclick = async () => { if (await confirmSheet('Discard recording?', 'The audio and transcript from this recording will be lost.', 'Discard')) stopRecording(false); };
+  $('#liveTx').onclick = (e) => e.currentTarget.classList.toggle('expanded');
+  rec.timer = setInterval(tickRecording, 120);
+  paintMic(); renderList();
+}
+function startRecognition() {
+  const r = new SR(); rec.sr = r;
+  r.continuous = true; r.interimResults = true; r.lang = settings.lang || 'en-US';
+  r.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) rec.finalText += (rec.finalText && !/\s$/.test(rec.finalText) ? ' ' : '') + t.trim();
+      else interim += t;
+    }
+    rec.interim = interim; paintTranscript();
+  };
+  r.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { rec.srDenied = true; paintTranscript(); } rec.srErrors++; };
+  r.onend = () => { if (rec.active && !rec.paused && !rec.srDenied && rec.srErrors < 30) { rec.finalText += rec.finalText ? '\n' : ''; try { r.start(); } catch {} } };
+  try { r.start(); } catch (e) { console.warn(e); }
+}
+function paintTranscript() {
+  const el = $('#liveTx'); if (!el) return;
+  const txt = rec.finalText.replace(/\n+/g, '\n');
+  if (!txt && !rec.interim) {
+    el.innerHTML = `<span class="interim">${!SR ? 'Recording audio. Live transcription isn’t available in this browser.' : rec.srDenied ? 'Recording audio. Transcription was blocked by the browser.' : 'Listening… the transcript appears here.'}</span>`;
+    return;
+  }
+  el.innerHTML = esc(txt) + (rec.interim ? ` <span class="interim">${esc(rec.interim)}</span>` : '');
+  el.scrollTop = el.scrollHeight;
+}
+function tickRecording() {
+  if (!rec.active) return;
+  const ms = rec.elapsed + (rec.paused ? 0 : now() - rec.started);
+  const sec = Math.floor(ms / 1000);
+  const t = $('#recTime'); if (t) t.textContent = `${Math.floor(sec / 60)}:${pad(sec % 60)}`;
+  if (rec.an) {
+    const d = new Uint8Array(rec.an.frequencyBinCount); rec.an.getByteFrequencyData(d);
+    $$('.dock-levels i').forEach((b, i) => { const v = rec.paused ? 0 : d[2 + i * 3] / 255; b.style.height = (3 + v * 19) + 'px'; });
+  }
+}
+function togglePause() {
+  rec.paused = !rec.paused;
+  if (rec.paused) { rec.elapsed += now() - rec.started; rec.mr?.state === 'recording' && rec.mr.pause(); try { rec.sr?.stop(); } catch {} }
+  else { rec.started = now(); rec.mr?.state === 'paused' && rec.mr.resume(); try { rec.sr?.start(); } catch {} }
+  $('#recPause').textContent = rec.paused ? 'Resume' : 'Pause';
+  $('#dock').classList.toggle('paused', rec.paused);
+}
+async function stopRecording(save) {
+  if (!rec.active) return;
+  rec.active = false; clearInterval(rec.timer);
+  const duration = (rec.elapsed + (rec.paused ? 0 : now() - rec.started)) / 1000;
+  try { rec.sr?.stop(); } catch {}
+  const blob = await new Promise(res => {
+    if (!rec.mr || rec.mr.state === 'inactive') return res(rec.chunks.length ? new Blob(rec.chunks, { type: rec.mime }) : null);
+    rec.mr.onstop = () => res(rec.chunks.length ? new Blob(rec.chunks, { type: rec.mime }) : null);
+    rec.mr.stop();
+  });
+  rec.stream.getTracks().forEach(t => t.stop());
+  try { rec.ac?.close(); } catch {}
+  try { rec.wake?.release(); } catch {}
+  $('#dock').classList.add('hidden'); $('#dock').innerHTML = '';
+  paintMic();
+  if (!save) { toast('Recording discarded'); renderList(); return; }
+  const s = S(rec.sessionId); if (!s) return;
+  const text = (rec.finalText + (rec.interim ? ' ' + rec.interim : '')).replace(/\n{2,}/g, '\n').trim();
+  if (!blob && !text) { toast('Nothing was captured.'); renderList(); return; }
+  let mediaId = '';
+  if (blob) { mediaId = uid(); await DB.put('media', mediaId, blob); }
+  addNote(s, { type: 'audio', mediaId, mime: blob?.type || '', text, duration, ts: now() - duration * 1000 });
+  toast(text ? 'Recording and transcript saved' : 'Recording saved');
+  if (ui.selected === s.id) { renderDetail(); scrollNotesEnd(); }
+  renderList();
 }
 
 /* ---------- Media hydration (local first, then Drive) ---------- */
@@ -763,33 +1221,6 @@ async function hydrateMedia(root) {
     }
   }
 }
-
-/* ---------- Composer ---------- */
-function updateComposer() {
-  const s = S(ui.selected); if (!s) return;
-  const n = liveNotes(s).length;
-  const wb = $('#wrapBtn');
-  const busy = ui.busyBrief === s.id;
-  wb.disabled = !n || busy;
-  wb.classList.toggle('busy', busy);
-  wb.innerHTML = busy ? `${I.sparkles} Making sense of your notes…` : s.brief ? `${I.sparkles} Refresh brief` : `${I.sparkles} Wrap up & brief`;
-  $('#sendBtn').disabled = !$('#noteInput').value.trim();
-  const st = $('#starToggle'); st.classList.toggle('on', ui.composeStar); st.innerHTML = ui.composeStar ? I.starFill : I.star;
-}
-function autoGrow() { const ta = $('#noteInput'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; }
-function addNote(s, note) {
-  const n = Object.assign({ id: uid(), ts: now(), updatedAt: now(), text: '', star: false }, note);
-  s.notes = s.notes || []; s.notes.push(n); touch(s);
-  return n;
-}
-function sendText() {
-  const s = S(ui.selected); const ta = $('#noteInput'); const text = ta.value.trim();
-  if (!s || !text) return;
-  addNote(s, { type: 'text', text, star: ui.composeStar });
-  ta.value = ''; ui.composeStar = false; autoGrow();
-  renderDetail(); renderList(); scrollNotesEnd();
-}
-function scrollNotesEnd() { const d = $('#detail'); requestAnimationFrame(() => d.scrollTo({ top: d.scrollHeight, behavior: 'smooth' })); }
 
 /* ---------- Photos & video ---------- */
 async function resizeImage(blob, max = 2048, q = 0.85) {
@@ -855,122 +1286,6 @@ async function shrinkDataUrl(dataUrl, max = 480) {
   return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(small); });
 }
 
-/* ---------- Recording + live transcription ---------- */
-const rec = { active: false };
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-async function startRecording() {
-  const s = S(ui.selected); if (!s) return;
-  if (!navigator.mediaDevices?.getUserMedia) { toast('Recording needs a secure (https) page.'); return; }
-  let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
-  catch (e) { toast('Microphone access was blocked. Allow it in your browser settings.'); return; }
-  Object.assign(rec, { active: true, sessionId: s.id, stream, chunks: [], finalText: '', interim: '', started: now(), paused: false, srErrors: 0, mr: null, sr: null, wake: null, mime: '' });
-
-  if (settings.keepAudio && window.MediaRecorder) {
-    const mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find(m => MediaRecorder.isTypeSupported?.(m)) || '';
-    try {
-      rec.mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-      rec.mime = rec.mr.mimeType || mime || 'audio/mp4';
-      rec.mr.ondataavailable = e => e.data.size && rec.chunks.push(e.data);
-      rec.mr.start(1000);
-    } catch (e) { console.warn(e); rec.mr = null; }
-  }
-  if (SR) startRecognition();
-  try { rec.wake = await navigator.wakeLock?.request('screen'); } catch {}
-
-  // level meter
-  try {
-    const ac = new (window.AudioContext || window.webkitAudioContext)(); const src = ac.createMediaStreamSource(stream);
-    const an = ac.createAnalyser(); an.fftSize = 256; src.connect(an); rec.ac = ac; rec.an = an;
-  } catch {}
-
-  rec.sheet = openSheet({
-    title: 'Recording', left: 'Discard', right: 'Save',
-    onRight: () => stopRecording(true),
-    onClose: () => rec.active && stopRecording(false),
-    body: `<div class="rec-wrap">
-      <div class="rec-dot" id="recDot"><i></i></div>
-      <div class="rec-time" id="recTime">0:00</div>
-      <div class="rec-sub">${esc(s.title || '')}</div>
-      <div class="levels" id="levels">${'<i></i>'.repeat(28)}</div>
-      <div class="live-tx" id="liveTx"><span class="ph">${SR ? 'Live transcript will appear here as the speaker talks…' : 'Live transcription isn’t supported in this browser. Audio is still being recorded.'}</span></div>
-      <p class="form-cap" style="text-align:center;margin:10px 0 0">Keep this screen open while recording. ${settings.keepAudio ? 'Audio and transcript are both saved.' : 'Only the transcript is saved (see Settings).'}</p>
-      <div class="rec-actions"><button class="btn btn-tinted" id="recPause">Pause</button><button class="btn btn-primary" id="recStop">Stop & save</button></div>
-    </div>`,
-    onMount: (sh) => {
-      $('#recStop', sh.el).onclick = () => stopRecording(true);
-      $('#recPause', sh.el).onclick = togglePause;
-    },
-  });
-  $('#micBtn').classList.add('rec');
-  rec.timer = setInterval(tickRecording, 120);
-}
-function startRecognition() {
-  const r = new SR(); rec.sr = r;
-  r.continuous = true; r.interimResults = true; r.lang = settings.lang || 'en-US';
-  r.onresult = (e) => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) rec.finalText += (rec.finalText && !/\s$/.test(rec.finalText) ? ' ' : '') + t.trim();
-      else interim += t;
-    }
-    rec.interim = interim; paintTranscript();
-  };
-  r.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { rec.srDenied = true; paintTranscript('Transcription isn’t available here (permission denied). Audio is still recording.'); } rec.srErrors++; };
-  r.onend = () => { if (rec.active && !rec.paused && !rec.srDenied && rec.srErrors < 30) { rec.finalText += rec.finalText ? '\n' : ''; try { r.start(); } catch {} } };
-  try { r.start(); } catch (e) { console.warn(e); }
-}
-function paintTranscript(msg) {
-  const el = $('#liveTx'); if (!el) return;
-  if (msg) { el.innerHTML = `<span class="ph">${esc(msg)}</span>`; return; }
-  el.innerHTML = esc(rec.finalText.replace(/\n+/g, '\n')) + (rec.interim ? ` <span class="interim">${esc(rec.interim)}</span>` : '');
-  el.scrollTop = el.scrollHeight;
-}
-function tickRecording() {
-  if (!rec.active) return;
-  const el = (rec.elapsed || 0) + (rec.paused ? 0 : now() - rec.started);
-  const sec = Math.floor(el / 1000);
-  const t = $('#recTime'); if (t) t.textContent = `${Math.floor(sec / 60)}:${pad(sec % 60)}`;
-  if (rec.an) {
-    const d = new Uint8Array(rec.an.frequencyBinCount); rec.an.getByteFrequencyData(d);
-    $$('#levels i').forEach((b, i) => { const v = rec.paused ? 0 : d[(i * 3) % d.length] / 255; b.style.height = (4 + v * 32) + 'px'; });
-  }
-}
-function togglePause() {
-  rec.paused = !rec.paused;
-  if (rec.paused) { rec.elapsed = (rec.elapsed || 0) + now() - rec.started; rec.mr?.state === 'recording' && rec.mr.pause(); try { rec.sr?.stop(); } catch {} }
-  else { rec.started = now(); rec.mr?.state === 'paused' && rec.mr.resume(); try { rec.sr?.start(); } catch {} }
-  $('#recPause').textContent = rec.paused ? 'Resume' : 'Pause';
-  $('#recDot').classList.toggle('paused', rec.paused);
-}
-async function stopRecording(save) {
-  if (!rec.active) return;
-  rec.active = false; clearInterval(rec.timer);
-  const duration = ((rec.elapsed || 0) + (rec.paused ? 0 : now() - rec.started)) / 1000;
-  try { rec.sr?.stop(); } catch {}
-  const blob = await new Promise(res => {
-    if (!rec.mr || rec.mr.state === 'inactive') return res(rec.chunks.length ? new Blob(rec.chunks, { type: rec.mime }) : null);
-    rec.mr.onstop = () => res(rec.chunks.length ? new Blob(rec.chunks, { type: rec.mime }) : null);
-    rec.mr.stop();
-  });
-  rec.stream.getTracks().forEach(t => t.stop());
-  try { rec.ac?.close(); } catch {}
-  try { rec.wake?.release(); } catch {}
-  $('#micBtn').classList.remove('rec');
-  const sh = rec.sheet; rec.sheet = null; sh && sheetStack.includes(sh) && sh.close();
-  if (!save) { toast('Recording discarded'); return; }
-  const s = S(rec.sessionId); if (!s) return;
-  const text = (rec.finalText + (rec.interim ? ' ' + rec.interim : '')).replace(/\n{2,}/g, '\n').trim();
-  if (!blob && !text) { toast('Nothing was captured.'); return; }
-  let mediaId = '';
-  if (blob) { mediaId = uid(); await DB.put('media', mediaId, blob); }
-  addNote(s, { type: 'audio', mediaId, mime: blob?.type || '', text, duration, ts: now() - duration * 1000 });
-  toast(text ? 'Recording and transcript saved' : 'Recording saved');
-  if (ui.selected === s.id) { renderDetail(); scrollNotesEnd(); }
-  renderList();
-}
-
 /* =========================================================
    Claude API (called directly from the browser with your key)
    ========================================================= */
@@ -1020,7 +1335,7 @@ Ground everything in the notes. Don't add facts, numbers or claims that the note
 async function generateBrief(s) {
   const notes = liveNotes(s).sort((a, b) => a.ts - b.ts);
   if (!notes.length) return;
-  ui.busyBrief = s.id; updateComposer();
+  ui.busyBrief = s.id; if (ui.selected === s.id) renderDetail(); else updateComposer();
   try {
     let brief;
     if (settings.apiKey) {
@@ -1109,110 +1424,6 @@ async function shareBrief(s) {
   else copyBrief(s);
 }
 
-/* ---------- Conference recap ---------- */
-async function openRecap() {
-  const done = sessionsArr().filter(s => s.attended && s.brief).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
-  if (!done.length) return toast('Wrap up a session first');
-  const sh = openSheet({ title: 'Conference recap', left: 'Close', body: `<div id="recapBody" class="muted" style="text-align:center;padding:30px"><span class="spin"></span><p>Pulling your sessions together…</p></div>` });
-  let r;
-  try {
-    if (settings.apiKey) {
-      const text = done.map(s => briefText(s)).join('\n\n---\n\n');
-      r = await claude({
-        system: 'You write a conference recap for one attendee from the briefs of the sessions they attended. Stay grounded in the briefs and connect ideas across sessions where the briefs support it.',
-        content: [{ type: 'text', text: `Conference: ${state.conference.name || 'Untitled'}\n\nBriefs of attended sessions:\n\n${text}\n\nWrite: headline (one line), summary (4 to 6 sentences), themes (3 to 5 cross-session themes, one sentence each), topTakeaways (5 to 8 points), actionItems (up to 8 concrete follow-ups).` }],
-        schema: { type: 'object', additionalProperties: false, required: ['headline', 'summary', 'themes', 'topTakeaways', 'actionItems'], properties: { headline: { type: 'string' }, summary: { type: 'string' }, themes: strArr, topTakeaways: strArr, actionItems: strArr } },
-      });
-    } else {
-      r = { headline: `${done.length} sessions attended`, summary: done.map(s => `${s.title}: ${s.brief.headline !== s.title ? s.brief.headline : (s.brief.keyTakeaways[0] || '')}`).join(' '), themes: [], topTakeaways: done.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), actionItems: done.flatMap(s => s.brief.actionItems) };
-    }
-  } catch (e) { $('#recapBody', sh.el).innerHTML = `<p>${esc(e.message)}</p>`; return; }
-  const list = (a, cls, t) => a?.length ? `<div class="blk ${cls}"><h5><i></i>${t}</h5><ul>${a.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
-  const plain = `${r.headline}\n\n${r.summary}\n\nThemes\n${(r.themes || []).map(x => '• ' + x).join('\n')}\n\nTop takeaways\n${r.topTakeaways.map(x => '• ' + x).join('\n')}\n\nFollow-ups\n${r.actionItems.map(x => '• ' + x).join('\n')}`;
-  $('#recapBody', sh.el).outerHTML = `<div class="card brief"><span class="tag">${I.book} ${done.length} sessions</span><h4>${esc(r.headline)}</h4><p class="sum">${esc(r.summary)}</p>
-    ${list(r.themes, 'k-learn', 'Themes')}${list(r.topTakeaways, 'k-take', 'Top takeaways')}${list(r.actionItems, 'k-act', 'Follow-ups')}
-    <div class="brief-foot"><button class="btn btn-sm btn-tinted" id="rcCopy">${I.copy} Copy</button>${navigator.share ? `<button class="btn btn-sm btn-tinted" id="rcShare">${I.share} Share</button>` : ''}</div></div>`;
-  $('#rcCopy', sh.el).onclick = async () => { try { await navigator.clipboard.writeText(plain); toast('Recap copied'); } catch {} };
-  $('#rcShare', sh.el)?.addEventListener('click', () => navigator.share({ title: 'Conference recap', text: plain }).catch(() => {}));
-}
-
-/* =========================================================
-   Agenda import
-   ========================================================= */
-function openImport() {
-  let mode = 'paste', fileBlob = null, parsed = [], confName = '';
-  const sh = openSheet({
-    title: 'Import agenda', left: 'Cancel', right: 'Add',
-    onRight: (sh) => {
-      const picks = $$('.preview-item input', sh.el).map((c, i) => c.checked ? parsed[i] : null).filter(Boolean);
-      if (!picks.length) return toast('Read your agenda first');
-      if (confName && !state.conference.name) state.conference = { name: confName, updatedAt: now() };
-      for (const p of picks) createSession(p);
-      touch(); sh.close(); render(); toast(`Added ${picks.length} session${picks.length > 1 ? 's' : ''}`);
-      if (wide() && !ui.selected) select(filteredSessions()[0]?.id, false);
-    },
-    body: `<div class="tabs">
-        <button class="chip on" data-m="paste">${I.text} Paste text</button>
-        <button class="chip" data-m="photo">${I.camera} Photo / PDF</button>
-        <button class="chip" data-m="ics">${I.calendar} Calendar (.ics)</button>
-        <button class="chip" data-m="manual">${I.plus} One session</button>
-      </div>
-      <div id="impPane"></div>
-      <div id="impPreview"></div>`,
-    onMount: (sh) => {
-      const pane = $('#impPane', sh.el);
-      const draw = () => {
-        $$('[data-m]', sh.el).forEach(c => c.classList.toggle('on', c.dataset.m === mode));
-        if (mode === 'paste') pane.innerHTML = `<textarea class="big-text" id="impText" placeholder="Paste the agenda from the conference site, app or email. For example:
-
-Tuesday, Oct 27
-9:00 – 9:45 AM  Opening Keynote — Jane Park, Main Stage
-10:00 – 10:45 AM  Designing Calm Interfaces · Sam Lee · Room B"></textarea>
-          <p class="form-cap">${settings.apiKey ? 'Claude reads any layout. ' : 'Works best with one session per line, starting with a time. Add a Claude key in Settings to read any format. '}You’ll review the sessions before they’re added.</p>
-          <div class="stack" style="max-width:none"><button class="btn btn-primary" id="impGo">${I.sparkles} Read agenda</button></div>`;
-        if (mode === 'photo') pane.innerHTML = `<div class="notes-empty" style="cursor:pointer" id="impPick"><b>${fileBlob ? esc(fileBlob.name || 'File selected') : 'Choose a photo, screenshot or PDF'}</b>A picture of the printed program or a screenshot of the conference app.</div>
-          <p class="form-cap">${settings.apiKey ? 'Claude will read the sessions from the image.' : 'Reading images needs a Claude API key (Settings).'}</p>
-          <div class="stack" style="max-width:none"><button class="btn btn-primary" id="impGo" ${settings.apiKey ? '' : 'disabled'}>${I.sparkles} Read agenda</button></div>`;
-        if (mode === 'ics') pane.innerHTML = `<div class="notes-empty" style="cursor:pointer" id="impPick"><b>${fileBlob ? esc(fileBlob.name) : 'Choose a .ics calendar file'}</b>Most conference apps can export your schedule to a calendar file.</div>`;
-        if (mode === 'manual') { sh.close(); openSessionForm(); return; }
-        $('#impPick', pane)?.addEventListener('click', () => pickFile(mode === 'ics' ? '.ics,text/calendar' : 'image/*,application/pdf', async f => {
-          fileBlob = f; draw();
-          if (mode === 'ics') { parsed = parseICS(await f.text()); showPreview(); }
-        }));
-        $('#impGo', pane)?.addEventListener('click', runParse);
-      };
-      const runParse = async () => {
-        const btn = $('#impGo', pane); btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Reading…`;
-        try {
-          if (mode === 'paste') {
-            const txt = $('#impText', pane).value.trim();
-            if (!txt) throw new Error('Paste your agenda first');
-            if (settings.apiKey) ({ sessions: parsed, conferenceName: confName } = await aiParseAgenda([{ type: 'text', text: txt }]));
-            else parsed = parseAgendaText(txt);
-          } else {
-            if (!fileBlob) throw new Error('Choose a file first');
-            const isPdf = fileBlob.type === 'application/pdf';
-            const data = await blobToB64(isPdf ? fileBlob : await resizeImage(fileBlob, 2000, 0.9));
-            ({ sessions: parsed, conferenceName: confName } = await aiParseAgenda([isPdf
-              ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } }
-              : { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } }]));
-          }
-          showPreview();
-        } catch (e) { toast(e.message, false, 5000); }
-        finally { if (btn.isConnected) { btn.disabled = false; btn.innerHTML = `${I.sparkles} Read agenda`; } }
-      };
-      const showPreview = () => {
-        const pv = $('#impPreview', sh.el);
-        if (!parsed.length) { pv.innerHTML = `<p class="form-cap" style="text-align:center">No sessions found. Try another format, or add sessions one at a time.</p>`; return; }
-        pv.innerHTML = `<div class="group-title">${parsed.length} session${parsed.length > 1 ? 's' : ''} found${confName ? ' · ' + esc(confName) : ''}</div><div class="preview-list">${parsed.map(p => `
-          <label class="preview-item"><input type="checkbox" checked><div><b>${esc(p.title)}</b><span>${esc([p.date && fmtDate(p.date, { weekday: 'short', month: 'short', day: 'numeric' }), p.start && fmtTime(p.start) + (p.end ? '–' + fmtTime(p.end) : ''), p.speaker, p.room].filter(Boolean).join(' · '))}</span></div></label>`).join('')}</div>`;
-        pv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      };
-      $$('[data-m]', sh.el).forEach(c => c.onclick = () => { mode = c.dataset.m; fileBlob = null; parsed = []; $('#impPreview', sh.el).innerHTML = ''; draw(); });
-      draw();
-    },
-  });
-}
 function pickFile(accept, cb) {
   const inp = $('#fileInput'); inp.accept = accept; inp.value = '';
   inp.onchange = () => inp.files[0] && cb(inp.files[0]);
@@ -1349,138 +1560,6 @@ function loadSample() {
   if (wide()) select(filteredSessions()[0].id, false);
 }
 
-/* ---------- Session form ---------- */
-function openSessionForm(s) {
-  const v = s || { title: '', date: todayISO(), start: '', end: '', speaker: '', room: '', description: '' };
-  openSheet({
-    title: s ? 'Edit session' : 'New session', left: 'Cancel', right: s ? 'Save' : 'Add',
-    body: `<div class="form-group">
-        <div class="form-row"><input type="text" id="fTitle" placeholder="Session title" value="${esc(v.title)}" style="font-weight:600"></div>
-        <div class="form-row"><input type="text" id="fSpeaker" placeholder="Speaker" value="${esc(v.speaker)}"></div>
-        <div class="form-row"><input type="text" id="fRoom" placeholder="Room or stage" value="${esc(v.room)}"></div>
-      </div>
-      <div class="form-group">
-        <div class="form-row"><label for="fDate">Date</label><input type="date" id="fDate" value="${esc(v.date)}"></div>
-        <div class="form-row"><label for="fStart">Starts</label><input type="time" id="fStart" value="${esc(v.start)}"></div>
-        <div class="form-row"><label for="fEnd">Ends</label><input type="time" id="fEnd" value="${esc(v.end)}"></div>
-      </div>
-      <div class="form-group"><div class="form-row"><textarea id="fDesc" placeholder="Abstract or description (optional)">${esc(v.description)}</textarea></div></div>`,
-    onMount: (sh) => !s && setTimeout(() => $('#fTitle', sh.el).focus(), 300),
-    onRight: (sh) => {
-      const g = (id) => $(id, sh.el).value.trim();
-      const data = { title: g('#fTitle'), speaker: g('#fSpeaker'), room: g('#fRoom'), date: g('#fDate'), start: g('#fStart'), end: g('#fEnd'), description: g('#fDesc') };
-      if (!data.title) return toast('Give the session a title');
-      let id;
-      if (s) { Object.assign(S(s.id) || s, data); id = s.id; touch(S(id)); }
-      else { id = createSession(data); touch(); }
-      sh.close(); render(); if (!s) select(id);
-    },
-  });
-}
-function sessionMenu() {
-  const s = S(ui.selected); if (!s) return;
-  actionSheet(s.title, [
-    { label: 'Edit session details', run: () => openSessionForm(s) },
-    { label: s.attended ? 'Mark as not attended' : 'Mark as attended', run: () => { s.attended = !s.attended; s.attendedAt = s.attended ? now() : 0; touch(s); render(); } },
-    ...(liveNotes(s).length ? [{ label: s.brief ? 'Regenerate brief' : 'Create brief', run: () => generateBrief(s) }] : []),
-    ...(s.brief ? [{ label: 'Remove brief', run: () => { s.brief = null; touch(s); render(); } }] : []),
-    { label: 'Delete session', danger: true, run: async () => {
-      if (!await confirmSheet('Delete session?', 'Its notes, photos and recordings will be removed from all your devices.', 'Delete session')) return;
-      for (const n of s.notes) if (n.mediaId) { DB.del('media', n.mediaId).catch(() => {}); DB.del('media', n.mediaId + '_frame').catch(() => {}); }
-      state.deleted[s.id] = now(); pendingTrash.push(...s.notes.filter(n => n.driveId).map(n => n.driveId));
-      LS.set('cc.trash', pendingTrash);
-      delete state.sessions[s.id]; touch(); ui.selected = null;
-      history.replaceState(null, '', location.pathname + location.search); document.body.classList.remove('show-detail'); render();
-    } },
-  ]);
-}
-
-/* =========================================================
-   Settings
-   ========================================================= */
-function openSettings() {
-  const models = [['claude-opus-5-5', 'Claude Opus 5.5 — best briefs'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5 — faster'], ['claude-haiku-5-5', 'Claude Haiku 5.5 — fastest, lowest cost']];
-  const langs = [['en-US', 'English (US)'], ['en-GB', 'English (UK)'], ['es-ES', 'Español (España)'], ['es-MX', 'Español (México)'], ['pt-BR', 'Português (Brasil)'], ['fr-FR', 'Français'], ['de-DE', 'Deutsch'], ['it-IT', 'Italiano'], ['nl-NL', 'Nederlands'], ['ja-JP', '日本語'], ['zh-CN', '中文 (简体)'], ['ko-KR', '한국어'], ['hi-IN', 'हिन्दी']];
-  if (!langs.some(l => l[0] === settings.lang)) langs.unshift([settings.lang, settings.lang]);
-  const origin = location.origin.startsWith('http') ? location.origin : '(host this file on https first)';
-  openSheet({
-    title: 'Settings', left: 'Close', right: 'Done', onRight: (s) => s.close(),
-    onClose: () => render(),
-    body: `
-      <div class="group-title">Conference</div>
-      <div class="form-group"><div class="form-row"><input type="text" id="sConf" placeholder="Conference name" value="${esc(state.conference.name)}"></div></div>
-
-      <div class="group-title">Google Drive sync</div>
-      <div class="form-group">
-        <div class="form-row"><label>Status</label><span class="muted" style="margin-left:auto;font-size:15px">${drive.connected ? (tokenValid() ? 'Connected' : 'Connected · tap Sync to refresh') : 'Not connected'}${drive.lastSync ? ' · ' + esc(ago(drive.lastSync)) : ''}</span></div>
-        <div class="form-row col"><label for="sClient">OAuth Client ID</label><input type="text" id="sClient" placeholder="1234-abc.apps.googleusercontent.com" value="${esc(settings.clientId)}" autocapitalize="off" autocomplete="off" spellcheck="false"></div>
-        <button class="row-btn" id="sConnect">${I.cloud}${drive.connected ? 'Sync now' : 'Connect Google Drive'}</button>
-        ${drive.connected ? `<button class="row-btn danger" id="sDisconnect">Disconnect on this device</button>` : ''}
-      </div>
-      <details class="help"><summary>How to set up Drive sync (one time, ~5 min)</summary><ol>
-        <li>Open this page from an <b>https</b> address (for example GitHub Pages). Use that same address on your Mac, iPad and iPhone.</li>
-        <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, create a project, and enable the <b>Google Drive API</b>.</li>
-        <li>Under <b>OAuth consent screen</b>, choose External, fill in the app name, and add your Google account as a test user.</li>
-        <li>Under <b>Credentials → Create credentials → OAuth client ID</b>, pick <b>Web application</b> and add this Authorized JavaScript origin: <code>${esc(origin)}</code></li>
-        <li>Paste the Client ID above and tap Connect. Repeat the paste on each device.</li>
-      </ol><p style="margin:8px 0 0">Copilot can only see files it creates: a <b>Conference Copilot</b> folder in your Drive with your notes, photos, recordings and briefs.</p></details>
-
-      <div class="group-title">AI briefs</div>
-      <div class="form-group">
-        <div class="form-row col"><label for="sKey">Claude API key</label><input type="password" id="sKey" placeholder="sk-ant-…" value="${esc(settings.apiKey)}" autocomplete="off" spellcheck="false"></div>
-        <div class="form-row"><label for="sModel">Model</label><select id="sModel">${models.map(([v, l]) => `<option value="${v}" ${settings.model === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-        <button class="row-btn" id="sTest">${I.bolt}Test connection</button>
-      </div>
-      <p class="form-cap">Create a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It stays on this device and is sent only to Anthropic. Without a key, Copilot writes a simpler brief on-device.</p>
-
-      <div class="group-title">Recording</div>
-      <div class="form-group">
-        <div class="form-row"><label for="sLang">Speaker language</label><select id="sLang">${langs.map(([v, l]) => `<option value="${v}" ${settings.lang === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-        <div class="form-row"><label for="sAudio" style="width:auto;flex:1">Keep audio with transcript</label><span class="switch"><input type="checkbox" id="sAudio" ${settings.keepAudio ? 'checked' : ''}><span></span></span></div>
-      </div>
-      <p class="form-cap">${SR ? 'Live transcription uses your browser’s speech recognition (Safari and Chrome).' : 'This browser doesn’t offer live transcription; recordings are saved as audio only. Safari and Chrome support it.'} If transcription stops on iPhone, turn off “Keep audio” so the microphone is used only for the transcript.</p>
-
-      <div class="group-title">Data</div>
-      <div class="form-group">
-        <button class="row-btn" id="sExport">${I.share}Export backup (.json)</button>
-        <button class="row-btn" id="sImport">${I.doc}Restore from backup</button>
-        <button class="row-btn danger" id="sReset">${I.trash}Erase data on this device</button>
-      </div>
-      <p class="form-cap" style="text-align:center">Conference Copilot · works offline · your data stays yours</p>`,
-    onMount: (sh) => {
-      const el = sh.el;
-      $('#sConf', el).onchange = (e) => { state.conference = { name: e.target.value.trim(), updatedAt: now() }; touch(); renderList(); };
-      $('#sClient', el).onchange = (e) => { settings.clientId = e.target.value.trim(); saveSettings(); if (settings.clientId) loadGis().catch(() => {}); renderSync(); };
-      $('#sKey', el).onchange = (e) => { settings.apiKey = e.target.value.trim(); saveSettings(); };
-      $('#sModel', el).onchange = (e) => { settings.model = e.target.value; saveSettings(); };
-      $('#sLang', el).onchange = (e) => { settings.lang = e.target.value; saveSettings(); };
-      $('#sAudio', el).onchange = (e) => { settings.keepAudio = e.target.checked; saveSettings(); };
-      $('#sConnect', el).onclick = () => {
-        settings.clientId = $('#sClient', el).value.trim(); saveSettings();
-        if (!settings.clientId) return toast('Paste your OAuth Client ID first');
-        if (!location.origin.startsWith('http')) return toast('Open this page from an https address to use Google sign-in');
-        syncNow(true).then(() => { if (drive.connected) { sh.close(); } });
-      };
-      $('#sDisconnect', el)?.addEventListener('click', () => {
-        try { window.google?.accounts?.oauth2?.revoke(drive.token, () => {}); } catch {}
-        drive = { connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0 }; saveDrive(); sh.close(); renderSync(); toast('Drive disconnected on this device');
-      });
-      $('#sTest', el).onclick = async (e) => {
-        settings.apiKey = $('#sKey', el).value.trim(); saveSettings();
-        const b = e.currentTarget; b.innerHTML = `<span class="spin"></span> Testing…`;
-        try { await claude({ system: 'Reply with the single word: ready', content: [{ type: 'text', text: 'Ping' }], maxTokens: 64 }); b.innerHTML = `${I.checkCircle} Connected to Claude`; b.style.color = 'var(--sage)'; }
-        catch (err) { b.innerHTML = `${I.bolt} Test connection`; toast(err.message, false, 5000); }
-      };
-      $('#sExport', el).onclick = exportBackup;
-      $('#sImport', el).onclick = () => pickFile('application/json,.json', importBackup);
-      $('#sReset', el).onclick = async () => {
-        if (!await confirmSheet('Erase this device?', 'Removes sessions and notes stored on this device. Anything already synced stays in Google Drive.', 'Erase')) return;
-        state = emptyState(); await DB.put('kv', 'state', state); drive.stateFileId = ''; drive.lastSync = 0; saveDrive();
-        ui.selected = null; document.body.classList.remove('show-detail'); sh.close(); render();
-      };
-    },
-  });
-}
 async function exportBackup() {
   const media = {};
   for (const s of sessionsArr()) for (const n of liveNotes(s)) if (n.mediaId && (n.type === 'photo')) { const b = await DB.get('media', n.mediaId).catch(() => null); if (b) media[n.mediaId] = { type: b.type, data: await blobToB64(b) }; }
@@ -1658,24 +1737,6 @@ async function syncNow(interactive) {
   }
 }
 function setSync(st, msg = '') { ui.sync = st; ui.syncMsg = msg; renderSync(); }
-function renderSync() {
-  const b = $('#syncBtn');
-  let st = ui.sync;
-  if (!settings.clientId || !drive.connected) st = 'off';
-  else if (!tokenValid() && st !== 'busy' && st !== 'err') st = 'signin';
-  const map = {
-    off: ['', I.cloudOff, 'On this device'],
-    signin: ['signin', I.cloud, 'Tap to sync'],
-    pending: ['busy', I.cloud, 'Saving…'],
-    busy: ['busy', I.cloud, ui.syncMsg || 'Syncing…'],
-    ok: ['ok', I.cloudOk, 'Synced'],
-    err: ['err', I.cloudAlert, 'Sync issue'],
-  };
-  const [cls, ic, label] = map[st] || map.off;
-  b.className = 'pill ' + cls; b.innerHTML = ic + `<span>${esc(label)}</span>`;
-  b.title = st === 'err' ? ui.syncMsg : drive.lastSync ? 'Last synced ' + ago(drive.lastSync) : '';
-}
-
 async function briefToDoc(s) {
   if (!settings.clientId) { toast('Connect Google Drive in Settings to save briefs as Docs'); return openSettings(); }
   if (!tokenValid()) { try { await requestToken(true); } catch (e) { return toast(e.message); } }
@@ -1694,49 +1755,359 @@ async function briefToDoc(s) {
   } catch (e) { toast(e.message, false, 5000); }
 }
 
+
+/* ---------- Conference recap ---------- */
+async function openRecap() {
+  const done = sessionsArr().filter(s => s.attended && s.brief).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+  if (!done.length) return toast('Finish a session first');
+  const sh = openSheet({ title: 'Conference Recap', left: 'Close', cls: 'wide', body: `<div id="recapBody" class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:40px"><span class="spin"></span>Pulling your sessions together…</div>` });
+  let r;
+  try {
+    if (settings.apiKey) {
+      r = await claude({
+        system: 'You write a conference recap for one attendee from the briefs of the sessions they attended. Stay grounded in the briefs and connect ideas across sessions where the briefs support it.',
+        content: [{ type: 'text', text: `Conference: ${state.conference.name || 'Untitled'}\n\nBriefs of attended sessions:\n\n${done.map(s => briefText(s)).join('\n\n---\n\n')}\n\nWrite: headline (one line), summary (4 to 6 sentences), themes (3 to 5 cross-session themes, one sentence each), topTakeaways (5 to 8 points), actionItems (up to 8 concrete follow-ups).` }],
+        schema: { type: 'object', additionalProperties: false, required: ['headline', 'summary', 'themes', 'topTakeaways', 'actionItems'], properties: { headline: { type: 'string' }, summary: { type: 'string' }, themes: strArr, topTakeaways: strArr, actionItems: strArr } },
+      });
+    } else {
+      r = { headline: `${done.length} sessions attended`, summary: done.map(s => `${s.title}: ${s.brief.headline !== s.title ? s.brief.headline : (s.brief.keyTakeaways[0] || '')}`).join(' '), themes: [], topTakeaways: done.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), actionItems: done.flatMap(s => s.brief.actionItems) };
+    }
+  } catch (e) { const b = $('#recapBody', sh.el); if (b) b.textContent = e.message; return; }
+  const list = (a, cls, icon, t) => a?.length ? `<div class="brief-blk ${cls}"><h4>${icon}${t}</h4><ul>${a.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+  const plain = `${r.headline}\n\n${r.summary}\n\nThemes\n${(r.themes || []).map(x => '• ' + x).join('\n')}\n\nTop takeaways\n${r.topTakeaways.map(x => '• ' + x).join('\n')}\n\nFollow-ups\n${r.actionItems.map(x => '• ' + x).join('\n')}`;
+  const b = $('#recapBody', sh.el); if (!b) return;
+  b.outerHTML = `<article class="brief"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${done.length} sessions · ${esc(state.conference.name || '')}</p><h2 class="brief-head">${esc(r.headline)}</h2><p class="brief-sum">${esc(r.summary)}</p>
+    ${list(r.themes, 'b-learn', I.bulb, 'Themes')}${list(r.topTakeaways, 'b-take', I.target, 'Top takeaways')}${list(r.actionItems, 'b-act', I.flag, 'Follow-ups')}
+    <div class="brief-foot"><button class="btn btn-sm btn-gray" id="rcCopy">${I.copy} Copy</button>${navigator.share ? `<button class="btn btn-sm btn-gray" id="rcShare">${I.share} Share</button>` : ''}</div></article>`;
+  $('#rcCopy', sh.el).onclick = async () => { try { await navigator.clipboard.writeText(plain); toast('Recap copied'); } catch {} };
+  $('#rcShare', sh.el)?.addEventListener('click', () => navigator.share({ title: 'Conference recap', text: plain }).catch(() => {}));
+}
+
+/* =========================================================
+   Agenda import
+   ========================================================= */
+function openImport(start = 'paste') {
+  let mode = ['paste', 'photo', 'ics'].includes(start) ? start : 'paste', fileBlob = null, parsed = [], confName = '';
+  openSheet({
+    title: 'Add Sessions', left: 'Cancel', right: 'Add', cls: 'wide',
+    onRight: (sh) => {
+      const picks = $$('.pv-item input', sh.el).map((c, i) => c.checked ? parsed[i] : null).filter(Boolean);
+      if (!picks.length) return toast(parsed.length ? 'Select at least one session' : 'Read your agenda first');
+      if (confName && !state.conference.name) state.conference = { name: confName, updatedAt: now() };
+      for (const p of picks) createSession(p);
+      touch(); sh.close(); render(); toast(`Added ${picks.length} session${picks.length > 1 ? 's' : ''}`);
+      if (matchMedia('(min-width:760px)').matches && !ui.selected) select(filteredSessions()[0]?.id, false);
+    },
+    body: `<div class="seg" id="impSeg" style="margin:4px 0 14px">
+        <button data-m="paste">Paste Text</button><button data-m="photo">Photo or PDF</button><button data-m="ics">Calendar File</button>
+      </div>
+      <div id="impPane"></div>
+      <div id="impPreview"></div>
+      <p class="f-cap" style="text-align:center;margin-top:16px"><button class="btn btn-plain btn-sm" id="impManual">Add a single session instead</button></p>`,
+    onMount: (sh) => {
+      const pane = $('#impPane', sh.el);
+      const updateRight = () => { const n = $$('.pv-item input:checked', sh.el).length; sh.setRight(n ? `Add ${n}` : 'Add', n > 0); };
+      const draw = () => {
+        $$('[data-m]', sh.el).forEach(c => c.classList.toggle('on', c.dataset.m === mode));
+        if (mode === 'paste') pane.innerHTML = `<textarea class="big-text" id="impText" aria-label="Agenda text" placeholder="Paste the agenda from the conference site, app or email. For example:
+
+Tuesday, Oct 27
+9:00 – 9:45 AM  Opening Keynote — Jane Park — Main Stage
+10:00 – 10:45 AM  Designing Calm Interfaces · Sam Lee · Room B"></textarea>
+          <p class="f-cap">${settings.apiKey ? 'Claude reads any layout.' : 'Works best with one session per line, starting with its time. With a Claude key (Settings), any layout works.'} You’ll pick which sessions to add.</p>
+          <div class="stack" style="max-width:none"><button class="btn btn-primary" id="impGo">${I.sparkles} Find Sessions</button></div>`;
+        if (mode === 'photo') pane.innerHTML = `<div class="drop" id="impPick" role="button" tabindex="0"><b>${fileBlob ? esc(fileBlob.name || 'File selected') : 'Choose a photo, screenshot or PDF'}</b>Of the printed program or the conference app.</div>
+          <p class="f-cap">${settings.apiKey ? 'Claude reads the sessions from the image.' : 'Reading images needs a Claude API key. Add one in Settings.'}</p>
+          <div class="stack" style="max-width:none"><button class="btn btn-primary" id="impGo" ${settings.apiKey ? '' : 'disabled'}>${I.sparkles} Find Sessions</button></div>`;
+        if (mode === 'ics') pane.innerHTML = `<div class="drop" id="impPick" role="button" tabindex="0"><b>${fileBlob ? esc(fileBlob.name) : 'Choose a calendar file (.ics)'}</b>Most conference apps can export your schedule as one.</div>`;
+        $('#impPick', pane)?.addEventListener('click', () => pickFile(mode === 'ics' ? '.ics,text/calendar' : 'image/*,application/pdf', async f => {
+          fileBlob = f; draw();
+          if (mode === 'ics') { parsed = parseICS(await f.text()); showPreview(); }
+        }));
+        $('#impGo', pane)?.addEventListener('click', runParse);
+        if (mode === 'paste') setTimeout(() => $('#impText', pane)?.focus(), 250);
+      };
+      const runParse = async () => {
+        const btn = $('#impGo', pane); btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Reading…`;
+        try {
+          if (mode === 'paste') {
+            const txt = $('#impText', pane).value.trim();
+            if (!txt) throw new Error('Paste your agenda first');
+            if (settings.apiKey) ({ sessions: parsed, conferenceName: confName } = await aiParseAgenda([{ type: 'text', text: txt }]));
+            else parsed = parseAgendaText(txt);
+          } else {
+            if (!fileBlob) throw new Error('Choose a file first');
+            const isPdf = fileBlob.type === 'application/pdf';
+            const data = await blobToB64(isPdf ? fileBlob : await resizeImage(fileBlob, 2000, 0.9));
+            ({ sessions: parsed, conferenceName: confName } = await aiParseAgenda([isPdf
+              ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } }
+              : { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } }]));
+          }
+          showPreview();
+        } catch (e) { toast(e.message, false, 5000); }
+        finally { if (btn.isConnected) { btn.disabled = false; btn.innerHTML = `${I.sparkles} Find Sessions`; } }
+      };
+      const showPreview = () => {
+        const pv = $('#impPreview', sh.el);
+        if (!parsed.length) { pv.innerHTML = `<p class="f-cap" style="text-align:center">No sessions found. Try another format, or add sessions one at a time.</p>`; updateRight(); return; }
+        pv.innerHTML = `<div class="grp-t">${parsed.length} session${parsed.length > 1 ? 's' : ''} found${confName ? ' · ' + esc(confName) : ''}</div><div class="preview">${parsed.map(p => `
+          <label class="pv-item"><input type="checkbox" checked><div><b>${esc(p.title)}</b><span>${esc([p.date && fmtDate(p.date, { weekday: 'short', month: 'short', day: 'numeric' }), p.start && fmtTime(p.start) + (p.end ? '–' + fmtTime(p.end) : ''), p.speaker, p.room].filter(Boolean).join(' · '))}</span></div></label>`).join('')}</div>`;
+        $$('.pv-item input', pv).forEach(c => c.onchange = updateRight);
+        updateRight();
+        pv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      $$('[data-m]', sh.el).forEach(c => c.onclick = () => { mode = c.dataset.m; fileBlob = null; parsed = []; $('#impPreview', sh.el).innerHTML = ''; updateRight(); draw(); });
+      $('#impManual', sh.el).onclick = () => { sh.close(); openSessionForm(); };
+      updateRight(); draw();
+    },
+  });
+}
+
+/* ---------- Session form ---------- */
+function openSessionForm(s) {
+  const v = s || { title: '', date: todayISO(), start: '', end: '', speaker: '', room: '', description: '' };
+  openSheet({
+    title: s ? 'Edit Session' : 'New Session', left: 'Cancel', right: s ? 'Save' : 'Add',
+    body: `<div class="grp">
+        <div class="f-row"><input type="text" id="fTitle" placeholder="Title" aria-label="Title" value="${esc(v.title)}" style="font-weight:600"></div>
+        <div class="f-row"><input type="text" id="fSpeaker" placeholder="Speaker" aria-label="Speaker" value="${esc(v.speaker)}"></div>
+        <div class="f-row"><input type="text" id="fRoom" placeholder="Room or stage" aria-label="Room" value="${esc(v.room)}"></div>
+      </div>
+      <div class="grp-t">When</div>
+      <div class="grp">
+        <div class="f-row"><label for="fDate">Date</label><input type="date" id="fDate" value="${esc(v.date)}"></div>
+        <div class="f-row"><label for="fStart">Starts</label><input type="time" id="fStart" value="${esc(v.start)}"></div>
+        <div class="f-row"><label for="fEnd">Ends</label><input type="time" id="fEnd" value="${esc(v.end)}"></div>
+      </div>
+      <div class="grp-t">Description</div>
+      <div class="grp"><div class="f-row"><textarea id="fDesc" placeholder="Abstract (optional)" aria-label="Description">${esc(v.description)}</textarea></div></div>`,
+    onMount: (sh) => { if (!s) setTimeout(() => $('#fTitle', sh.el).focus(), 200); $('#fTitle', sh.el).onkeydown = (e) => { if (e.key === 'Enter') $('[data-act=right]', sh.el).click(); }; },
+    onRight: (sh) => {
+      const g = (id) => $(id, sh.el).value.trim();
+      const data = { title: g('#fTitle'), speaker: g('#fSpeaker'), room: g('#fRoom'), date: g('#fDate'), start: g('#fStart'), end: g('#fEnd'), description: g('#fDesc') };
+      if (!data.title) { $('#fTitle', sh.el).focus(); return toast('Give the session a title'); }
+      let id;
+      if (s) { Object.assign(S(s.id) || s, data); id = s.id; touch(S(id)); }
+      else { id = createSession(data); touch(); }
+      sh.close(); render(); if (!s) select(id);
+    },
+  });
+}
+function sessionMenu(anchor, at) {
+  const s = S(ui.selected); if (!s) return;
+  const hasNotes = liveNotes(s).length > 0;
+  openMenu(anchor, [
+    { label: s.attended ? 'Mark as Not Attended' : 'Mark as Attended', icon: I.checkCircle, run: () => toggleAttended(s) },
+    ...(hasNotes ? [{ label: s.brief ? 'Update Brief' : 'Finish & Brief', icon: I.sparkles, kbd: '⌘↩', run: () => generateBrief(s) }] : []),
+    ...(s.brief ? [{ label: 'Share Brief…', icon: I.share, run: () => shareBrief(s) }, { label: 'Save Brief to Google Docs', icon: I.doc, run: () => briefToDoc(s) }] : []),
+    { sep: true },
+    { label: 'Edit Session Details…', icon: I.pencil, run: () => openSessionForm(s) },
+    ...(s.brief ? [{ label: 'Remove Brief', icon: I.x, run: () => { s.brief = null; touch(s); render(); } }] : []),
+    { sep: true },
+    { label: 'Delete Session…', icon: I.trash, danger: true, run: async () => {
+      if (!await confirmSheet('Delete this session?', 'Its notes, photos and recordings will be removed from all your devices.', 'Delete Session')) return;
+      for (const n of s.notes) if (n.mediaId) { DB.del('media', n.mediaId).catch(() => {}); DB.del('media', n.mediaId + '_frame').catch(() => {}); }
+      state.deleted[s.id] = now(); pendingTrash.push(...s.notes.filter(n => n.driveId).map(n => n.driveId));
+      LS.set('cc.trash', pendingTrash);
+      delete state.sessions[s.id]; touch(); ui.selected = null;
+      history.replaceState(null, '', location.pathname + location.search); document.body.classList.remove('show-detail'); render();
+    } },
+  ], at);
+}
+
+/* =========================================================
+   Settings
+   ========================================================= */
+function openSettings() {
+  const models = [['claude-opus-5-5', 'Claude Opus 5.5 (best briefs)'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5 (faster)'], ['claude-haiku-5-5', 'Claude Haiku 5.5 (fastest)']];
+  const langs = [['en-US', 'English (US)'], ['en-GB', 'English (UK)'], ['es-ES', 'Español (España)'], ['es-MX', 'Español (México)'], ['pt-BR', 'Português (Brasil)'], ['fr-FR', 'Français'], ['de-DE', 'Deutsch'], ['it-IT', 'Italiano'], ['nl-NL', 'Nederlands'], ['ja-JP', '日本語'], ['zh-CN', '中文 (简体)'], ['ko-KR', '한국어'], ['hi-IN', 'हिन्दी']];
+  if (!langs.some(l => l[0] === settings.lang)) langs.unshift([settings.lang, settings.lang]);
+  const origin = location.origin.startsWith('http') ? location.origin : '(open this page from its https address first)';
+  const t = settings.theme || 'auto';
+  openSheet({
+    title: 'Settings', left: 'Close', right: 'Done', onRight: (s) => s.close(), cls: 'wide',
+    onClose: () => render(),
+    body: `
+      <div class="grp-t">Appearance</div>
+      <div class="grp"><div class="f-row"><label>Theme</label>
+        <div class="seg in-form" id="sTheme">${Object.entries(THEMES).map(([k, [l]]) => `<button data-t="${k}" class="${t === k ? 'on' : ''}">${l}</button>`).join('')}</div></div></div>
+      <p class="f-cap">Auto matches your device and switches with it.</p>
+
+      <div class="grp-t">Conference</div>
+      <div class="grp"><div class="f-row"><input type="text" id="sConf" placeholder="Conference name" aria-label="Conference name" value="${esc(state.conference.name)}"></div></div>
+
+      <div class="grp-t">Sync with Google Drive</div>
+      <div class="grp">
+        <div class="f-row"><label>Status</label><span class="val">${drive.connected ? (tokenValid() ? 'Connected' : 'Connected, tap Sync Now to refresh') : 'Not connected'}${drive.lastSync ? ' · synced ' + esc(ago(drive.lastSync)) : ''}</span></div>
+        <div class="f-row col"><label for="sClient">OAuth Client ID</label><input type="text" id="sClient" placeholder="1234-abc.apps.googleusercontent.com" value="${esc(settings.clientId)}" autocapitalize="off" autocomplete="off" spellcheck="false"></div>
+        <button class="r-btn" id="sConnect">${I.cloud}${drive.connected ? 'Sync Now' : 'Connect Google Drive'}</button>
+        ${drive.connected ? `<button class="r-btn danger" id="sDisconnect">${I.cloudOff}Disconnect This Device</button>` : ''}
+      </div>
+      <details class="help"><summary>How to set up sync (once, about 5 minutes)</summary><ol>
+        <li>Open Copilot from its <b>https</b> address (for example GitHub Pages), and use that same address on your Mac, iPad and iPhone.</li>
+        <li>In <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, create a project and enable the <b>Google Drive API</b>.</li>
+        <li>Under <b>OAuth consent screen</b>, choose External, name the app, and add your Google account as a test user.</li>
+        <li>Under <b>Credentials → Create credentials → OAuth client ID</b>, choose <b>Web application</b> and add this Authorized JavaScript origin: <code>${esc(origin)}</code></li>
+        <li>Paste the Client ID above and choose Connect. Do the same on each device.</li>
+      </ol><p style="margin:8px 0 0">Copilot only sees files it creates: a <b>Conference Copilot</b> folder in your Drive with your notes, media and briefs.</p></details>
+
+      <div class="grp-t">Briefs</div>
+      <div class="grp">
+        <div class="f-row col"><label for="sKey">Claude API key</label><input type="password" id="sKey" placeholder="sk-ant-…" value="${esc(settings.apiKey)}" autocomplete="off" spellcheck="false"></div>
+        <div class="f-row"><label for="sModel">Model</label><select id="sModel">${models.map(([v, l]) => `<option value="${v}" ${settings.model === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <button class="r-btn" id="sTest">${I.bolt}Test Connection</button>
+      </div>
+      <p class="f-cap">Create a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It stays on this device and is sent only to Anthropic. Without a key, Copilot writes a simpler brief on this device.</p>
+
+      <div class="grp-t">Recording</div>
+      <div class="grp">
+        <div class="f-row"><label for="sLang">Speaker’s language</label><select id="sLang">${langs.map(([v, l]) => `<option value="${v}" ${settings.lang === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div class="f-row"><label for="sAudio" style="flex:1">Keep audio with the transcript</label><span class="switch"><input type="checkbox" id="sAudio" ${settings.keepAudio ? 'checked' : ''}><span></span></span></div>
+      </div>
+      <p class="f-cap">${SR ? 'Live transcription uses your browser’s speech recognition (Safari and Chrome).' : 'This browser has no live transcription, so recordings are saved as audio only. Safari and Chrome support it.'} If transcription keeps stopping on iPhone, turn off Keep audio.</p>
+
+      <div class="grp-t">Data</div>
+      <div class="grp">
+        <button class="r-btn" id="sExport">${I.share}Export Backup…</button>
+        <button class="r-btn" id="sImport">${I.doc}Restore from Backup…</button>
+        <button class="r-btn danger" id="sReset">${I.trash}Erase Data on This Device…</button>
+      </div>
+      <p class="f-cap" style="text-align:center;margin-top:16px">Works offline. Your notes stay on your devices and in your own Drive.</p>`,
+    onMount: (sh) => {
+      const el = sh.el;
+      $$('#sTheme button', el).forEach(b => b.onclick = () => { setTheme(b.dataset.t); $$('#sTheme button', el).forEach(x => x.classList.toggle('on', x === b)); });
+      $('#sConf', el).onchange = (e) => { state.conference = { name: e.target.value.trim(), updatedAt: now() }; touch(); renderSidebar(); renderList(); };
+      $('#sClient', el).onchange = (e) => { settings.clientId = e.target.value.trim(); saveSettings(); if (settings.clientId) loadGis().catch(() => {}); renderSync(); };
+      $('#sKey', el).onchange = (e) => { settings.apiKey = e.target.value.trim(); saveSettings(); };
+      $('#sModel', el).onchange = (e) => { settings.model = e.target.value; saveSettings(); };
+      $('#sLang', el).onchange = (e) => { settings.lang = e.target.value; saveSettings(); };
+      $('#sAudio', el).onchange = (e) => { settings.keepAudio = e.target.checked; saveSettings(); };
+      $('#sConnect', el).onclick = () => {
+        settings.clientId = $('#sClient', el).value.trim(); saveSettings();
+        if (!settings.clientId) return toast('Paste your OAuth Client ID first');
+        if (!location.origin.startsWith('http')) return toast('Open this page from its https address to sign in to Google');
+        syncNow(true).then(() => { if (drive.connected) sh.close(); });
+      };
+      $('#sDisconnect', el)?.addEventListener('click', () => {
+        try { window.google?.accounts?.oauth2?.revoke(drive.token, () => {}); } catch {}
+        drive = { connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0 }; saveDrive(); sh.close(); renderSync(); toast('Drive disconnected on this device');
+      });
+      $('#sTest', el).onclick = async (e) => {
+        settings.apiKey = $('#sKey', el).value.trim(); saveSettings();
+        const b = e.currentTarget; b.innerHTML = `<span class="spin"></span> Testing…`;
+        try { await claude({ system: 'Reply with the single word: ready', content: [{ type: 'text', text: 'Ping' }], maxTokens: 64 }); b.innerHTML = `${I.checkCircle} Connected to Claude`; b.style.color = 'var(--green)'; }
+        catch (err) { b.innerHTML = `${I.bolt}Test Connection`; toast(err.message, false, 5000); }
+      };
+      $('#sExport', el).onclick = exportBackup;
+      $('#sImport', el).onclick = () => pickFile('application/json,.json', importBackup);
+      $('#sReset', el).onclick = async () => {
+        if (!await confirmSheet('Erase this device?', 'Removes sessions and notes stored on this device. Anything already synced stays in Google Drive.', 'Erase')) return;
+        state = emptyState(); await DB.put('kv', 'state', state); drive.stateFileId = ''; drive.lastSync = 0; saveDrive();
+        ui.selected = null; document.body.classList.remove('show-detail'); sh.close(); render();
+      };
+    },
+  });
+}
+
+/* ---------- Sync status ---------- */
+function renderSync() {
+  let st = ui.sync;
+  if (!settings.clientId || !drive.connected) st = 'off';
+  else if (!tokenValid() && st !== 'busy' && st !== 'err') st = 'signin';
+  const map = {
+    off: ['', I.cloudOff, 'On This Device'],
+    signin: ['signin', I.cloud, 'Sync Paused'],
+    pending: ['busy', I.cloud, 'Saving…'],
+    busy: ['busy', I.cloud, ui.syncMsg || 'Syncing…'],
+    ok: ['ok', I.cloudOk, 'Synced'],
+    err: ['err', I.cloudAlert, 'Sync Issue'],
+  };
+  const [cls, ic, label] = map[st] || map.off;
+  const tip = st === 'off' ? 'Saved on this device. Connect Google Drive in Settings to sync.' : st === 'signin' ? 'Click to reconnect Google Drive' : st === 'err' ? ui.syncMsg : drive.lastSync ? 'Last synced ' + ago(drive.lastSync) : '';
+  for (const b of [$('#syncBtn'), $('#syncBtn2')]) { b.className = `sync ${cls} ${b.id === 'syncBtn2' ? 'no-sidebar' : ''}`; b.innerHTML = ic + `<span>${esc(label)}</span>`; b.title = tip; }
+}
+
 /* =========================================================
    Wire-up
    ========================================================= */
+const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
 function bindStatic() {
-  $('#addBtn').innerHTML = I.plus; $('#settingsBtn').innerHTML = I.gear; $('#searchIcon').innerHTML = I.search;
-  $('#backBtn').innerHTML = I.left + 'Agenda'; $('#moreBtn').innerHTML = I.more;
-  $('#photoBtn').innerHTML = I.camera; $('#videoBtn').innerHTML = I.video; $('#micBtn').innerHTML = I.mic; $('#sendBtn').innerHTML = I.up;
-  $('#addBtn').onclick = openImport;
-  $('#settingsBtn').onclick = openSettings;
-  $('#syncBtn').onclick = () => settings.clientId && drive.connected ? syncNow(true) : openSettings();
-  $$('#filterSeg button').forEach(b => b.onclick = () => { ui.filter = b.dataset.f; LS.set('cc.filter', ui.filter); renderList(); });
+  $('#addBtn').innerHTML = I.plus; $('#settingsBtn').innerHTML = I.gear; $('#settingsBtn2').innerHTML = I.gear; $('#searchIcon').innerHTML = I.search;
+  $('#backBtn').innerHTML = I.left + 'Agenda'; $('#moreBtn').innerHTML = I.more; $('#shareBtn').innerHTML = I.share;
+  $('#photoBtn').innerHTML = I.camera; $('#videoBtn').innerHTML = I.video; $('#sendBtn').innerHTML = I.up;
+  applyTheme();
+  $('#addBtn').onclick = () => openImport();
+  $('#settingsBtn').onclick = $('#settingsBtn2').onclick = openSettings;
+  $('#themeBtn').onclick = () => { const order = ['auto', 'light', 'dark']; const t = order[(order.indexOf(settings.theme || 'auto') + 1) % 3]; setTheme(t); toast(`Appearance: ${THEMES[t][0]}`); };
+  $('#syncBtn').onclick = $('#syncBtn2').onclick = () => settings.clientId && drive.connected ? syncNow(true) : openSettings();
+  $$('#filterSeg button').forEach(b => b.onclick = () => setView(b.dataset.f));
   $('#search').oninput = (e) => { ui.q = e.target.value; renderList(); };
+  $('#search').onkeydown = (e) => { if (e.key === 'Escape') { e.target.value = ''; ui.q = ''; renderList(); e.target.blur(); } };
   $('#backBtn').onclick = () => history.length > 1 && location.hash ? history.back() : select(null, false);
-  $('#moreBtn').onclick = sessionMenu;
-  $('#detail').addEventListener('scroll', (e) => $('#detailNav').classList.toggle('scrolled', e.target.scrollTop > 4), { passive: true });
+  $('#moreBtn').onclick = (e) => sessionMenu(e.currentTarget);
+  $('#shareBtn').onclick = () => { const s = S(ui.selected); s?.brief && shareBrief(s); };
+  $('#briefBtn').onclick = () => { const s = S(ui.selected); s && generateBrief(s); };
+  $('#detail').addEventListener('scroll', (e) => $('#detailBar').classList.toggle('scrolled', e.target.scrollTop > 4), { passive: true });
   const ta = $('#noteInput');
   ta.oninput = () => { autoGrow(); $('#sendBtn').disabled = !ta.value.trim(); };
-  ta.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey && !isTouch && !e.isComposing) { e.preventDefault(); sendText(); } };
+  ta.onkeydown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !isTouch && !e.isComposing) { e.preventDefault(); sendText(); }
+    if (e.key === 'Escape') ta.blur();
+  };
   $('#sendBtn').onclick = sendText;
-  $('#starToggle').onclick = () => { ui.composeStar = !ui.composeStar; updateComposer(); };
+  $('#starToggle').onclick = () => { ui.composeStar = !ui.composeStar; updateComposer(); ta.focus(); };
   $('#photoBtn').onclick = () => { const i = $('#photoInput'); i.value = ''; i.click(); };
   $('#videoBtn').onclick = () => { const i = $('#videoInput'); i.value = ''; i.click(); };
   $('#photoInput').onchange = (e) => onPhotos([...e.target.files]);
   $('#videoInput').onchange = (e) => onVideo(e.target.files[0]);
   $('#micBtn').onclick = () => rec.active ? stopRecording(true) : startRecording();
-  $('#wrapBtn').onclick = () => { const s = S(ui.selected); s && generateBrief(s); };
+  paintMic();
+
+  // Drop photos or videos onto a session
+  const dp = $('#detailPane');
+  dp.addEventListener('dragover', e => { if (S(ui.selected) && e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
+  dp.addEventListener('drop', e => {
+    if (!S(ui.selected)) return; e.preventDefault();
+    const files = [...e.dataTransfer.files];
+    const imgs = files.filter(f => f.type.startsWith('image/')); if (imgs.length) onPhotos(imgs);
+    files.filter(f => f.type.startsWith('video/')).forEach(onVideo);
+  });
+
+  // Keyboard: Mac conventions
+  addEventListener('keydown', (e) => {
+    const mod = e.metaKey || e.ctrlKey;
+    if (e.key === 'Escape') { if (menuEl) return closeMenu(); if (sheetStack.length) return sheetStack.at(-1).close(); }
+    if (sheetStack.length || menuEl) return;
+    if (mod && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#search').focus(); $('#search').select(); return; }
+    if (mod && e.key === 'Enter') { const s = S(ui.selected); if (s && liveNotes(s).length) { e.preventDefault(); generateBrief(s); } return; }
+    if (typing()) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const list = filteredSessions(); if (!list.length) return;
+      e.preventDefault();
+      const i = list.findIndex(s => s.id === ui.selected);
+      const next = list[Math.max(0, Math.min(list.length - 1, i < 0 ? 0 : i + (e.key === 'ArrowDown' ? 1 : -1)))];
+      select(next.id, false);
+    }
+    if (e.key === 'Enter' && S(ui.selected) && !e.target.closest?.('button')) { e.preventDefault(); $('#noteInput').focus(); }
+  });
+
   // Keep the composer above the on-screen keyboard on iOS
-  if (window.visualViewport) {
-    const fit = () => { $('#app').style.height = visualViewport.height + 'px'; window.scrollTo(0, 0); };
-    visualViewport.addEventListener('resize', fit);
-  }
+  if (window.visualViewport && isTouch) visualViewport.addEventListener('resize', () => { $('#app').style.height = visualViewport.height + 'px'; window.scrollTo(0, 0); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && drive.connected && tokenValid()) syncNow(false); });
-  setInterval(() => { if (!sheetStack.length && document.visibilityState === 'visible') { renderList(); renderSync(); } }, 60000);
+  setInterval(() => { if (!sheetStack.length && !menuEl && document.visibilityState === 'visible') { renderList(); renderSync(); } }, 60000);
   addEventListener('beforeunload', (e) => { if (rec.active) { e.preventDefault(); e.returnValue = ''; } });
+  addEventListener('resize', () => { closeMenu(); });
 }
 
 async function boot() {
   bindStatic();
   try { const saved = await DB.get('kv', 'state'); if (saved?.sessions) state = Object.assign(emptyState(), saved); }
-  catch (e) { toast('Local storage is unavailable (private mode?) — notes won’t persist.', false, 6000); }
+  catch { toast('Local storage is unavailable (private browsing?). Notes won’t be kept.', false, 6000); }
+  if (ui.view === 'today' && !sessionsArr().some(VIEWS.today.test)) ui.view = 'all';
+  if (ui.view.startsWith('day:') && !days().includes(ui.view.slice(4))) ui.view = 'all';
   const m = location.hash.match(/s=([\w]+)/);
   if (m && S(m[1])) { ui.selected = m[1]; document.body.classList.add('show-detail'); }
-  else if (wide()) { const list = filteredSessions(); ui.selected = (list.find(isLive) || list.find(s => !s.attended) || list[0])?.id || null; }
+  else if (matchMedia('(min-width:760px)').matches) { const list = filteredSessions(); ui.selected = (list.find(isLive) || list.find(s => !s.attended) || list[0])?.id || null; }
   render();
   if (settings.clientId) loadGis().catch(() => {});
   if (drive.connected && tokenValid()) syncNow(false);
