@@ -637,7 +637,7 @@ const LS = {
 /* ---------- App state ---------- */
 const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, updatedAt: 0 });
 let state = emptyState();
-let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '' }, LS.get('cc.settings', {}));
+let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
 const ui = { view: LS.get('cc.view', 'today'), descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
 const saveSettings = () => LS.set('cc.settings', settings);
@@ -1299,6 +1299,8 @@ async function claude({ system, content, schema, maxTokens = 16000 }) {
     const body = { model, max_tokens: maxTokens, system, messages: [{ role: 'user', content }], output_config: { effort: 'medium' } };
     if (schema && extras) body.output_config.format = { type: 'json_schema', schema };
     const headers = { 'content-type': 'application/json', 'x-api-key': settings.apiKey, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' };
+    // Organization-level keys aren't tied to a workspace and must name one on every request
+    if (settings.workspaceId) headers['anthropic-workspace-id'] = settings.workspaceId;
     // Server-side refusal fallback (not offered on Haiku)
     if (extras && model !== 'claude-haiku-5-5') { headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; body.fallbacks = 'default'; }
     return { method: 'POST', headers, body: JSON.stringify(body) };
@@ -1313,6 +1315,9 @@ async function claude({ system, content, schema, maxTokens = 16000 }) {
     const j = await res.json().catch(() => ({}));
     const msg = j?.error?.message || res.statusText;
     if (res.status === 401) throw new Error('Claude rejected the API key. Check it in Settings.');
+    if (/workspace/i.test(msg) && /scoped|anthropic-workspace-id|not found|invalid/i.test(msg)) throw Object.assign(new Error(settings.workspaceId
+      ? 'Claude didn’t accept that workspace ID. Check it in Settings → Briefs.'
+      : 'This API key needs a workspace ID. Add it in Settings → Briefs.'), { code: 'NEED_WS' });
     if (res.status === 429) throw new Error('Claude is rate-limiting this key. Try again in a minute.');
     throw new Error(`Claude error (${res.status}): ${msg}`);
   }
@@ -1380,7 +1385,7 @@ async function generateBrief(s) {
   } catch (e) {
     console.error(e);
     toast(e.message || 'Could not create the brief', false, 5000);
-    if (e.code === 'NO_KEY') openSettings();
+    if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings();
   } finally {
     ui.busyBrief = null;
     if (ui.selected === s.id) { renderDetail(); $('#detail').scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -2168,10 +2173,12 @@ function openSettings() {
       <div class="grp-t">Briefs</div>
       <div class="grp">
         <div class="f-row col"><label for="sKey">Claude API key</label><input type="password" id="sKey" placeholder="sk-ant-…" value="${esc(settings.apiKey)}" autocomplete="off" spellcheck="false"></div>
+        <div class="f-row col"><label for="sWs">Workspace ID (only if your key asks for one)</label><input type="text" id="sWs" placeholder="wrkspc_…" value="${esc(settings.workspaceId)}" autocapitalize="off" autocomplete="off" spellcheck="false"></div>
         <div class="f-row"><label for="sModel">Model</label><select id="sModel">${models.map(([v, l]) => `<option value="${v}" ${settings.model === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
         <button class="r-btn" id="sTest">${I.bolt}Test Connection</button>
       </div>
       <p class="f-cap">Create a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It stays on this device and is sent only to Anthropic. Without a key, Copilot writes a simpler brief on this device.</p>
+      <p class="f-cap">If Claude says the key “is not scoped to a workspace”, it’s an organization-wide key: paste the ID of the workspace to bill (it starts with <code>wrkspc_</code>, under Settings → Workspaces in the Console), or create a key inside a workspace and leave this blank.</p>
 
       <div class="grp-t">Recording</div>
       <div class="grp">
@@ -2193,6 +2200,7 @@ function openSettings() {
       $('#sConf', el).onchange = (e) => { state.conference = { name: e.target.value.trim(), updatedAt: now() }; touch(); renderSidebar(); renderList(); };
       $('#sClient', el).onchange = (e) => { settings.clientId = e.target.value.trim(); saveSettings(); if (settings.clientId) loadGis().catch(() => {}); renderSync(); };
       $('#sKey', el).onchange = (e) => { settings.apiKey = e.target.value.trim(); saveSettings(); };
+      $('#sWs', el).onchange = (e) => { settings.workspaceId = e.target.value.trim(); saveSettings(); };
       $('#sModel', el).onchange = (e) => { settings.model = e.target.value; saveSettings(); };
       $('#sLang', el).onchange = (e) => { settings.lang = e.target.value; saveSettings(); };
       $('#sAudio', el).onchange = (e) => { settings.keepAudio = e.target.checked; saveSettings(); };
@@ -2207,7 +2215,7 @@ function openSettings() {
         drive = { connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0 }; saveDrive(); sh.close(); renderSync(); toast('Drive disconnected on this device');
       });
       $('#sTest', el).onclick = async (e) => {
-        settings.apiKey = $('#sKey', el).value.trim(); saveSettings();
+        settings.apiKey = $('#sKey', el).value.trim(); settings.workspaceId = $('#sWs', el).value.trim(); saveSettings();
         const b = e.currentTarget; b.innerHTML = `<span class="spin"></span> Testing…`;
         try { await claude({ system: 'Reply with the single word: ready', content: [{ type: 'text', text: 'Ping' }], maxTokens: 64 }); b.innerHTML = `${I.checkCircle} Connected to Claude`; b.style.color = 'var(--green)'; }
         catch (err) { b.innerHTML = `${I.bolt}Test Connection`; toast(err.message, false, 5000); }
