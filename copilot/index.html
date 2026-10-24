@@ -591,6 +591,10 @@ body.cal-mode #sortBtn{display:none}
 .rec-btn svg{width:18px;height:18px}
 @media (max-width:759px){.rec-btn span{display:none}.rec-btn{padding:0 10px;width:38px;justify-content:center}}
 .hint{font-size:.75rem;color:var(--text-3);text-align:center;margin-top:7px}
+.hint-btn{font:inherit;color:inherit;padding:2px 8px;border-radius:6px}
+.hint-btn:hover{background:var(--fill);color:var(--text-2)}
+.hint-btn span{font-size:.65rem;opacity:.7}
+.combo-box{display:inline-flex;min-width:180px;justify-content:center;padding:14px 20px;border-radius:12px;background:var(--fill);font-size:1.5rem;font-weight:600;letter-spacing:.04em;font-variant-numeric:tabular-nums}
 @media (hover:none){.hint{display:none}}
 
 .dock{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--sep);box-shadow:var(--shadow-2);border-radius:16px;padding:10px 10px 10px 14px;margin-bottom:10px;animation:rise .35s var(--ease)}
@@ -870,7 +874,7 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
           </div>
           <button class="rec-btn" id="micBtn" title="Record the speaker  ⌘⇧R"></button>
         </div>
-        <div class="hint">Return adds the note · Shift-Return for a new line</div>
+        <div class="hint"><button id="sendHint" class="hint-btn" title="Choose how the keyboard adds a note">Return adds the note · Shift-Return for a new line</button></div>
       </div>
     </div>
   </section>
@@ -1834,6 +1838,79 @@ function addNote(s, note) {
   s.notes = s.notes || []; s.notes.push(n); touch(s);
   scheduleAutoTitle(s);
   return n;
+}
+/* ---------- How a note is added from the keyboard: Return, ⌘-Return, a combination the user records, or the button only ---------- */
+const isMacLike = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+const SEND_MODES = { enter: 'Return', mod: isMacLike ? '⌘-Return' : 'Ctrl-Return', custom: 'Your own combination', button: 'Send button only' };
+const sendMode = () => SEND_MODES[settings.sendKey] && (settings.sendKey !== 'custom' || settings.sendCombo) ? settings.sendKey : (isTouch ? 'button' : 'enter');
+const isEnterCode = (c) => c === 'Enter' || c === 'NumpadEnter';
+function comboOf(e) { return { code: isEnterCode(e.code) || e.key === 'Enter' ? 'Enter' : e.code, key: e.key, meta: e.metaKey, ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey }; }
+function comboLabel(c) {
+  if (!c) return '';
+  const name = c.code === 'Enter' ? 'Return' : c.code === 'Space' ? 'Space' : c.code === 'Tab' ? 'Tab' : /^Key[A-Z]$/.test(c.code) ? c.code.slice(3) : /^Digit\d$/.test(c.code) ? c.code.slice(5) : /^F\d+$/.test(c.code) ? c.code : (c.key?.length === 1 ? c.key.toUpperCase() : c.key || c.code);
+  return isMacLike ? `${c.ctrl ? '⌃' : ''}${c.alt ? '⌥' : ''}${c.shift ? '⇧' : ''}${c.meta ? '⌘' : ''}${name}` : [c.ctrl && 'Ctrl', c.alt && 'Alt', c.shift && 'Shift', c.meta && 'Win', name].filter(Boolean).join('+');
+}
+const sameCombo = (a, b) => a && b && a.code === b.code && !!a.meta === !!b.meta && !!a.ctrl === !!b.ctrl && !!a.alt === !!b.alt && !!a.shift === !!b.shift;
+// Does this key press add the note? (and the hint line that says so)
+function isSendKey(e) {
+  if (e.isComposing) return false;
+  const m = sendMode(), enter = e.key === 'Enter' || isEnterCode(e.code);
+  if (m === 'enter') return enter && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey;
+  if (m === 'mod') return enter && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey;
+  if (m === 'custom') return sameCombo(comboOf(e), settings.sendCombo);
+  return false;
+}
+function sendHint() {
+  const m = sendMode();
+  if (m === 'enter') return 'Return adds the note · Shift-Return for a new line';
+  if (m === 'mod') return `${SEND_MODES.mod} adds the note · Return for a new line`;
+  if (m === 'custom') return `${comboLabel(settings.sendCombo)} adds the note · Return for a new line`;
+  return 'Return for a new line · the send button adds the note';
+}
+function applySendMode() {
+  const ta = $('#noteInput'); if (ta) ta.setAttribute('enterkeyhint', sendMode() === 'enter' ? 'send' : 'enter');
+  const h = $('#sendHint'); if (h) h.innerHTML = `${esc(sendHint())} <span aria-hidden="true">▾</span>`;
+}
+function setSendMode(m, combo) {
+  settings.sendKey = m; if (combo) settings.sendCombo = combo; saveSettings(); applySendMode();
+  toast(m === 'custom' ? `${comboLabel(settings.sendCombo)} now adds a note` : m === 'button' ? 'Only the send button adds a note now' : `${SEND_MODES[m]} now adds a note`);
+}
+function sendKeyMenu(anchor) {
+  const m = sendMode();
+  openMenu(anchor, [
+    { label: 'Add a note with…', head: true },
+    { label: `${m === 'enter' ? '✓ ' : ''}Return (Shift-Return for a new line)`, run: () => setSendMode('enter') },
+    { label: `${m === 'mod' ? '✓ ' : ''}${SEND_MODES.mod} (Return for a new line)`, run: () => setSendMode('mod') },
+    { label: `${m === 'custom' ? '✓ ' : ''}${settings.sendCombo ? `My combination: ${comboLabel(settings.sendCombo)}` : 'My own combination…'}`, run: () => settings.sendCombo && m !== 'custom' ? setSendMode('custom') : recordCombo() },
+    ...(settings.sendCombo ? [{ label: 'Record a New Combination…', run: () => recordCombo() }] : []),
+    { label: `${m === 'button' ? '✓ ' : ''}Send button only`, run: () => setSendMode('button') },
+  ]);
+}
+// Listens for the next key combination; plain letters and keys the browser keeps for itself are refused
+function recordCombo(after) {
+  let picked = null;
+  const sh = openSheet({ title: 'Your Key Combination', left: 'Cancel', right: 'Use It', onClose: () => { removeEventListener('keydown', onKey, true); after?.(); },
+    onRight: (api) => { if (!picked) return; setSendMode('custom', picked); api.close(); },
+    body: `<div class="wr-ready" style="padding:18px 8px 8px"><p class="muted" style="margin:0 0 14px">Press the keys you want to use to add a note, for example ${isMacLike ? '⌥Return or ⌘S' : 'Alt+Return or Ctrl+S'}.</p>
+      <div class="combo-box" id="cbBox">Waiting for keys…</div><p class="f-cap" id="cbMsg" style="min-height:1.4em;margin-top:10px"></p></div>` });
+  sh.setRight('Use It', false);
+  const box = $('#cbBox', sh.el), msg = $('#cbMsg', sh.el);
+  const reserved = (c) => (c.meta || c.ctrl) && ['KeyQ', 'KeyW', 'KeyT', 'KeyN', 'Tab'].includes(c.code);
+  function onKey(e) {
+    if (!sh.el.isConnected) return;
+    if (['Meta', 'Control', 'Alt', 'Shift', 'CapsLock', 'Fn'].includes(e.key)) { e.preventDefault(); return; }
+    e.preventDefault(); e.stopPropagation();
+    if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey) return sh.close();
+    const c = comboOf(e), printable = e.key.length === 1 && !c.meta && !c.ctrl && !c.alt;
+    box.textContent = comboLabel(c);
+    if (printable || (c.code === 'Space' && !c.meta && !c.ctrl && !c.alt)) { picked = null; msg.textContent = 'That key types text. Add ⌘, ⌃ or ⌥ (Ctrl or Alt) to it.'; }
+    else if (c.code === 'Enter' && !c.meta && !c.ctrl && !c.alt && !c.shift) { picked = null; msg.textContent = 'That is plain Return: choose “Return” in the menu instead.'; }
+    else if (c.code === 'Enter' && c.shift && !c.meta && !c.ctrl && !c.alt) { picked = c; msg.textContent = 'Shift-Return will add the note, and Return will make a new line.'; }
+    else if (reserved(c)) { picked = null; msg.textContent = 'The browser keeps that combination for itself. Try another.'; }
+    else { picked = c; msg.textContent = c.code === 'Enter' && (c.meta || c.ctrl) ? 'In the note field this replaces Finish & Brief (still in the ⋯ menu).' : 'Press Use It to keep this combination.'; }
+    sh.setRight('Use It', !!picked);
+  }
+  addEventListener('keydown', onKey, true);
 }
 function sendText() {
   const s = S(ui.selected); const ta = $('#noteInput'); const text = ta.value.trim();
@@ -4266,6 +4343,13 @@ function openSettings() {
         <div class="seg in-form" id="sTheme">${Object.entries(THEMES).map(([k, [l]]) => `<button data-t="${k}" class="${t === k ? 'on' : ''}">${l}</button>`).join('')}</div></div></div>
       <p class="f-cap">Auto matches your device and switches with it.</p>
 
+      <div class="grp-t">Notes</div>
+      <div class="grp">
+        <div class="f-row"><label for="sSend">Add a note with</label><select id="sSend">${Object.entries(SEND_MODES).map(([k, l]) => `<option value="${k}" ${sendMode() === k ? 'selected' : ''}>${k === 'custom' && settings.sendCombo ? `My combination: ${esc(comboLabel(settings.sendCombo))}` : esc(l)}</option>`).join('')}</select></div>
+        <button class="r-btn" id="sCombo">${I.pencil}${settings.sendCombo ? `Change My Combination (${esc(comboLabel(settings.sendCombo))})…` : 'Record My Own Combination…'}</button>
+      </div>
+      <p class="f-cap" id="sSendCap">${esc(sendHint())}. This is saved on this device${isTouch ? '; with the on-screen keyboard, the send button always works too' : ''}.</p>
+
       <div class="grp-t">Conference</div>
       <div class="grp"><div class="f-row"><input type="text" id="sConf" placeholder="Conference name" aria-label="Conference name" value="${esc(state.conference.name)}"></div></div>
 
@@ -4322,6 +4406,9 @@ function openSettings() {
       $('#sKey', el).onchange = (e) => { settings.apiKey = e.target.value.trim(); saveSettings(); };
       $('#sDg', el).onchange = (e) => { settings.dgKey = e.target.value.trim(); saveSettings(); };
       $('#sBoost', el).onchange = (e) => { settings.micBoost = e.target.value; saveSettings(); };
+      const sendCap = () => { $('#sSendCap', el).textContent = `${sendHint()}. This is saved on this device.`; $('#sSend', el).value = sendMode(); };
+      $('#sSend', el).onchange = (e) => { if (e.target.value === 'custom' && !settings.sendCombo) { e.target.value = sendMode(); return recordCombo(sendCap); } setSendMode(e.target.value); sendCap(); };
+      $('#sCombo', el).onclick = () => recordCombo(() => { sendCap(); const o = $('#sSend option[value=custom]', el); if (o && settings.sendCombo) o.textContent = `My combination: ${comboLabel(settings.sendCombo)}`; $('#sCombo', el).lastChild.textContent = settings.sendCombo ? `Change My Combination (${comboLabel(settings.sendCombo)})…` : 'Record My Own Combination…'; });
       $('#sMic', el).onclick = () => { settings.dgKey = $('#sDg', el).value.trim(); saveSettings(); openMicCheck(); };
       $('#sWs', el).onchange = (e) => { settings.workspaceId = e.target.value.trim(); saveSettings(); };
       $('#sModel', el).onchange = (e) => { settings.model = e.target.value; saveSettings(); };
@@ -4422,9 +4509,12 @@ function bindStatic() {
   // Buttons inside the field must not take focus away from it (that would close the keyboard)
   ['#sendBtn', '#starToggle'].forEach(id => $(id).addEventListener('pointerdown', e => e.preventDefault()));
   ta.onkeydown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !isTouch && !e.isComposing) { e.preventDefault(); sendText(); }
+    // The chosen way to add a note wins over app shortcuts on the same keys (⌘-Return is Finish & Brief elsewhere)
+    if (isSendKey(e)) { e.preventDefault(); e.stopPropagation(); sendText(); return; }
     if (e.key === 'Escape') ta.blur();
   };
+  $('#sendHint').onclick = (e) => sendKeyMenu(e.currentTarget);
+  applySendMode();
   $('#sendBtn').onclick = sendText;
   $('#starToggle').onclick = () => { ui.composeStar = !ui.composeStar; updateComposer(); ta.focus(); };
   $('#photoBtn').onclick = () => { const i = $('#photoInput'); i.value = ''; i.click(); };
