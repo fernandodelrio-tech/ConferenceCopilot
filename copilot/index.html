@@ -868,7 +868,7 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
       <h2 class="large-title no-sidebar">Agenda</h2>
       <div class="list-sub no-sidebar" id="confName"></div>
       <div class="seg no-sidebar" id="filterSeg" role="tablist">
-        <button data-f="all" role="tab">All</button><button data-f="todo" role="tab">To Attend</button><button data-f="attended" role="tab">Attended</button>
+        <button data-f="now" role="tab">Now</button><button data-f="all" role="tab">All</button><button data-f="todo" role="tab">To Attend</button><button data-f="attended" role="tab">Attended</button>
       </div>
       <label class="search"><span id="searchIcon"></span><input id="search" type="search" placeholder="Search" autocomplete="off" aria-label="Search sessions and notes"><kbd>⌘F</kbd></label>
     </div>
@@ -1247,8 +1247,8 @@ function nowNext(from) {
   const upcoming = today.filter(s => s !== anchor && hmMin(s.start) > cur && hmMin(s.start) >= after);
   const group = (list) => list.length ? list.filter(s => hmMin(s.start) - hmMin(list[0].start) <= 15) : [];
   const choices = group(upcoming), later = upcoming.filter(s => !choices.includes(s));
-  const nd = formal.find(s => s.date > t), nextDay = nd ? group(formal.filter(s => s.date === nd.date)) : [];
-  return { now, anchor, choices, later, nextDay, cur };
+  const nd = formal.find(s => s.date > t), nextDayAll = nd ? formal.filter(s => s.date === nd.date) : [], nextDay = group(nextDayAll);
+  return { now, anchor, choices, later, nextDay, nextDayAll, cur };
 }
 const isBreak = (s) => /logistic|networking|break|lunch|breakfast|reception|registration/i.test(`${s.type || ''} ${s.title}`) && !/session/i.test(s.type || '');
 function nnItem(s, ref, cur, opts = {}) {
@@ -1279,8 +1279,10 @@ function paintUpNext() {
 function nnCompactHTML() {
   const sel = S(ui.selected), from = sel && isLive(sel) ? sel : null;
   const ref = from || nowNext().now[0];
-  const { now, choices, cur } = nowNext(ref);
-  if (!now.length && !choices.length) return '';
+  const { now, choices, nextDay, cur } = nowNext(ref);
+  // Before the conference, or once today is done: the next day's first sessions
+  if (!now.length && !choices.length) return nextDay.length ? `<div class="nn-compact"><div class="nn-h"><span>${I.clock} Now & Next</span><button class="nn-more" data-now>Open ›</button></div>
+    <div class="nn-lab">First up · ${esc(fmtDate(nextDay[0].date, { weekday: 'short', month: 'short', day: 'numeric' }))}${nextDay.length > 1 ? ` · ${nextDay.length} choices` : ''}</div>${nnItem(nextDay[0], null, cur)}</div>` : '';
   return `<div class="nn-compact"><div class="nn-h"><span>${I.clock} Now & Next</span><button class="nn-more" data-now>Open ›</button></div>
     ${now.slice(0, 2).map(x => nnItem(x, null, cur, { ends: true })).join('')}
     ${choices.length ? `<div class="nn-lab">Next${choices.length > 1 ? ` · ${choices.length} choices` : ''}</div>${nnItem(choices[0], ref, cur)}` : ''}</div>`;
@@ -1288,13 +1290,13 @@ function nnCompactHTML() {
 // The full view: now, up next (with choices), rest of today, or the next day
 function renderNowPanel(list) {
   const sel = S(ui.selected), from = sel && isLive(sel) ? sel : nowNext().now[0];
-  const { now, choices, later, nextDay, cur } = nowNext(from), ref = from || now[0];
+  const { now, choices, later, nextDayAll, cur } = nowNext(from), ref = from || now[0];
   const sec = (t, body) => `<div class="nn-sec"><div class="nn-lab">${t}</div>${body}</div>`;
   list.innerHTML = `<div class="nn-panel">
     ${sec('Now', now.length ? now.map(x => nnItem(x, null, cur, { ends: true })).join('') : '<p class="nn-sub">Nothing on right now.</p>')}
     ${choices.length ? sec(`Up next${from ? ` after ${esc(from.title.length > 40 ? from.title.slice(0, 38) + '…' : from.title)}` : ''}${choices.length > 1 ? ' · pick one' : ''}`, choices.map(x => nnItem(x, ref, cur)).join('')) : ''}
     ${later.length ? sec('Later today', later.map(x => nnItem(x, null, cur)).join('')) : ''}
-    ${!choices.length && !later.length ? (nextDay.length ? sec(`Next: ${esc(fmtDate(nextDay[0].date, { weekday: 'long', month: 'short', day: 'numeric' }))}`, nextDay.map(x => nnItem(x, null, cur)).join('')) : sec('Up next', '<p class="nn-sub">Nothing else on your agenda.</p>')) : ''}
+    ${!choices.length && !later.length ? (nextDayAll.length ? sec(`Next: ${esc(fmtDate(nextDayAll[0].date, { weekday: 'long', month: 'short', day: 'numeric' }))}`, nextDayAll.map(x => nnItem(x, null, cur)).join('')) : sec('Up next', '<p class="nn-sub">Nothing else on your agenda.</p>')) : ''}
   </div>`;
   bindNowNext(list);
 }
@@ -1306,7 +1308,7 @@ function bindNowNext(root) {
 function renderList() {
   renderSidebar();
   $('#confName').textContent = state.conference.name || '';
-  $$('#filterSeg button').forEach(b => b.classList.toggle('on', b.dataset.f === ui.view || (b.dataset.f === 'all' && !['todo', 'attended'].includes(ui.view))));
+  $$('#filterSeg button').forEach(b => b.classList.toggle('on', b.dataset.f === ui.view || (b.dataset.f === 'all' && !['todo', 'attended', 'now'].includes(ui.view))));
   const vd = viewDef();
   const list = $('#list');
   const all = sessionsArr();
@@ -1340,7 +1342,7 @@ function renderList() {
   else groups.set('', items);
   const showDayHeads = byTime && !ui.view.startsWith('day:') && ui.view !== 'today';
   let html = byTime && !ui.sortRev ? '' : `<div class="sort-hint"><span>Sorted by ${esc(SORTS[ui.sort]?.[0] || 'Time')}${ui.sortRev ? ', reversed' : ''}</span><span class="spacer"></span><button id="sortReset">Sort by Time</button></div>`;
-  if ((ui.view === 'today' || ui.view === 'all') && !ui.q) html += nnCompactHTML();
+  if (['today', 'all', 'todo'].includes(ui.view) && !ui.q) html += nnCompactHTML();
   if (ui.view === 'attended' && items.filter(s => s.brief).length >= 2) html += `<div style="padding:6px 4px 4px"><button class="btn btn-tinted btn-sm" style="width:100%" id="recapBtn">${I.book} Conference takeaways</button></div>`;
   for (const [date, ss] of groups) {
     if (showDayHeads) {
