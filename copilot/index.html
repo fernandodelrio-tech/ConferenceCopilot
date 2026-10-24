@@ -641,15 +641,54 @@ body.cal-mode #sortBtn{display:none}
 .mp-view.armed{cursor:crosshair}
 .mp-canvas{position:absolute;left:0;top:0;transform-origin:0 0;--inv:1}
 .mp-canvas img{width:100%;height:100%;display:block;pointer-events:none;background:#fff}
-.mp-pin{position:absolute;transform:translate(-50%,-100%) scale(var(--inv));transform-origin:50% 100%;display:flex;flex-direction:column;align-items:center;gap:2px;padding:0;cursor:pointer}
-.mp-pin i{order:2;width:14px;height:14px;border-radius:50%;background:#0A84A0;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
-.mp-pin span{order:1;font-size:12px;font-weight:600;line-height:1.2;color:#1D1D1F;background:rgba(255,255,255,.94);border-radius:6px;padding:2px 7px;box-shadow:0 1px 3px rgba(0,0,0,.25);white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
-.mp-pin.ai i{background:#8E44C9}
-.mp-pin.on{z-index:2}
-.mp-pin.on i{width:20px;height:20px;background:var(--red);animation:pinPulse 1.6s ease-out infinite}
-.mp-pin.on span{background:var(--red);color:#fff;font-size:14px;padding:4px 10px}
-@keyframes pinPulse{0%{box-shadow:0 0 0 0 rgba(215,0,21,.55)}70%{box-shadow:0 0 0 16px rgba(215,0,21,0)}100%{box-shadow:0 0 0 0 rgba(215,0,21,0)}}
-.mp-view.editing .mp-pin{cursor:move}
+.mp-view.editing .mp-svg{position:absolute;left:0;top:0;overflow:visible}
+.mp-svg text{text-anchor:middle;dominant-baseline:central;font-family:inherit;fill:var(--text);font-weight:500;pointer-events:none}
+.mp-page{fill:var(--content)}
+.m-layout{background:var(--fill)}
+.rm{cursor:pointer}
+.rm rect{fill:var(--surface);stroke:var(--sep-2);stroke-width:1px}
+.rm:hover rect{stroke:var(--accent)}
+.rm.k-ballroom rect,.rm.k-hall rect{fill:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+.rm.k-dining rect{fill:color-mix(in srgb,var(--orange) 9%,var(--surface))}
+.rm.k-outdoor rect{fill:color-mix(in srgb,var(--green,#1E9E47) 10%,var(--surface))}
+.rm.k-service rect,.rm.k-entrance rect{fill:var(--fill)}
+.rm.k-service text,.rm.k-entrance text{fill:var(--text-3)}
+.rm.k-foyer rect{fill:transparent;stroke-dasharray:6 4}
+.rm.k-foyer text{fill:var(--text-2);font-style:italic}
+.rm.mine rect{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2px}
+.rm.mine text{fill:var(--accent-ink,var(--accent));font-weight:600}
+.rm.on rect{fill:var(--red);stroke:var(--red);stroke-width:3px;animation:roomOn 1.6s ease-in-out infinite}
+.rm.on text{fill:#fff;font-weight:700}
+.rm.hl rect{stroke:var(--accent);stroke-width:5px}
+@keyframes roomOn{50%{stroke-width:9px;stroke-opacity:.45}}
+.over .rm rect{fill:transparent;stroke:transparent}
+.over .rm:hover rect{stroke:var(--accent);stroke-width:2px}
+.over .rm.mine rect{fill:color-mix(in srgb,var(--accent) 14%,transparent);stroke:var(--accent);stroke-width:2px}
+.over .rm.on rect{fill:color-mix(in srgb,var(--red) 22%,transparent);stroke:var(--red);stroke-width:4px}
+.over .rm.hl rect{stroke:var(--accent);stroke-width:5px}
+.over .rm text,.rm.pt text{paint-order:stroke;stroke:var(--surface);stroke-width:.22em;stroke-linejoin:round}
+.over .rm.on text{fill:var(--red)}
+.rm.pt circle{fill:#0A84A0;stroke:#fff;stroke-width:2px;vector-effect:non-scaling-stroke}
+.rm.pt.mine circle{fill:var(--accent)}
+.rm.pt.on circle{fill:var(--red)}
+.rm.pt.on text{fill:var(--red);font-weight:700}
+.mp-mode{margin-top:0}
+.mp-mode button{padding:0 12px}
+.mp-find{position:relative}
+.mp-find input{width:100%;height:34px;border-radius:9px;border:0;background:var(--fill);padding:0 12px;font-size:.9333rem;color:var(--text);outline:0}
+.mp-find input:focus{box-shadow:0 0 0 3px var(--accent-soft)}
+.mp-res{position:absolute;left:0;right:0;top:38px;z-index:5;background:var(--win);border:1px solid var(--sep);border-radius:10px;box-shadow:var(--shadow-3);padding:4px;max-height:300px;overflow:auto}
+.mp-res button{display:flex;flex-direction:column;align-items:flex-start;width:100%;padding:7px 10px;border-radius:7px;text-align:left}
+.mp-res button:hover{background:var(--fill)}
+.mp-res small{color:var(--text-2);font-size:.8rem}
+.mp-reading{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border-radius:10px;background:var(--accent-soft);color:var(--accent-ink,var(--accent));font-size:.9rem;font-weight:500}
+.mp-reading.idle{background:var(--fill);color:var(--text-2);font-weight:400}
+.mp-reading .spin{width:14px;height:14px}
+.mp-legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.8rem;color:var(--text-2)}
+.mp-legend span{display:inline-flex;align-items:center;gap:6px}
+.mp-legend i{width:12px;height:12px;border-radius:3px;border:1px solid var(--sep-2);background:var(--surface)}
+.mp-legend .lg-on{background:var(--red);border-color:var(--red)}
+.mp-legend .lg-mine{background:var(--accent-soft);border-color:var(--accent)}
 .mp-zoom{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;background:var(--win);box-shadow:var(--shadow-2,0 2px 8px rgba(0,0,0,.2));border:1px solid var(--sep)}
 .mp-zoom button{width:36px;height:36px;display:grid;place-items:center;font-size:1.1rem;color:var(--text)}
 .mp-zoom button+button{border-top:1px solid var(--sep)}
@@ -713,6 +752,8 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
 .menu button.danger{color:var(--red)}
 .menu button.danger:hover{background:var(--red);color:#fff}
 .menu button kbd{margin-left:auto;font:inherit;font-size:.8rem;opacity:.6}
+.menu .m-head{padding:4px 9px 6px;font-size:.8rem;font-weight:600;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu .m-info{padding:4px 9px;font-size:.85rem;color:var(--text-3)}
 .menu hr{border:0;height:1px;background:var(--sep);margin:5px 8px}
 .action-list .r-btn{justify-content:center;font-size:1.0625rem;min-height:52px}
 .action-list .r-btn svg{display:none}
@@ -1008,9 +1049,9 @@ function openSheet({ title, left = 'Cancel', right = '', onRight, body, onMount,
 }
 function actionSheet(title, actions) {
   return openSheet({
-    title, left: 'Close', cls: 'action-list',
-    body: `<div class="grp">${actions.filter(a => !a.sep).map((a, i) => `<button class="r-btn ${a.danger ? 'danger' : ''}" data-i="${i}">${esc(a.label)}</button>`).join('')}</div>`,
-    onMount: (s) => { const list = actions.filter(a => !a.sep); $$('[data-i]', s.el).forEach(b => b.onclick = () => { s.close(); list[+b.dataset.i].run(); }); },
+    title: title || actions.find(a => a.head)?.label || '', left: 'Close', cls: 'action-list',
+    body: `${actions.filter(a => a.info).map(a => `<p class="f-cap" style="text-align:center">${esc(a.label)}</p>`).join('')}<div class="grp">${actions.filter(a => !a.sep && !a.head && !a.info).map((a, i) => `<button class="r-btn ${a.danger ? 'danger' : ''}" data-i="${i}">${esc(a.label)}</button>`).join('')}</div>`,
+    onMount: (s) => { const list = actions.filter(a => !a.sep && !a.head && !a.info); $$('[data-i]', s.el).forEach(b => b.onclick = () => { s.close(); list[+b.dataset.i].run(); }); },
   });
 }
 let menuEl = null;
@@ -1019,7 +1060,7 @@ function openMenu(anchor, items, at) {
   if (!matchMedia('(min-width:760px)').matches && !at) return actionSheet('', items);
   closeMenu();
   const m = document.createElement('div'); m.className = 'menu'; m.setAttribute('role', 'menu');
-  m.innerHTML = items.map((a, i) => a.sep ? '<hr>' : `<button role="menuitem" data-i="${i}" class="${a.danger ? 'danger' : ''}">${a.icon || ''}<span>${esc(a.label)}</span>${a.kbd ? `<kbd>${a.kbd}</kbd>` : ''}</button>`).join('');
+  m.innerHTML = items.map((a, i) => a.sep ? '<hr>' : a.head ? `<div class="m-head">${esc(a.label)}</div>` : a.info ? `<div class="m-info">${esc(a.label)}</div>` : `<button role="menuitem" data-i="${i}" class="${a.danger ? 'danger' : ''}">${a.icon || ''}<span>${esc(a.label)}</span>${a.kbd ? `<kbd>${a.kbd}</kbd>` : ''}</button>`).join('');
   document.body.appendChild(m); menuEl = m;
   const r = at ? { left: at.x, right: at.x, bottom: at.y, top: at.y } : anchor.getBoundingClientRect();
   const w = m.offsetWidth, h = m.offsetHeight;
@@ -1248,7 +1289,7 @@ function renderDetail() {
   const meta = [
     s.date ? `<span>${I.calendar}${esc(fmtDate(s.date, { weekday: 'short', month: 'short', day: 'numeric' }))}</span>` : '',
     s.start ? `<span>${I.clock}${esc(fmtTime(s.start))}${s.end ? '–' + esc(fmtTime(s.end)) : ''}</span>` : '',
-    s.room ? `<button class="d-loc" id="dLoc" title="Show on the venue map">${I.pin}${esc(s.room)}<em>${pinsFor(s.room).some(w => w.pin) ? 'Map' : mapsArr().length ? 'Pin on map' : 'Add map'}</em></button>` : '',
+    s.room ? `<button class="d-loc" id="dLoc" title="Show on the venue map">${I.pin}${esc(s.room)}<em>${roomsFor(s.room).some(w => w.room) ? 'Map' : mapsArr().length ? 'Find on map' : 'Add map'}</em></button>` : '',
   ].join('');
   const busy = ui.busyBrief === s.id;
   $('#detailTitle').textContent = s.title || '';
@@ -2854,7 +2895,7 @@ function openWrap(kind, key) {
   paint();
 }
 /* =========================================================
-   Venue maps: the user's own floor plans, with the agenda's rooms pinned on them
+   Venue maps: the user's floor plans, read into rooms and drawn as a simple layout
    ========================================================= */
 // "Live: Hemisphere Ballroom, WDW Dolphin | Remote: Swan Ballroom 6, WDW Swan" → rooms with their building
 const BUILDING_RE = /\b(hotel|resort|wdw|center|centre|convention|airport|campus|venue)\b/i;
@@ -2875,8 +2916,14 @@ function locParts(loc) {
     return { room: seg.join(', '), building, live };
   }).filter(p => p.room);
 }
-const normLoc = (t) => ' ' + (t || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
-const mapsArr = () => Object.values(state.maps || {}).sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt));
+const normLoc = (t) => ' ' + (t || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+function mapsArr() {
+  const ms = Object.values(state.maps || {});
+  // Plans saved before rooms were read automatically kept hand-placed pins: treat each as a room
+  for (const m of ms) if (!m.rooms) m.rooms = Object.fromEntries(Object.values(m.pins || {}).map(p => [p.id, { id: p.id, label: p.label, kind: 'meeting', x: p.x, y: p.y, w: 0, h: 0, agenda: [p.label], src: 'user' }]));
+  return ms.sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt));
+}
+const roomsOf = (m) => Object.values(m.rooms || {});
 // Every room named in the agenda, most used first
 function agendaRooms() {
   const m = new Map();
@@ -2886,22 +2933,24 @@ function agendaRooms() {
   }
   return [...m.values()].sort((a, b) => b.n - a.n || a.room.localeCompare(b.room));
 }
-// The pins for a session's location: per room, the pin whose name appears first in it (rooms are written specific to general)
-function pinsFor(loc) {
+// Where a session's location is: per room in it, the plan room linked to that agenda name, else the plan room whose
+// name appears first in it (agendas write rooms specific to general, so "Stage 1, HR Xpo, Atlantic Hall" falls back to the hall)
+function roomsFor(loc) {
   const out = [];
   for (const part of locParts(loc)) {
-    const hay = normLoc(part.room + ' ' + part.building);
+    const key = normLoc(part.room), hay = normLoc(part.room + ' ' + part.building);
     let best = null;
-    for (const map of mapsArr()) for (const pin of Object.values(map.pins || {})) {
-      const i = hay.indexOf(normLoc(pin.label));
-      if (i < 0) continue;
-      if (!best || i < best.i || (i === best.i && pin.label.length > best.pin.label.length)) best = { i, map, pin, part };
+    for (const map of mapsArr()) for (const room of roomsOf(map)) {
+      let score;
+      if ((room.agenda || []).some(a => normLoc(a) === key)) score = -1;
+      else { const i = hay.indexOf(normLoc(room.label)); if (i < 0) continue; score = i; }
+      if (!best || score < best.score || (score === best.score && room.label.length > best.room.label.length)) best = { score, map, room, part };
     }
     out.push(best || { part });
   }
   return out;
 }
-const hasMapFor = (s) => s?.room && mapsArr().length > 0;
+const sessionsInRoom = (roomId) => sessionsArr().filter(s => roomsFor(s.room).some(w => w.room?.id === roomId)).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
 
 async function pdfLib() {
   if (window.pdfjsLib) return window.pdfjsLib;
@@ -2909,27 +2958,120 @@ async function pdfLib() {
   window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   return window.pdfjsLib;
 }
-// A floor plan file → one or more images (each page of a PDF is usually a level)
+// The words printed on a PDF page, joined into labels ("SOUTHERN" over "HEMISPHERE II" becomes one), as fractions of the page
+function textBlocks(items) {
+  items.sort((a, b) => a.y - b.y || a.x - b.x);
+  const lines = [];
+  for (const it of items) {
+    const l = lines.find(l => Math.abs(l.y - it.y) < Math.max(l.h, it.h) * 0.5 && it.x - (l.x + l.w) < Math.max(l.h, it.h) * 1.2 && it.x + it.w > l.x - it.h);
+    if (l) { const r = Math.max(l.x + l.w, it.x + it.w); l.x = Math.min(l.x, it.x); l.w = r - l.x; l.s += ' ' + it.s; l.h = Math.max(l.h, it.h); }
+    else lines.push({ ...it });
+  }
+  const blocks = [];
+  for (const l of lines.sort((a, b) => a.y - b.y)) {
+    const b = blocks.find(b => l.y - (b.y + b.h) < l.h * 0.7 && l.y > b.y && Math.abs((l.x + l.w / 2) - (b.x + b.w / 2)) < Math.max(b.w, l.w) / 2 && Math.abs(l.h - b.lh) < l.h * 0.35);
+    if (b) { const r = Math.max(b.x + b.w, l.x + l.w); b.x = Math.min(b.x, l.x); b.w = r - b.x; b.h = l.y + l.h - b.y; b.s += ' ' + l.s; }
+    else blocks.push({ ...l, lh: l.h });
+  }
+  const r4 = (n) => Math.round(n * 1e4) / 1e4;
+  return blocks.filter(b => /[a-z]{2}/i.test(b.s)).slice(0, 500).map(b => ({ s: b.s.replace(/\s+/g, ' ').trim(), x: r4(b.x + b.w / 2), y: r4(b.y + b.h / 2), w: r4(b.w), h: r4(b.h) }));
+}
+// A floor plan file → one plan per page (each page of a PDF is usually a level), with the PDF's own text when it has one
 async function planImages(file) {
   const base = (file.name || 'Floor plan').replace(/\.[a-z0-9]+$/i, '');
   if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
     const lib = await pdfLib();
     const doc = await lib.getDocument({ data: await file.arrayBuffer() }).promise;
     const out = [];
-    for (let i = 1; i <= Math.min(doc.numPages, 12); i++) {
+    for (let i = 1; i <= Math.min(doc.numPages, 20); i++) {
       const page = await doc.getPage(i), v1 = page.getViewport({ scale: 1 });
       const scale = Math.min(4, 2600 / Math.max(v1.width, v1.height));
       const vp = page.getViewport({ scale }), c = document.createElement('canvas');
       c.width = Math.round(vp.width); c.height = Math.round(vp.height);
       const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
       await page.render({ canvasContext: g, viewport: vp }).promise;
-      out.push({ name: doc.numPages > 1 ? `${base} · page ${i}` : base, blob: await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9)), w: c.width, h: c.height });
+      let text = [];
+      try {
+        const tc = await page.getTextContent();
+        text = textBlocks(tc.items.filter(it => it.str?.trim()).map(it => {
+          const [x, y] = vp.convertToViewportPoint(it.transform[4], it.transform[5]);
+          const fh = Math.hypot(it.transform[2], it.transform[3]) * scale;
+          return { s: it.str.trim(), x: x / c.width, y: (y - fh) / c.height, w: (it.width * scale) / c.width, h: fh / c.height };
+        }));
+      } catch (e) { console.warn('pdf text', e); }
+      out.push({ name: doc.numPages > 1 ? `${base} · page ${i}` : base, blob: await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9)), w: c.width, h: c.height, text });
     }
     return out;
   }
   const blob = await resizeImage(file, 4096, 0.9);
-  const bmp = await createImageBitmap(blob); const r = { name: base, blob, w: bmp.width, h: bmp.height }; bmp.close?.();
+  const bmp = await createImageBitmap(blob); const r = { name: base, blob, w: bmp.width, h: bmp.height, text: [] }; bmp.close?.();
   return [r];
+}
+// "SOUTHERN HEMISPHERE II" → "Southern Hemisphere II" (plans print names in capitals; roman numerals stay)
+const titleish = (t) => t === t.toUpperCase() ? t.toLowerCase().replace(/\b([a-z])([a-z']*)/g, (m, a, b) => /^(i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii)$/.test(m) ? m.toUpperCase() : a.toUpperCase() + b) : t;
+// Without Claude: the agenda's rooms whose names are printed on a PDF page become rooms at those spots
+function roomsFromText(map) {
+  const rooms = {}, ar = agendaRooms();
+  for (const b of map.text || []) {
+    const t = normLoc(b.s);
+    const exact = ar.filter(r => normLoc(r.room) === t);
+    const hits = exact.length ? exact : ar.filter(r => { const k = normLoc(r.room); return (t.includes(k) && k.length > t.length * 0.6) || (k.includes(t) && t.length > k.length * 0.6 && t.trim().split(' ').length > 1); });
+    if (!hits.length) continue;
+    const id = uid(); rooms[id] = { id, label: titleish(b.s), kind: 'meeting', x: b.x, y: b.y, w: 0, h: 0, agenda: hits.map(r => r.room), src: 'pdf' };
+  }
+  return rooms;
+}
+const ROOM_KINDS = ['ballroom', 'meeting', 'hall', 'foyer', 'dining', 'service', 'entrance', 'registration', 'outdoor', 'other'];
+const PLAN_SCHEMA = { type: 'object', additionalProperties: false, required: ['level', 'building', 'rooms'], properties: {
+  level: { type: 'string' }, building: { type: 'string' },
+  rooms: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['label', 'kind', 'x', 'y', 'w', 'h', 'agenda'], properties: {
+    label: { type: 'string' }, kind: { type: 'string', enum: ROOM_KINDS }, x: { type: 'number' }, y: { type: 'number' }, w: { type: 'number' }, h: { type: 'number' }, agenda: strArr } } } } };
+async function readPlan(map) {
+  const blob = await getMediaBlob(map); if (!blob) throw new Error('This floor plan hasn’t synced to this device yet.');
+  const img = await resizeImage(blob, 1568, 0.85);
+  const ar = agendaRooms().map(r => r.room);
+  const txt = (map.text || []).slice(0, 300).map(b => `"${b.s}" at ${b.x.toFixed(3)}, ${b.y.toFixed(3)}`).join('\n');
+  const r = await claude({
+    system: 'You read venue floor plans for a conference attendee and turn each page into a list of rooms that a simplified map can be drawn from. Report only rooms and spaces that are drawn and labelled on the plan; never invent rooms or guess positions for rooms you cannot see.',
+    content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: await blobToB64(img) } },
+      { type: 'text', text: `${txt ? `Text printed on this page, with the centre of each label as fractions of the page width and height:\n${txt}\n\n` : ''}Rooms named in the attendee's agenda:\n${ar.map(r => '- ' + r).join('\n') || '(none)'}\n\nReturn:\n- level: the floor or level this page shows if the plan says (for example "Lobby Level"), else "".\n- building: the building or hotel if the plan says, else "".\n- rooms: every named room or space drawn on the plan (ballrooms and their numbered salons or sections, meeting rooms, exhibit halls, foyers, restaurants, registration, entrances, restrooms, elevators, escalators). For each: label (as printed, in title case), kind, and its outline as a box: x, y the top-left corner and w, h the width and height, all as fractions of the image from 0 to 1. Give a divisible ballroom both the whole room and its sections only when the plan draws the sections. agenda: the names from the agenda list that are this room, written exactly as in the list; a name that refers to a smaller space inside this room that the plan doesn't draw (a stage in a hall, a table in a room) also belongs here. Empty when none.` }],
+    schema: PLAN_SCHEMA, maxTokens: 16000, effort: 'medium',
+  });
+  const fresh = state.maps?.[map.id]; if (!fresh) return 0;
+  const clamp = (n) => Math.min(1, Math.max(0, +n || 0));
+  const keep = Object.fromEntries(roomsOf(fresh).filter(x => x.src === 'user').map(x => [x.id, x]));
+  const blocks = (fresh.text || []).map(b => ({ ...b, k: normLoc(b.s) }));
+  for (const x of r.rooms || []) {
+    let bx = clamp(x.x), by = clamp(x.y), bw = Math.min(clamp(x.w), 1 - bx), bh = Math.min(clamp(x.h), 1 - by);
+    // The PDF's own label is exact and sits in the middle of its room: centre the box on it
+    const t = blocks.find(b => b.k === normLoc(x.label));
+    if (t && bw && bh) { bx = Math.min(1 - bw, clamp(t.x - bw / 2)); by = Math.min(1 - bh, clamp(t.y - bh / 2)); }
+    const id = uid();
+    keep[id] = { id, label: x.label.trim().slice(0, 80), kind: ROOM_KINDS.includes(x.kind) ? x.kind : 'other', x: bx, y: by, w: bw, h: bh, agenda: (x.agenda || []).filter(a => ar.includes(a)), src: 'ai' };
+  }
+  fresh.rooms = keep; fresh.read = { at: now(), n: (r.rooms || []).length };
+  if (r.level || r.building) { fresh.level = r.level.trim(); fresh.building = r.building.trim(); if (!fresh.renamed) fresh.name = [fresh.building, fresh.level].filter(Boolean).join(' · ') || fresh.name; }
+  fresh.updatedAt = now(); touch();
+  return (r.rooms || []).length;
+}
+// Reading runs in the background, one page after another, and the map sheet shows its progress
+const planRead = { ids: [], done: 0, busy: false, listeners: new Set() };
+const planReadChanged = () => planRead.listeners.forEach(f => f());
+async function readPlans(ids) {
+  planRead.ids.push(...ids.filter(id => !planRead.ids.includes(id)));
+  if (planRead.busy) return planReadChanged();
+  planRead.busy = true; planRead.done = 0; planReadChanged();
+  let rooms = 0, failed = 0;
+  while (planRead.done < planRead.ids.length) {
+    const m = state.maps?.[planRead.ids[planRead.done]];
+    if (m) { try { rooms += await readPlan(m); } catch (e) { failed++; console.warn('read plan', e); if (e.code === 'NO_KEY' || e.code === 'NEED_WS') { toast(e.message); openSettings(); break; } toast(e.message || 'Couldn’t read a plan', false, 5000); } }
+    planRead.done++; planReadChanged(); render();
+  }
+  const pages = planRead.ids.length;
+  planRead.ids = []; planRead.busy = false; planReadChanged();
+  const ar = agendaRooms(), found = ar.filter(r => roomsFor(r.room + (r.building ? ', ' + r.building : ''))[0]?.room).length;
+  if (rooms) toast(`Found ${rooms} rooms on ${pages} page${pages === 1 ? '' : 's'}${ar.length ? ` · ${found} of your ${ar.length} agenda rooms` : ''}`, false, 5000);
+  else if (!failed) toast('Claude didn’t find labelled rooms on this plan.', false, 4500);
 }
 async function addPlanFiles(files) {
   const made = [];
@@ -2939,12 +3081,19 @@ async function addPlanFiles(files) {
         const id = uid(), mediaId = uid();
         await DB.put('media', mediaId, im.blob);
         state.maps = state.maps || {};
-        state.maps[id] = { id, name: im.name, mediaId, mime: 'image/jpeg', w: im.w, h: im.h, pins: {}, createdAt: now(), order: mapsArr().length, updatedAt: now() };
+        const m = state.maps[id] = { id, name: im.name, mediaId, mime: 'image/jpeg', w: im.w, h: im.h, text: im.text, rooms: {}, createdAt: now(), order: mapsArr().length, updatedAt: now() };
+        m.rooms = roomsFromText(m);
         made.push(id);
       }
     } catch (e) { console.warn('plan', e); toast(e.message || `Couldn’t read ${f.name}`, false, 5000); }
   }
-  if (made.length) { touch(); toast(made.length === 1 ? 'Floor plan added' : `${made.length} floor plans added`); }
+  if (!made.length) return made;
+  touch();
+  if (settings.apiKey) {
+    const n = made.length;
+    if (await confirmSheet(`Read the rooms on ${n === 1 ? 'this plan' : `these ${n} pages`}?`, `This sends ${n === 1 ? 'the plan' : `the ${n} pages`} to Claude using your API key. Claude finds every room, matches them to your agenda and draws a simple layout of each level.`, 'Read Rooms', false)) readPlans(made);
+    else toast('Plan added. Choose Read Rooms when you’re ready.');
+  } else toast(made.some(id => roomsOf(state.maps[id]).length) ? 'Plan added · rooms found in the PDF’s text' : 'Plan added. Add a Claude key in Settings to read its rooms.', false, 4000);
   return made;
 }
 function deleteMap(id) {
@@ -2953,43 +3102,58 @@ function deleteMap(id) {
   if (m.driveId) { pendingTrash.push(m.driveId); LS.set('cc.trash', pendingTrash); }
   state.deleted[id] = now(); delete state.maps[id]; touch();
 }
-const MAP_ROOMS_SCHEMA = { type: 'object', additionalProperties: false, required: ['rooms'], properties: { rooms: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['label', 'found', 'x', 'y'], properties: { label: { type: 'string' }, found: { type: 'boolean' }, x: { type: 'number' }, y: { type: 'number' } } } } } };
-async function findRoomsOnMap(map, rooms) {
-  const blob = await getMediaBlob(map); if (!blob) throw new Error('This floor plan hasn’t synced to this device yet.');
-  const img = await resizeImage(blob, 1568, 0.85);
-  const r = await claude({
-    system: 'You locate rooms on a venue floor plan image. Only report a room when its name, or an unmistakable label for it, is printed on the plan. Never guess a position for a room you cannot read.',
-    content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: await blobToB64(img) } },
-      { type: 'text', text: `Rooms from the attendee's agenda:\n${rooms.map(r => '- ' + r).join('\n')}\n\nFor each room above, return label (copied exactly from the list), found (true only if the room is labelled on this plan), and x, y: the centre of that room as fractions of the image width and height, from 0 to 1 measured from the top-left corner (0 and 0 when not found). A room written with a number or letter (Salon 5, Hall A, Upper Peninsula 3) is found only if that exact part is labelled.` }],
-    schema: MAP_ROOMS_SCHEMA, maxTokens: 6000, effort: 'medium',
-  });
-  const fresh = state.maps?.[map.id]; if (!fresh) return 0;
-  let n = 0;
-  for (const x of r.rooms || []) {
-    if (!x.found || !rooms.includes(x.label) || !(x.x >= 0 && x.x <= 1 && x.y >= 0 && x.y <= 1)) continue;
-    if (Object.values(fresh.pins).some(p => normLoc(p.label) === normLoc(x.label))) continue;
-    const id = uid(); fresh.pins[id] = { id, label: x.label, x: x.x, y: x.y, ai: true }; n++;
-  }
-  fresh.updatedAt = now(); touch();
-  return n;
+
+// The part of the page the rooms cover (plans have titles, legends and margins around them)
+function roomsBounds(map) {
+  const rs = roomsOf(map); if (!rs.length) return { x: 0, y: 0, w: 1, h: 1 };
+  const x0 = Math.min(...rs.map(r => r.x)), y0 = Math.min(...rs.map(r => r.y)), x1 = Math.max(...rs.map(r => r.x + r.w)), y1 = Math.max(...rs.map(r => r.y + r.h));
+  return { x: x0, y: y0, w: Math.max(x1 - x0, 0.05), h: Math.max(y1 - y0, 0.05) };
+}
+// The simplified layout: rooms as tiles in the plan's own coordinates, so it lines up with the original
+function layoutSVG(map, { on, mine, hl, plan }) {
+  const W = map.w, H = map.h, rooms = roomsOf(map).sort((a, b) => b.w * b.h - a.w * a.h);
+  // One even label size across the plan, wrapping onto two lines when that reads larger
+  const cap = Math.max(W, H) * 0.0125;
+  const fit = (label, w, h) => {
+    const words = label.split(' ');
+    const one = Math.min(h * 0.3, w * 0.9 / (label.length * 0.56), cap);
+    if (words.length < 2) return { lines: [label], fs: one };
+    let best = null;
+    for (let k = 1; k < words.length; k++) { const l = [words.slice(0, k).join(' '), words.slice(k).join(' ')]; const m = Math.max(l[0].length, l[1].length); if (!best || m < best.m) best = { l, m }; }
+    const two = Math.min(h * 0.2, w * 0.9 / (best.m * 0.56), cap);
+    return two > one * 1.15 ? { lines: best.l, fs: two } : { lines: [label], fs: one };
+  };
+  const g = rooms.map(r => {
+    const cls = `rm k-${r.kind}${on.has(r.id) ? ' on' : mine.has(r.id) ? ' mine' : ''}${hl === r.id ? ' hl' : ''}`;
+    // Tiles are inset a little so neighbouring rooms read as separate even when their outlines touch
+    const gap = plan ? 0 : Math.min(r.w * W, r.h * H) * 0.035;
+    const x = r.x * W + gap, y = r.y * H + gap, w = Math.max(0, r.w * W - gap * 2), h = Math.max(0, r.h * H - gap * 2);
+    if (!r.w || !r.h) return `<g class="${cls} pt" data-room="${r.id}"><circle cx="${x}" cy="${y}" r="${W * 0.006}"/><text x="${x}" y="${y - W * 0.011}" font-size="${W * 0.011}">${esc(r.label)}</text></g>`;
+    const { lines, fs } = fit(r.label, w, h);
+    const show = !plan || on.has(r.id) || mine.has(r.id) || hl === r.id;
+    const tiny = fs < cap * 0.3 && !on.has(r.id) && !mine.has(r.id);
+    const f = Math.max(fs, cap * 0.3);
+    return `<g class="${cls}" data-room="${r.id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(w, h) * 0.08}" vector-effect="non-scaling-stroke"/>${show && !tiny ? `<text x="${x + w / 2}" y="${y + h / 2 - (lines.length - 1) * f * 0.6}" font-size="${f}">${lines.map((l, i) => `<tspan x="${x + w / 2}" dy="${i ? f * 1.2 : 0}">${esc(l)}</tspan>`).join('')}</text>` : ''}</g>`;
+  }).join('');
+  const bb = roomsBounds(map), pad = Math.max(W, H) * 0.02;
+  return `<svg class="mp-svg ${plan ? 'over' : 'layout'}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${plan ? '' : `<rect class="mp-page" x="${bb.x * W - pad}" y="${bb.y * H - pad}" width="${bb.w * W + pad * 2}" height="${bb.h * H + pad * 2}" rx="${pad}"/>`}${g}</svg>`;
 }
 
 function openMaps({ sessionId = null, mapId = null } = {}) {
   const ses = sessionId ? S(sessionId) : null;
-  const wantNow = () => ses ? pinsFor(ses.room) : [];
+  const wantNow = () => ses ? roomsFor(ses.room) : [];
   let want = wantNow();
-  const hit = want.find(w => w.pin);
-  const v = { map: mapId || hit?.map.id || mapsArr()[0]?.id || null, edit: false, arm: null, scale: 1, tx: 0, ty: 0, fitted: false };
-  // A session whose room isn't pinned yet: offer to pin it straight away
-  if (ses && !hit && want[0] && mapsArr().length) { v.edit = true; v.arm = want[0].part.room; }
-  const sh = openSheet({ title: 'Venue Maps', left: 'Close', right: 'Add Plan', cls: 'wide map-sheet', body: `<div id="mapBody"></div>`, onClose: () => render(),
-    onRight: () => pick() });
+  const first = want.find(w => w.room);
+  const v = { map: mapId || first?.map.id || mapsArr()[0]?.id || null, mode: null, edit: false, arm: null, hl: null, q: '', scale: 1, tx: 0, ty: 0, fitted: false };
+  const sh = openSheet({ title: 'Venue Maps', left: 'Close', right: 'Add Plan', cls: 'wide map-sheet', body: `<div id="mapBody"></div>`,
+    onClose: () => { planRead.listeners.delete(onRead); render(); }, onRight: () => pick() });
   const body = $('#mapBody', sh.el);
+  const onRead = () => { if (body.isConnected) paint(); };
+  planRead.listeners.add(onRead);
   const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*,application/pdf', multiple: true, hidden: true });
   sh.el.appendChild(input);
   const pick = () => { input.value = ''; input.click(); };
-  // After a plan is added for a session that isn't pinned yet, go straight to pinning its room
-  const added = (ids) => { if (!ids.length) return; v.map = ids[0]; v.fitted = false; const w = wantNow(); if (ses && w[0] && !w.some(x => x.pin)) { v.edit = true; v.arm = w[0].part.room; } paint(); };
+  const added = (ids) => { if (!ids.length) return; v.map = ids[0]; v.fitted = false; paint(); };
   input.onchange = async () => added(await addPlanFiles([...input.files]));
   body.addEventListener('dragover', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); e.stopPropagation(); } });
   body.addEventListener('drop', async e => { const f = [...(e.dataTransfer?.files || [])]; if (!f.length) return; e.preventDefault(); e.stopPropagation(); added(await addPlanFiles(f)); });
@@ -2998,85 +3162,112 @@ function openMaps({ sessionId = null, mapId = null } = {}) {
     const all = [...new Set(agendaRooms().map(r => r.building).filter(Boolean))];
     const blds = all.filter(b => !all.some(o => o !== b && normLoc(o).includes(normLoc(b)))).slice(0, 3);
     body.innerHTML = `<div class="wr-ready"><div class="empty-art">${I.pin}</div><h2>Add the venue’s floor plans</h2>
-      <p class="muted">Add a screenshot, a photo of the printed map or the venue’s PDF floor plan. Then pin your agenda’s rooms on it, and every session shows where it is.</p>
+      <p class="muted">Add the venue’s PDF floor plan, a screenshot or a photo of the printed map. Copilot reads every room on every page, draws a simple layout of each level, and shows where each of your sessions is.</p>
       <button class="btn btn-primary" id="mpAdd">${I.plus} Add Floor Plan</button>
-      <p class="f-cap" style="margin-top:18px">Where to find one: the conference app’s Venue or Maps page (take a screenshot), the printed program, or the venue’s meetings page.${blds.length ? ' Search for:' : ''}</p>
-      ${blds.length ? `<div class="mp-search">${blds.map(b => `<a class="btn btn-sm btn-gray" target="_blank" rel="noopener" href="https://www.google.com/search?q=${encodeURIComponent(`${b} meeting space floor plan`)}">${I.search || ''} ${esc(b)}</a>`).join('')}</div>` : ''}</div>`;
+      <p class="f-cap" style="margin-top:18px">Where to find one: the venue’s meetings page (usually a PDF), the conference app’s Venue or Maps page (take a screenshot), or the printed program.${blds.length ? ' Search for:' : ''}</p>
+      ${blds.length ? `<div class="mp-search">${blds.map(b => `<a class="btn btn-sm btn-gray" target="_blank" rel="noopener" href="https://www.google.com/search?q=${encodeURIComponent(`${b} meeting space floor plan`)}">${I.search} ${esc(b)}</a>`).join('')}</div>` : ''}</div>`;
     $('#mpAdd', body).onclick = pick;
   };
 
   const paint = () => {
     const maps = mapsArr(); want = wantNow();
-    sh.setRight('Add Plan', true);
     if (!maps.length) return empty();
     if (!state.maps[v.map]) { v.map = maps[0].id; v.fitted = false; }
-    const map = state.maps[v.map];
-    const rooms = agendaRooms();
-    const pinnedKeys = new Set(maps.flatMap(m => Object.values(m.pins || {}).map(p => normLoc(p.label))));
-    const isPinned = (r) => pinnedKeys.has(normLoc(r.room)) || pinsFor(r.room + (r.building ? ', ' + r.building : ''))[0]?.pin;
-    const left = rooms.filter(r => !isPinned(r));
-    const sessLine = ses ? (() => {
-      const w = want.find(x => x.pin && x.map.id === map.id) || want.find(x => x.pin);
-      const where = locParts(ses.room).map(p => p.room).join(' · ');
-      return `<div class="mp-for"><span class="ic">${I.pin}</span><div><b>${esc(ses.title)}</b><small>${esc(where || ses.room)}${w ? (w.map.id === map.id ? '' : ` · pinned on ${esc(w.map.name)}`) : ' · not pinned yet'}</small></div>${w && w.map.id !== map.id ? `<button class="btn btn-sm btn-tinted" data-go-map="${w.map.id}">Show</button>` : ''}</div>`;
+    const map = state.maps[v.map], rooms = roomsOf(map);
+    const boxed = rooms.some(r => r.w && r.h);
+    // Layout once rooms have been read, unless the user picked a view themselves
+    v.mode = (v.userMode === 'plan' || !boxed) ? 'plan' : 'layout';
+    // Refit whenever what's drawn changes: another plan, the other view, or rooms that have just been read
+    const fitKey = `${map.id}|${v.mode}|${rooms.length}`;
+    if (v.fitKey !== fitKey) { v.fitKey = fitKey; v.fitted = false; }
+    const on = new Set(want.map(w => w.room?.id).filter(Boolean));
+    const mine = new Set(sessionsArr().flatMap(s => roomsFor(s.room).map(w => w.room?.id)).filter(Boolean));
+    const reading = planRead.busy && planRead.ids.includes(map.id) && planRead.ids.indexOf(map.id) >= planRead.done;
+    const missing = agendaRooms().filter(r => !roomsFor(r.room + (r.building ? ', ' + r.building : ''))[0]?.room);
+    const sessCard = ses ? (() => {
+      const hits = want.filter(w => w.room), here = hits.find(w => w.map.id === map.id) || hits[0];
+      return `<div class="mp-for"><span class="ic">${I.pin}</span><div><b>${esc(ses.title)}</b><small>${hits.length ? hits.map(w => `${esc(w.room.label)} · ${esc(w.map.name)}`).join('  |  ') : `${esc(locParts(ses.room).map(p => p.room).join(' · ') || ses.room)} · not found on your plans yet`}</small></div>
+        ${here && here.map.id !== map.id ? `<button class="btn btn-sm btn-tinted" data-go-map="${here.map.id}">Show</button>` : ''}
+        ${!hits.length && rooms.length ? `<button class="btn btn-sm btn-tinted" id="mpPickIt">Point It Out</button>` : ''}</div>`;
     })() : '';
-    body.innerHTML = `${sessLine}
+    const results = v.q.trim() ? maps.flatMap(m => roomsOf(m).filter(r => normLoc(r.label + ' ' + (r.agenda || []).join(' ')).includes(normLoc(v.q).trim())).map(r => ({ m, r }))).slice(0, 8) : [];
+    body.innerHTML = `${sessCard}
       <div class="mp-bar">
         ${maps.length > 1 ? `<div class="seg mp-tabs">${maps.map(m => `<button data-map="${m.id}" class="${m.id === map.id ? 'on' : ''}">${esc(m.name)}</button>`).join('')}</div>` : `<b class="mp-name">${esc(map.name)}</b>`}
         <div class="spacer"></div>
-        <button class="btn btn-sm ${v.edit ? 'btn-primary' : 'btn-gray'}" id="mpEdit">${I.pin} ${v.edit ? 'Done Pinning' : 'Pin Rooms'}</button>
+        ${boxed ? `<div class="seg mp-mode"><button data-mode="layout" class="${v.mode === 'layout' ? 'on' : ''}">Layout</button><button data-mode="plan" class="${v.mode === 'plan' ? 'on' : ''}">Original</button></div>` : ''}
         <button class="tb-btn" id="mpMore" aria-label="Floor plan options">${I.more}</button>
       </div>
-      ${v.edit ? `<div class="mp-pinbar">
-          <p class="f-cap" style="margin:0 0 8px">${v.arm ? `Tap the map where <b>${esc(v.arm)}</b> is.` : 'Choose a room, then tap where it is on the map. Drag a pin to move it, or tap it to rename or remove it.'}</p>
-          <div class="mp-rooms">${left.map(r => `<button class="kind-chip" data-arm="${esc(r.room)}" aria-pressed="${v.arm === r.room}">${esc(r.room)}</button>`).join('')}
-            <button class="kind-chip" id="mpCustom">${I.plus} Other place…</button>
-            ${settings.apiKey && left.length ? `<button class="kind-chip qn-suggest" id="mpFind">${I.sparkles} Find Rooms</button>` : ''}</div>
-          ${!left.length && rooms.length ? `<p class="f-cap" style="margin:8px 0 0">All ${rooms.length} rooms in your agenda are pinned.</p>` : ''}
-        </div>` : ''}
-      <div class="mp-view ${v.edit ? 'editing' : ''} ${v.arm ? 'armed' : ''}" id="mpView">
+      <div class="mp-find"><input type="search" id="mpQ" placeholder="Find a room" value="${esc(v.q)}" aria-label="Find a room" autocomplete="off">
+        ${results.length ? `<div class="mp-res">${results.map(x => `<button data-res="${x.m.id}|${x.r.id}"><b>${esc(x.r.label)}</b><small>${esc(x.m.name)}${x.r.agenda?.length && normLoc(x.r.agenda[0]) !== normLoc(x.r.label) ? ' · ' + esc(x.r.agenda.join(', ')) : ''}</small></button>`).join('')}</div>` : ''}</div>
+      ${reading ? `<div class="mp-reading"><span class="spin"></span>Reading rooms · page ${Math.min(planRead.done + 1, planRead.ids.length)} of ${planRead.ids.length}</div>` : ''}
+      ${!reading && !rooms.length ? `<div class="mp-reading idle">${settings.apiKey ? `No rooms read on this plan yet. <button class="btn btn-sm btn-primary" id="mpRead">${I.sparkles} Read Rooms</button>` : 'Add a Claude key in Settings so Copilot can read the rooms on this plan, or point out rooms by hand from the ⋯ menu.'}</div>` : ''}
+      ${v.edit ? `<div class="mp-pinbar"><p class="f-cap" style="margin:0 0 8px">${v.arm ? `Tap <b>${esc(v.arm)}</b> on the map: tap its room to link it, or an empty spot to mark it there.` : missing.length ? 'These agenda rooms aren’t on your plans yet. Choose one, then tap where it is. Drag a room to move it.' : 'Every agenda room is on your plans. Drag a room to move it, or tap it to rename or remove it.'}</p>
+          <div class="mp-rooms">${missing.map(r => `<button class="kind-chip" data-arm="${esc(r.room)}" aria-pressed="${v.arm === r.room}">${esc(r.room)}</button>`).join('')}
+            <button class="kind-chip" id="mpCustom">${I.plus} Other place…</button><button class="kind-chip qn-suggest" id="mpDone">Done</button></div></div>` : ''}
+      <div class="mp-view ${v.edit ? 'editing' : ''} ${v.arm ? 'armed' : ''} m-${v.mode}" id="mpView">
         <div class="mp-canvas" id="mpCanvas" style="width:${map.w}px;height:${map.h}px">
-          <img id="mpImg" alt="${esc(map.name)}" draggable="false">
-          ${Object.values(map.pins || {}).map(p => {
-            const on = want.some(w => w.pin?.id === p.id);
-            return `<button class="mp-pin ${on ? 'on' : ''} ${p.ai ? 'ai' : ''}" data-pin="${p.id}" style="left:${p.x * 100}%;top:${p.y * 100}%" title="${esc(p.label)}${p.ai ? ' (placed by Claude: drag it if it’s off)' : ''}"><i></i><span>${esc(p.label)}</span></button>`;
-          }).join('')}
+          ${v.mode === 'plan' ? `<img id="mpImg" alt="${esc(map.name)}" draggable="false">` : ''}
+          ${layoutSVG(map, { on, mine, hl: v.hl, plan: v.mode === 'plan' })}
         </div>
         <div class="mp-zoom"><button id="mpIn" aria-label="Zoom in">${I.plus}</button><button id="mpOut" aria-label="Zoom out">−</button><button id="mpFit" aria-label="Fit">⤢</button></div>
-        ${map.pins && Object.keys(map.pins).length === 0 && !v.edit ? `<div class="mp-hint">No rooms pinned on this plan yet. Choose <b>Pin Rooms</b> to add them.</div>` : ''}
-      </div>`;
-    bind(map);
+      </div>
+      <div class="mp-legend">${on.size ? '<span><i class="lg-on"></i>This session</span>' : ''}<span><i class="lg-mine"></i>Your sessions</span><span><i class="lg-room"></i>Other rooms</span>${rooms.length ? `<span class="muted">${rooms.length} rooms on this ${maps.length > 1 ? 'level' : 'plan'}</span>` : ''}</div>`;
+    bind(map, on);
   };
 
-  const bind = (map) => {
+  const bind = (map, on) => {
     const view = $('#mpView', body), canvas = $('#mpCanvas', body), img = $('#mpImg', body);
-    getMediaBlob(map).then(b => { if (!b) { view.insertAdjacentHTML('beforeend', `<div class="mp-hint">${map.driveId ? 'Connect Google Drive in Settings to load this plan here.' : 'This plan is on another device and hasn’t synced yet.'}</div>`); return; } img.src = URL.createObjectURL(b); });
+    if (img) getMediaBlob(map).then(b => { if (!b) { view.insertAdjacentHTML('beforeend', `<div class="mp-hint">${map.driveId ? 'Connect Google Drive in Settings to load this plan here.' : 'This plan is on another device and hasn’t synced yet.'}</div>`); return; } img.src = URL.createObjectURL(b); });
     const apply = () => { canvas.style.transform = `translate(${v.tx}px,${v.ty}px) scale(${v.scale})`; canvas.style.setProperty('--inv', 1 / v.scale); };
-    const fit = () => { const r = view.getBoundingClientRect(); const s = Math.min(r.width / map.w, r.height / map.h) * 0.96; v.scale = s; v.tx = (r.width - map.w * s) / 2; v.ty = (r.height - map.h * s) / 2; apply(); };
+    // Layout fits the rooms; the original fits the whole page
+    const fit = () => {
+      const r = { width: view.clientWidth, height: view.clientHeight }, b = v.mode === 'layout' ? roomsBounds(map) : { x: 0, y: 0, w: 1, h: 1 };
+      const bw = b.w * map.w * 1.06, bh = b.h * map.h * 1.06, s = Math.min(r.width / bw, r.height / bh);
+      v.scale = s; v.tx = r.width / 2 - (b.x + b.w / 2) * map.w * s; v.ty = r.height / 2 - (b.y + b.h / 2) * map.h * s; apply();
+    };
     const zoomAt = (f, cx, cy) => { const ns = Math.min(8, Math.max(0.05, v.scale * f)); const k = ns / v.scale; v.tx = cx - (cx - v.tx) * k; v.ty = cy - (cy - v.ty) * k; v.scale = ns; apply(); };
-    const center = () => { const r = view.getBoundingClientRect(); return [r.width / 2, r.height / 2]; };
-    requestAnimationFrame(() => {
-      if (!v.fitted) {
-        fit(); v.fitted = true;
-        const p = want.find(w => w.pin && w.map.id === map.id)?.pin;
-        if (p) { const r = view.getBoundingClientRect(); const s = Math.max(v.scale, Math.min(v.scale * 1.8, 1.2)); v.scale = s; v.tx = r.width / 2 - p.x * map.w * s; v.ty = r.height / 2 - p.y * map.h * s; apply(); }
-      } else apply();
-    });
+    const center = () => [view.clientWidth / 2, view.clientHeight / 2];
+    // Show the whole level with the room highlighted; zoom in only when the room would be too small to spot
+    const focusOn = (room) => {
+      fit();
+      const r = { width: view.clientWidth, height: view.clientHeight }, size = Math.max(room.w * map.w, room.h * map.h, map.w * 0.01) * v.scale;
+      if (size >= 70) return;
+      const s = Math.min(v.scale * 3, v.scale * 90 / size); v.scale = s;
+      v.tx = r.width / 2 - (room.x + room.w / 2) * map.w * s; v.ty = r.height / 2 - (room.y + room.h / 2) * map.h * s;
+      // Keep the plan filling the view rather than showing empty space past its edge
+      const b = v.mode === 'layout' ? roomsBounds(map) : { x: 0, y: 0, w: 1, h: 1 }, pad = 16;
+      const keep = (t, view, lo, len) => { const a = lo * s, z = (lo + len) * s; return z - a <= view ? view / 2 - (a + z) / 2 : Math.min(pad - a, Math.max(view - pad - z, t)); };
+      v.tx = keep(v.tx, r.width, b.x * map.w, b.w * map.w); v.ty = keep(v.ty, r.height, b.y * map.h, b.h * map.h); apply();
+    };
+    // Fit only once the view has a size: it has none while a confirmation sheet covers the map
+    const place = () => {
+      if (!view.clientWidth || !view.clientHeight) return false;
+      if (v.fitted) { apply(); return true; }
+      v.fitted = true;
+      const target = (v.hl && map.rooms[v.hl]) || roomsOf(map).find(r => on.has(r.id));
+      target ? focusOn(target) : fit();
+      return true;
+    };
+    requestAnimationFrame(() => { if (!place()) { const ro = new ResizeObserver(() => { if (place()) ro.disconnect(); }); ro.observe(view); } });
     $('#mpIn', body).onclick = () => zoomAt(1.4, ...center());
     $('#mpOut', body).onclick = () => zoomAt(1 / 1.4, ...center());
     $('#mpFit', body).onclick = fit;
     view.addEventListener('wheel', e => { e.preventDefault(); const r = view.getBoundingClientRect(); if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * (Math.abs(e.deltaY) < 20 ? 0.01 : 0.0025)), e.clientX - r.left, e.clientY - r.top); else { v.tx -= e.deltaX; v.ty -= e.deltaY; apply(); } }, { passive: false });
-    view.addEventListener('dblclick', e => { if (e.target.closest('.mp-pin,.mp-zoom')) return; const r = view.getBoundingClientRect(); zoomAt(1.8, e.clientX - r.left, e.clientY - r.top); });
-    // Pan with one finger or the mouse, pinch with two; a tap places the armed room
-    const pts = new Map(); let start = null, moved = false, dragPin = null, downPin = null;
+    view.addEventListener('dblclick', e => { if (e.target.closest('.mp-zoom')) return; const r = view.getBoundingClientRect(); zoomAt(1.8, e.clientX - r.left, e.clientY - r.top); });
+    // Pan with one finger or the mouse, pinch with two; a tap opens a room, or places the room being pointed out
+    const pts = new Map(); let start = null, moved = false, drag = null, downRoom = null;
+    const toMap = (e) => { const r = canvas.getBoundingClientRect(); return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) }; };
     view.addEventListener('pointerdown', e => {
       if (e.target.closest('.mp-zoom')) return;
-      const pinEl = e.target.closest('.mp-pin');
+      // Touch also fires a compatibility mousedown after the tap, which would close the room sheet the tap opens
+      if (e.pointerType !== 'mouse') e.preventDefault();
       view.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = false;
-      // Pointer capture retargets later events to the view, so remember which pin the press started on
-      downPin = pinEl; dragPin = v.edit && pinEl ? pinEl : null;
+      // Pointer capture retargets later events to the view, so remember which room the press started on
+      const g = e.target.closest('[data-room]'); downRoom = g?.dataset.room || null;
+      drag = v.edit && downRoom && !v.arm ? { id: downRoom, el: g, from: toMap(e), room: { ...map.rooms[downRoom] } } : null;
       start = { tx: v.tx, ty: v.ty, scale: v.scale, x: e.clientX, y: e.clientY, d: 0, mid: null };
-      if (pts.size === 2) { const [a, b] = [...pts.values()]; start.d = Math.hypot(a[0] - b[0], a[1] - b[1]); const r = view.getBoundingClientRect(); start.mid = [(a[0] + b[0]) / 2 - r.left, (a[1] + b[1]) / 2 - r.top]; dragPin = null; }
+      if (pts.size === 2) { const [a, b] = [...pts.values()]; start.d = Math.hypot(a[0] - b[0], a[1] - b[1]); const r = view.getBoundingClientRect(); start.mid = [(a[0] + b[0]) / 2 - r.left, (a[1] + b[1]) / 2 - r.top]; drag = null; }
     });
     view.addEventListener('pointermove', e => {
       if (!pts.has(e.pointerId) || !start) return;
@@ -3087,57 +3278,70 @@ function openMaps({ sessionId = null, mapId = null } = {}) {
         const ns = Math.min(8, Math.max(0.05, start.scale * d / start.d)), k = ns / start.scale;
         v.scale = ns; v.tx = start.mid[0] - (start.mid[0] - start.tx) * k; v.ty = start.mid[1] - (start.mid[1] - start.ty) * k; apply(); return;
       }
-      if (dragPin && moved) { const p = toMap(e); dragPin.style.left = p.x * 100 + '%'; dragPin.style.top = p.y * 100 + '%'; return; }
+      if (drag && moved) { const p = toMap(e); drag.el.setAttribute('transform', `translate(${(p.x - drag.from.x) * map.w} ${(p.y - drag.from.y) * map.h})`); return; }
       v.tx = start.tx + e.clientX - start.x; v.ty = start.ty + e.clientY - start.y; apply();
     });
-    const toMap = (e) => { const r = canvas.getBoundingClientRect(); return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) }; };
     const end = (e) => {
       if (!pts.has(e.pointerId)) return;
       pts.delete(e.pointerId);
       if (pts.size) { const [p] = [...pts.values()]; start = { tx: v.tx, ty: v.ty, scale: v.scale, x: p[0], y: p[1], d: 0 }; return; }
-      const pinEl = downPin; downPin = null;
-      if (dragPin && moved) { const pin = map.pins[dragPin.dataset.pin]; Object.assign(pin, toMap(e), { ai: false }); map.updatedAt = now(); touch(); dragPin = null; return paint(); }
-      dragPin = null;
-      if (moved || e.type === 'pointercancel') return;
-      if (pinEl) return pinTap(map, pinEl.dataset.pin, pinEl);
-      if (v.edit && v.arm) {
-        const id = uid(), p = toMap(e); map.pins[id] = { id, label: v.arm, ...p }; map.updatedAt = now(); touch();
-        const next = agendaRooms().find(r => r.room !== v.arm && !pinsFor(r.room + (r.building ? ', ' + r.building : ''))[0]?.pin);
-        toast(`Pinned ${v.arm}`); v.arm = ses ? null : next?.room || null; paint();
+      const roomId = downRoom; downRoom = null;
+      if (drag && moved) {
+        const p = toMap(e), r = map.rooms[drag.id];
+        r.x = Math.min(1 - r.w, Math.max(0, drag.room.x + p.x - drag.from.x)); r.y = Math.min(1 - r.h, Math.max(0, drag.room.y + p.y - drag.from.y)); r.src = 'user';
+        map.updatedAt = now(); touch(); drag = null; return paint();
       }
+      drag = null;
+      if (moved || e.type === 'pointercancel') return;
+      if (v.arm) {
+        if (roomId) { const r = map.rooms[roomId]; r.agenda = [...new Set([...(r.agenda || []), v.arm])]; toast(`${v.arm} linked to ${r.label}`); }
+        else { const id = uid(), p = toMap(e); map.rooms[id] = { id, label: v.arm, kind: 'meeting', ...p, w: 0, h: 0, agenda: [v.arm], src: 'user' }; toast(`Marked ${v.arm}`); }
+        map.updatedAt = now(); touch(); v.arm = null; if (ses && wantNow().some(w => w.room)) v.edit = false; return paint();
+      }
+      if (roomId) roomTap(map, roomId, e);
     };
     view.addEventListener('pointerup', end); view.addEventListener('pointercancel', end);
 
-    $$('[data-map]', body).forEach(b => b.onclick = () => { v.map = b.dataset.map; v.fitted = false; paint(); });
+    $$('[data-map]', body).forEach(b => b.onclick = () => { v.map = b.dataset.map; v.hl = null; v.fitted = false; paint(); });
+    $$('[data-mode]', body).forEach(b => b.onclick = () => { v.userMode = b.dataset.mode; v.fitted = false; paint(); });
     $('[data-go-map]', body)?.addEventListener('click', (e) => { v.map = e.currentTarget.dataset.goMap; v.fitted = false; paint(); });
-    $('#mpEdit', body).onclick = () => { v.edit = !v.edit; if (!v.edit) v.arm = null; paint(); };
-    $$('[data-arm]', body).forEach(b => b.onclick = () => { v.arm = v.arm === b.dataset.arm ? null : b.dataset.arm; paint(); });
-    $('#mpCustom', body)?.addEventListener('click', async () => { const t = await promptSheet('Pin another place', 'Name, for example Registration or Restrooms', ''); if (t) { v.arm = t; paint(); } });
-    $('#mpFind', body)?.addEventListener('click', async () => {
-      const left = agendaRooms().filter(r => !pinsFor(r.room + (r.building ? ', ' + r.building : ''))[0]?.pin).map(r => r.room);
-      if (!await confirmSheet('Find rooms on this plan?', `This sends the floor plan image and the names of ${left.length} unpinned room${left.length === 1 ? '' : 's'} to Claude using your API key. Claude pins only the rooms it can read on the plan; you can drag any that are off.`, 'Find Rooms', false)) return;
-      const b = $('#mpFind', body); if (b) { b.disabled = true; b.innerHTML = '<span class="spin"></span> Finding…'; }
-      try { const n = await findRoomsOnMap(map, left); toast(n ? `Pinned ${n} room${n === 1 ? '' : 's'}. Drag any that are off.` : 'Claude couldn’t read any of your rooms on this plan.', false, 4500); }
-      catch (e) { toast(e.message || 'Couldn’t find rooms', false, 5000); if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings(); }
-      if (body.isConnected) paint();
+    $('#mpPickIt', body)?.addEventListener('click', () => { v.edit = true; v.arm = want[0]?.part.room || null; paint(); });
+    $('#mpRead', body)?.addEventListener('click', async () => {
+      if (await confirmSheet('Read the rooms on this plan?', 'This sends the plan to Claude using your API key. Claude finds every room, matches them to your agenda and draws a simple layout.', 'Read Rooms', false)) readPlans([map.id]);
     });
+    const q = $('#mpQ', body);
+    q.oninput = () => { v.q = q.value; const pos = q.selectionStart; paint(); const n = $('#mpQ', body); n.focus(); n.setSelectionRange(pos, pos); };
+    q.onkeydown = (e) => { if (e.key === 'Enter') $('[data-res]', body)?.click(); if (e.key === 'Escape') { e.stopPropagation(); v.q = ''; paint(); } };
+    $$('[data-res]', body).forEach(b => b.onclick = () => { const [m, r] = b.dataset.res.split('|'); v.map = m; v.hl = r; v.q = ''; v.fitted = false; paint(); });
+    $$('[data-arm]', body).forEach(b => b.onclick = () => { v.arm = v.arm === b.dataset.arm ? null : b.dataset.arm; paint(); });
+    $('#mpCustom', body)?.addEventListener('click', async () => { const t = await promptSheet('Mark another place', 'Name, for example Registration or Restrooms', ''); if (t) { v.arm = t; paint(); } });
+    $('#mpDone', body)?.addEventListener('click', () => { v.edit = false; v.arm = null; paint(); });
     $('#mpMore', body).onclick = (e) => openMenu(e.currentTarget, [
-      { label: 'Rename Plan…', icon: I.pencil, run: async () => { const t = await promptSheet('Rename floor plan', 'For example Dolphin · Lobby level', map.name); if (t) { map.name = t; map.updatedAt = now(); touch(); paint(); } } },
-      ...(mapsArr().length > 1 ? [{ label: 'Move Earlier', icon: I.sort || I.list, run: () => { const ms = mapsArr(), i = ms.findIndex(m => m.id === map.id); if (i > 0) { ms.splice(i - 1, 0, ms.splice(i, 1)[0]); ms.forEach((m, k) => { m.order = k; m.updatedAt = now(); }); touch(); paint(); } } }] : []),
+      ...(settings.apiKey ? [{ label: roomsOf(map).some(r => r.src === 'ai') ? 'Read Rooms Again…' : 'Read Rooms…', icon: I.sparkles, run: async () => {
+        if (await confirmSheet('Read the rooms on this plan?', `This sends the plan to Claude using your API key${roomsOf(map).some(r => r.src !== 'user') ? ' and replaces the rooms it read before; rooms you placed yourself stay' : ''}.`, 'Read Rooms', false)) readPlans([map.id]);
+      } }, ...(mapsArr().length > 1 ? [{ label: 'Read Rooms on All Plans…', icon: I.sparkles, run: async () => {
+        const n = mapsArr().length; if (await confirmSheet(`Read the rooms on all ${n} plans?`, `This sends all ${n} plans to Claude using your API key. Rooms you placed yourself stay.`, 'Read Rooms', false)) readPlans(mapsArr().map(m => m.id));
+      } }] : [])] : []),
+      { label: v.edit ? 'Stop Fixing Rooms' : 'Fix Rooms by Hand', icon: I.pin, run: () => { v.edit = !v.edit; v.arm = null; paint(); } },
+      { label: 'Rename Plan…', icon: I.pencil, run: async () => { const t = await promptSheet('Rename floor plan', 'For example Dolphin · Lobby level', map.name); if (t) { map.name = t; map.renamed = true; map.updatedAt = now(); touch(); paint(); } } },
+      ...(mapsArr().length > 1 ? [{ label: 'Move Earlier', icon: I.sort, run: () => { const ms = mapsArr(), i = ms.findIndex(m => m.id === map.id); if (i > 0) { ms.splice(i - 1, 0, ms.splice(i, 1)[0]); ms.forEach((m, k) => { m.order = k; m.updatedAt = now(); }); touch(); paint(); } } }] : []),
       { label: 'Add Another Plan…', icon: I.plus, run: pick },
       { sep: true },
-      { label: 'Delete Plan…', icon: I.trash, danger: true, run: async () => { if (await confirmSheet('Delete this floor plan?', 'The plan and its pins are removed from all your devices. Your sessions and notes stay.', 'Delete')) { deleteMap(map.id); v.fitted = false; paint(); } } },
+      { label: 'Delete Plan…', icon: I.trash, danger: true, run: async () => { if (await confirmSheet('Delete this floor plan?', 'The plan and its rooms are removed from all your devices. Your sessions and notes stay.', 'Delete')) { deleteMap(map.id); v.fitted = false; paint(); } } },
     ]);
   };
-  const pinTap = (map, id, el) => {
-    const pin = map.pins[id]; if (!pin) return;
-    const here = sessionsArr().filter(s => pinsFor(s.room).some(w => w.pin?.id === id)).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
-    openMenu(el, [
-      ...here.slice(0, 6).map(s => ({ label: `${s.start ? fmtTime(s.start) + ' · ' : ''}${s.title}`, icon: s.attended ? I.check : I.circle, run: () => { sh.close(); setView('all'); select(s.id); } })),
-      ...(here.length ? [{ sep: true }] : []),
-      { label: 'Rename Pin…', icon: I.pencil, run: async () => { const t = await promptSheet('Rename pin', '', pin.label); if (t) { pin.label = t; map.updatedAt = now(); touch(); paint(); } } },
-      { label: 'Remove Pin', icon: I.trash, danger: true, run: () => { delete map.pins[id]; map.updatedAt = now(); touch(); paint(); } },
-    ]);
+  const roomTap = (map, id, e) => {
+    const room = map.rooms[id]; if (!room) return;
+    const here = sessionsInRoom(id);
+    openMenu(null, [
+      { label: room.label, head: true },
+      ...here.slice(0, 8).map(s => ({ label: `${s.date ? fmtDate(s.date, { weekday: 'short' }) + ' ' : ''}${s.start ? fmtTime(s.start) + ' · ' : ''}${s.title}`, icon: s.attended ? I.check : I.circle, run: () => { sh.close(); setView('all'); select(s.id); } })),
+      ...(here.length > 8 ? [{ label: `and ${here.length - 8} more`, info: true }] : []),
+      ...(!here.length ? [{ label: 'None of your sessions are here', info: true }] : []),
+      { sep: true },
+      { label: 'Rename Room…', icon: I.pencil, run: async () => { const t = await promptSheet('Rename room', '', room.label); if (t) { room.label = t; room.src = 'user'; map.updatedAt = now(); touch(); paint(); } } },
+      { label: 'Remove Room', icon: I.trash, danger: true, run: () => { delete map.rooms[id]; map.updatedAt = now(); touch(); paint(); } },
+    ], matchMedia('(min-width:760px)').matches ? { x: e.clientX, y: e.clientY } : undefined);
   };
   paint();
 }
