@@ -953,9 +953,9 @@ const LS = {
 /* ---------- App state ---------- */
 const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, maps: {}, updatedAt: 0 });
 let state = emptyState();
-let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, autoClean: false, clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
+let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, autoClean: false, dgKey: '', clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
-const ui = { cleaning: new Set(), showRaw: new Set(), editingBrief: null, busyRevise: null, view: LS.get('cc.view', 'today'), mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
+const ui = { transcribing: new Set(), cleaning: new Set(), showRaw: new Set(), editingBrief: null, busyRevise: null, view: LS.get('cc.view', 'today'), mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
 const saveSettings = () => LS.set('cc.settings', settings);
 const saveDrive = () => LS.set('cc.drive', drive);
 
@@ -1474,13 +1474,16 @@ function renderNote(n) {
         : n.ext === 'pdf' ? '' : `<div class="note-cap" style="color:var(--text-3)">Copilot can’t read this file type, so the brief uses only its name and your note.</div>`);
   else if (n.type === 'audio') {
     const busy = ui.cleaning.has(n.id), raw = ui.showRaw.has(n.id) && n.rawText != null, fx = n.clean?.fixes || [];
+    const dgBusy = ui.transcribing.has(n.id), canDg = useDeepgram() && n.mediaId && !dgBusy && !busy;
     text = n.text ? `<div class="tx-label">${I.wave} ${raw ? 'Original transcript' : n.clean ? 'Transcript · cleaned up' : 'Transcript'}
-        <span class="tx-acts">${busy ? `<span class="tx-busy"><span class="spin"></span>Cleaning up…</span>`
+        <span class="tx-acts">${dgBusy ? `<span class="tx-busy"><span class="spin"></span>Transcribing…</span>` : busy ? `<span class="tx-busy"><span class="spin"></span>Cleaning up…</span>`
           : n.clean ? `<button data-n="raw">${raw ? 'Show Cleaned' : 'Show Original'}</button><button data-n="unclean">Revert</button>`
-          : settings.apiKey ? `<button data-n="clean" class="tx-go">${I.sparkles} Clean Up</button>` : ''}</span></div>
+          : settings.apiKey ? `<button data-n="clean" class="tx-go">${I.sparkles} Clean Up</button>` : ''}${canDg ? `<button data-n="redo" title="Transcribe the audio again with Deepgram">${I.wave} Transcribe Again</button>` : ''}</span></div>
       <div class="transcript ${busy ? 'busy' : ''}">${esc(raw ? n.rawText : n.text)}</div>
       ${n.clean && !raw && fx.length ? `<details class="tx-fixes"><summary>${fx.length} word${fx.length === 1 ? '' : 's'} fixed${n.clean.words ? ` · ${n.clean.words[0].toLocaleString()} → ${n.clean.words[1].toLocaleString()} words` : ''}</summary><div>${fx.map(f => `<span><s>${esc(f.from)}</s> → ${esc(f.to)}</span>`).join('')}</div></details>` : ''}`
-      : `<div class="note-cap ph" data-n="edit">No transcript was captured. Add a summary…</div>`;
+      : `<div class="tx-label">${I.wave} No transcript was captured
+          <span class="tx-acts">${dgBusy ? `<span class="tx-busy"><span class="spin"></span>Transcribing…</span>` : n.mediaId ? `<button data-n="redo" class="tx-go">${I.wave} ${useDeepgram() ? 'Transcribe with Deepgram' : 'Transcribe…'}</button>` : ''}</span></div>
+        <div class="note-cap ph" data-n="edit">Add a summary…</div>`;
   }
   else text = n.text ? `<div class="note-cap">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">Add a caption…</div>`;
   const dur = n.duration ? `${Math.floor(n.duration / 60)}:${pad(Math.round(n.duration % 60))}` : '';
@@ -1508,6 +1511,7 @@ function bindNotes(root, s) {
         return;
       }
       if (a === 'clean') return confirmClean(s, [n]);
+      if (a === 'redo') return retranscribe(s, n.id);
       if (a === 'raw') { ui.showRaw.has(n.id) ? ui.showRaw.delete(n.id) : ui.showRaw.add(n.id); return renderDetail(); }
       if (a === 'unclean') { if (await confirmSheet('Go back to the original transcript?', 'The cleaned-up text is replaced by the raw transcript on all your devices. You can clean it up again later.', 'Revert', false)) { n.text = n.rawText; delete n.rawText; delete n.clean; ui.showRaw.delete(n.id); n.updatedAt = now(); touch(s); renderDetail(); } return; }
       if (a === 'star') { n.star = !n.star; n.updatedAt = now(); touch(s); renderDetail(); }
@@ -1796,7 +1800,7 @@ function paintMic() {
   const b = $('#micBtn');
   b.innerHTML = rec.active ? `${I.stop}<span>Stop</span>` : `${I.mic}<span>Record</span>`;
   b.setAttribute('aria-label', rec.active ? 'Stop and save recording' : 'Record the speaker');
-  const ta = $('#noteInput'); if (ta) ta.placeholder = rec.active && rec.sessionId === ui.selected ? 'Type a note while recording' : 'Add a note';
+  const ta = $('#noteInput'); if (ta) ta.placeholder = rec.active && rec.sessionId === ui.selected ? 'Note while recording' : 'Add a note';
 }
 function autoGrow() { const ta = $('#noteInput'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 180) + 'px'; }
 function addNote(s, note) {
@@ -1826,9 +1830,14 @@ async function startRecording() {
   const s = S(ui.selected); if (!s) return;
   if (!navigator.mediaDevices?.getUserMedia) { toast('Recording needs the page to be opened from an https address.'); return; }
   let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
-  catch { toast('Microphone access is blocked. Allow it in your browser settings.', false, 4500); return; }
-  Object.assign(rec, { id: uid(), active: true, sessionId: s.id, stream, chunks: [], finalText: '', interim: '', started: now(), elapsed: 0, paused: false, srErrors: 0, srDenied: false, srHad: false, srStalled: false, srRunning: false, mr: null, sr: null, wake: null, mime: '', an: null, ac: null });
+  // Deepgram copes with room noise itself; the browser's voice processing is tuned for someone talking into the phone and can erase a distant speaker
+  const dgOn = useDeepgram();
+  // iPhone only starts audio processing from a tap, so the audio context is made now, before waiting for the microphone
+  let ac0 = null; try { ac0 = new (window.AudioContext || window.webkitAudioContext)(); ac0.resume?.().catch(() => {}); } catch {}
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: dgOn ? { echoCancellation: false, noiseSuppression: false, autoGainControl: true } : { echoCancellation: true, noiseSuppression: true } }); }
+  catch { try { ac0?.close(); } catch {} toast('Microphone access is blocked. Allow it in your browser settings.', false, 4500); return; }
+  Object.assign(rec, { id: uid(), t0: now(), active: true, sessionId: s.id, stream, chunks: [], finalText: '', interim: '', started: now(), elapsed: 0, paused: false, srErrors: 0, srDenied: false, srHad: false, srStalled: false, srRunning: false, mr: null, sr: null, wake: null, mime: '', an: null, ac: null, src: null, proc: null,
+    engine: dgOn ? 'deepgram' : 'browser', dg: null, dgOpen: false, dgEverOpen: false, dgFail: '', dgRetry: 0, dgQueue: [], dgStopping: false, segs: [] });
   if (settings.keepAudio && window.MediaRecorder) {
     const mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find(m => MediaRecorder.isTypeSupported?.(m)) || '';
     try {
@@ -1838,12 +1847,14 @@ async function startRecording() {
       rec.mr.start(1000);
     } catch (e) { console.warn(e); rec.mr = null; }
   }
-  if (SR) startRecognition();
-  try { rec.wake = await navigator.wakeLock?.request('screen'); } catch {}
   try {
-    const ac = new (window.AudioContext || window.webkitAudioContext)(); const an = ac.createAnalyser(); an.fftSize = 128;
-    ac.createMediaStreamSource(stream).connect(an); rec.ac = ac; rec.an = an;
+    const ac = ac0 || new (window.AudioContext || window.webkitAudioContext)(); const an = ac.createAnalyser(); an.fftSize = 128;
+    const src = ac.createMediaStreamSource(stream); src.connect(an); rec.ac = ac; rec.an = an; rec.src = src;
+    ac.resume?.().catch(() => {});
   } catch {}
+  // One listener on the microphone: with Deepgram the browser's own recogniser stays off (on iPhone the two fight over the mic)
+  if (dgOn) { startDeepgram(); startPcm(); } else if (SR) startRecognition();
+  try { rec.wake = await navigator.wakeLock?.request('screen'); } catch {}
   const dock = $('#dock');
   dock.innerHTML = `<span class="dock-dot" aria-hidden="true"></span><span class="dock-time" id="recTime">0:00</span>
     <span class="dock-levels" aria-hidden="true">${'<i></i>'.repeat(10)}</span>
@@ -1892,6 +1903,140 @@ function startRecognition() {
   };
   try { r.start(); } catch (e) { console.warn(e); }
 }
+/* ---------- Deepgram: live transcription that works on iPhone and with distant speakers ---------- */
+// Browser speech recognition is built for short dictation close to the phone; Deepgram gets the microphone's audio itself.
+const useDeepgram = () => !!settings.dgKey;
+function dgLang() { const l = (settings.lang || 'en-US').replace(/[@.].*$/, '').replace('_', '-'); return /^en|^pt-BR|^es-419/.test(l) ? l : l.split('-')[0]; }
+// Names it should get right, like a dictation dictionary: the user's words, then this session's and the agenda's people and companies
+function dgKeyterms(s) {
+  if (!/^en/.test(dgLang())) return [];
+  const ss = sessionsArr(), split = (t) => (t || '').split(/,|&| and |\n|;/).map(x => x.trim()).filter(x => x.length > 2 && x.length < 50);
+  const terms = [...split(state.conference.vocab), ...split(s?.speaker), ...ss.map(x => (x.title.match(/^([^:]{2,40}):/) || [])[1]).filter(Boolean), ...ss.flatMap(x => split(x.speaker))];
+  return [...new Set(terms)].slice(0, 50);
+}
+function dgQuery(s, extra) {
+  const q = new URLSearchParams({ model: 'nova-3', language: dgLang(), smart_format: 'true', punctuate: 'true', diarize: 'true', ...extra });
+  for (const k of dgKeyterms(s)) q.append('keyterm', k);
+  return q.toString();
+}
+// Finished words grouped by speaker; labels appear once a second voice is heard
+function dgAddWords(segs, alt) {
+  const words = alt.words?.length ? alt.words : [{ punctuated_word: alt.transcript, speaker: 0 }];
+  for (const w of words) {
+    const t = (w.punctuated_word || w.word || '').trim(); if (!t) continue;
+    const sp = w.speaker ?? 0, last = segs.at(-1);
+    if (last && last.sp === sp) last.t += ' ' + t; else segs.push({ sp, t });
+  }
+}
+function dgText(segs) {
+  const many = new Set(segs.map(x => x.sp)).size > 1;
+  return segs.map(x => many ? `Speaker ${x.sp + 1}: ${x.t}` : x.t).join(many ? '\n\n' : ' ');
+}
+function startDeepgram() {
+  const s = S(rec.sessionId);
+  const ws = new WebSocket(`wss://api.deepgram.com/v1/listen?${dgQuery(s, { encoding: 'linear16', sample_rate: '16000', channels: '1', interim_results: 'true', endpointing: '300', utterance_end_ms: '1000' })}`, ['token', settings.dgKey]);
+  ws.binaryType = 'arraybuffer'; rec.dg = ws;
+  ws.onopen = () => {
+    rec.dgOpen = rec.dgEverOpen = true; rec.dgRetry = 0; rec.dgFail = '';
+    while (rec.dgQueue.length && ws.readyState === 1) ws.send(rec.dgQueue.shift());
+    paintTranscript();
+  };
+  ws.onmessage = (e) => {
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.type !== 'Results') return;
+    const alt = m.channel?.alternatives?.[0]; if (!alt) return;
+    if (m.is_final) { if (alt.transcript?.trim()) { dgAddWords(rec.segs, alt); rec.finalText = dgText(rec.segs); } rec.interim = ''; }
+    else rec.interim = alt.transcript || '';
+    paintTranscript();
+  };
+  ws.onclose = () => {
+    rec.dgOpen = false;
+    if (rec.dg !== ws || !rec.active || rec.dgStopping) return;
+    if (!rec.dgEverOpen) { rec.dgFail = 'Couldn’t connect to Deepgram. Check the key in Settings and your connection; the audio is still recording.'; return paintTranscript(); }
+    // Dropped mid-talk (Wi-Fi, a call): reconnect; audio captured meanwhile is queued and sent on reconnect
+    const n = rec.dgRetry = (rec.dgRetry || 0) + 1;
+    if (n > 8) { rec.dgFail = 'Lost the connection to Deepgram. The audio is still recording; transcribe it again when you’re done.'; return paintTranscript(); }
+    paintTranscript();
+    setTimeout(() => { if (rec.active && rec.dg === ws && !rec.dgStopping) startDeepgram(); }, Math.min(8000, 400 * 2 ** n));
+  };
+  ws.onerror = () => {};
+}
+// The microphone as 16 kHz 16-bit mono, the format Deepgram decodes most reliably on every browser
+function startPcm() {
+  const ac = rec.ac, src = rec.src; if (!ac || !src) return;
+  const proc = ac.createScriptProcessor(4096, 1, 1), ratio = ac.sampleRate / 16000; rec.proc = proc;
+  proc.onaudioprocess = (e) => {
+    if (!rec.active || rec.paused) return;
+    const inp = e.inputBuffer.getChannelData(0), n = Math.floor(inp.length / ratio), out = new Int16Array(n);
+    for (let i = 0; i < n; i++) {
+      const a = Math.floor(i * ratio), b = Math.min(inp.length, Math.floor((i + 1) * ratio)); let v = 0;
+      for (let j = a; j < b; j++) v += inp[j];
+      out[i] = Math.max(-1, Math.min(1, v / Math.max(1, b - a))) * 0x7fff;
+    }
+    const ws = rec.dg;
+    if (ws?.readyState === 1) ws.send(out.buffer);
+    else { rec.dgQueue.push(out.buffer); if (rec.dgQueue.length > 1500) rec.dgQueue.shift(); }
+  };
+  src.connect(proc); proc.connect(ac.destination);
+  rec.dgKeep = setInterval(() => { if (rec.paused && rec.dg?.readyState === 1) rec.dg.send(JSON.stringify({ type: 'KeepAlive' })); }, 5000);
+}
+async function stopDeepgram() {
+  clearInterval(rec.dgKeep);
+  try { rec.proc?.disconnect(); } catch {}
+  const ws = rec.dg; if (!ws) return;
+  rec.dgStopping = true;
+  if (ws.readyState === 1) {
+    // Ask for the last words, and wait briefly for them
+    await new Promise(res => { const t = setTimeout(res, 2000); ws.addEventListener('close', () => { clearTimeout(t); res(); }, { once: true }); try { ws.send(JSON.stringify({ type: 'CloseStream' })); } catch { res(); } });
+  }
+  try { ws.close(); } catch {}
+}
+// A saved recording, transcribed again from its audio: for recordings made without Deepgram, or whose live transcript has gaps
+async function dgTranscribeBlob(s, blob) {
+  try {
+    const r = await fetch(`https://api.deepgram.com/v1/listen?${dgQuery(s, { paragraphs: 'true' })}`, { method: 'POST', headers: { Authorization: `Token ${settings.dgKey}`, 'Content-Type': blob.type || 'audio/mp4' }, body: blob });
+    if (r.status === 401 || r.status === 403) throw Object.assign(new Error('Deepgram rejected the key. Check it in Settings.'), { code: 'DG_KEY' });
+    if (!r.ok) throw new Error(`Deepgram couldn’t transcribe this recording (${r.status}).`);
+    const alt = (await r.json()).results?.channels?.[0]?.alternatives?.[0];
+    const many = new Set((alt?.words || []).map(w => w.speaker ?? 0)).size > 1;
+    let t = (alt?.paragraphs?.transcript || alt?.transcript || '').trim();
+    t = many ? t.replace(/Speaker (\d+):/g, (m, d) => `Speaker ${+d + 1}:`) : t.replace(/^Speaker \d+:\s*/gm, '');
+    return t.replace(/\n{3,}/g, '\n\n');
+  } catch (e) {
+    if (e.code === 'DG_KEY' || !(e instanceof TypeError)) throw e;
+    // The browser blocked the direct upload: stream the recording through the live connection instead
+    return dgStreamBlob(s, blob);
+  }
+}
+function dgStreamBlob(s, blob) {
+  return new Promise((resolve, reject) => {
+    const segs = [], ws = new WebSocket(`wss://api.deepgram.com/v1/listen?${dgQuery(s, {})}`, ['token', settings.dgKey]);
+    let opened = false;
+    ws.onopen = async () => {
+      opened = true;
+      for (let i = 0; i < blob.size; i += 65536) { if (ws.readyState !== 1) return; ws.send(await blob.slice(i, i + 65536).arrayBuffer()); await new Promise(r => setTimeout(r, 15)); }
+      ws.send(JSON.stringify({ type: 'CloseStream' }));
+    };
+    ws.onmessage = (e) => { try { const m = JSON.parse(e.data); const alt = m.channel?.alternatives?.[0]; if (m.type === 'Results' && m.is_final && alt?.transcript?.trim()) dgAddWords(segs, alt); } catch {} };
+    ws.onclose = () => opened ? resolve(dgText(segs)) : reject(new Error('Couldn’t connect to Deepgram. Check the key in Settings and your connection.'));
+  });
+}
+async function retranscribe(s, noteId) {
+  const n = s.notes.find(x => x.id === noteId); if (!n) return;
+  if (!useDeepgram()) { toast('Add a Deepgram key in Settings to transcribe recordings'); return openSettings(); }
+  const blob = await getMediaBlob(n); if (!blob) return toast(n.driveId ? 'Connect Google Drive in Settings to load this recording here.' : 'The audio of this recording isn’t on this device.');
+  if (!await confirmSheet('Transcribe this recording again?', `This sends the audio (${fmtDur(n.duration || 0)}) to Deepgram using your key and replaces the current transcript. About $0.0043 a minute.`, 'Transcribe', false)) return;
+  ui.transcribing.add(n.id); if (ui.selected === s.id) renderDetail();
+  try {
+    const text = await dgTranscribeBlob(s, blob);
+    if (!text) throw new Error('Deepgram didn’t hear any speech in this recording.');
+    const fresh = S(s.id)?.notes.find(x => x.id === noteId); if (!fresh) return;
+    Object.assign(fresh, { text, engine: 'deepgram', retranscribed: now(), updatedAt: now() }); delete fresh.rawText; delete fresh.clean;
+    touch(S(s.id)); toast(`Transcribed · ${wordCount(text).toLocaleString()} words`);
+    if (settings.autoClean && settings.apiKey) cleanTranscript(S(s.id), noteId);
+  } catch (e) { toast(e.message || 'Couldn’t transcribe the recording', false, 5000); if (e.code === 'DG_KEY') openSettings(); }
+  finally { ui.transcribing.delete(noteId); if (ui.selected === s.id) renderDetail(); }
+}
 function resumeTranscript() {
   rec.srStalled = false; rec.srErrors = 0;
   try { rec.sr?.abort(); } catch {}
@@ -1899,7 +2044,12 @@ function resumeTranscript() {
 }
 function paintTranscript() {
   const el = $('#liveTx'); if (!el) return;
-  $('#dock').classList.toggle('stalled', !!rec.srStalled);
+  $('#dock').classList.toggle('stalled', !!rec.srStalled || !!rec.dgFail);
+  if (rec.engine === 'deepgram' && (rec.dgFail || (!rec.finalText && !rec.interim))) {
+    el.innerHTML = `<span class="interim">${esc(rec.dgFail || (rec.dgOpen ? 'Listening with Deepgram… the transcript appears here.' : rec.dgEverOpen ? 'Reconnecting to Deepgram… the audio is still recording.' : 'Connecting to Deepgram…'))}</span>${rec.dgFail ? ' <button class="dock-resume" id="txRetry">Retry</button>' : ''}`;
+    $('#txRetry')?.addEventListener('click', (e) => { e.stopPropagation(); rec.dgFail = ''; rec.dgRetry = 0; startDeepgram(); paintTranscript(); });
+    return;
+  }
   if (rec.srStalled) {
     el.innerHTML = `<span class="interim">The browser paused the live transcript; the audio is still recording.</span> <button class="dock-resume" id="txResume">Resume transcript</button>`;
     $('#txResume').onclick = (e) => { e.stopPropagation(); resumeTranscript(); };
@@ -1935,6 +2085,7 @@ async function stopRecording(save) {
   rec.active = false; clearInterval(rec.timer);
   const duration = (rec.elapsed + (rec.paused ? 0 : now() - rec.started)) / 1000;
   try { rec.sr?.stop(); } catch {}
+  if (rec.engine === 'deepgram') await stopDeepgram();
   const blob = await new Promise(res => {
     if (!rec.mr || rec.mr.state === 'inactive') return res(rec.chunks.length ? new Blob(rec.chunks, { type: rec.mime }) : null);
     rec.mr.onstop = () => res(rec.chunks.length ? new Blob(rec.chunks, { type: rec.mime }) : null);
@@ -1947,11 +2098,11 @@ async function stopRecording(save) {
   paintMic();
   if (!save) { toast('Recording discarded'); renderList(); return; }
   const s = S(rec.sessionId); if (!s) return;
-  const text = (rec.finalText + (rec.interim ? ' ' + rec.interim : '')).replace(/\n{2,}/g, '\n').trim();
+  const text = (rec.finalText + (rec.interim ? ' ' + rec.interim : '')).replace(/\n{3,}/g, '\n\n').trim();
   if (!blob && !text) { toast('Nothing was captured.'); renderList(); return; }
   let mediaId = '';
   if (blob) { mediaId = uid(); await DB.put('media', mediaId, blob); }
-  const note = addNote(s, { id: rec.id, type: 'audio', mediaId, mime: blob?.type || '', text, txLen: rec.finalText.length, duration, ts: now() - duration * 1000 });
+  const note = addNote(s, { id: rec.id, type: 'audio', mediaId, mime: blob?.type || '', text, txLen: rec.finalText.length, duration, engine: rec.engine, ts: rec.t0 || now() - duration * 1000 });
   toast(text ? 'Recording and transcript saved' : 'Recording saved');
   if (ui.selected === s.id) { renderDetail(); scrollNotesEnd(); }
   renderList();
@@ -2168,7 +2319,8 @@ const BRIEF_SCHEMA = {
 function weaveNotes(audio, typed) {
   const t = audio.text, base = audio.txLen || (audio.rawText ?? audio.text).length || 1, ins = [];
   for (const n of typed.sort((a, b) => (a.txAt || 0) - (b.txAt || 0))) {
-    let pos = Math.min(t.length, Math.round((n.txAt || 0) * t.length / base));
+    // A recording transcribed again afterwards has no live text positions: place notes by time instead
+    let pos = Math.min(t.length, Math.round(audio.retranscribed && audio.duration ? (n.recAt || 0) / audio.duration * t.length : (n.txAt || 0) * t.length / base));
     // At a sentence end already, or the next one within a sentence's reach, so a note never splits a sentence
     if (!/[.!?\n]\s*$/.test(t.slice(Math.max(0, pos - 4), pos))) { const m = t.slice(pos, pos + 240).search(/[.!?\n]\s/); if (m >= 0) pos += m + 1; }
     ins.push([pos, `\n[Attendee's note at ${fmtDur(n.recAt || 0)}${n.star ? ', KEY POINT' : ''}: ${n.text}]\n`]);
@@ -3965,13 +4117,14 @@ function openSettings() {
 
       <div class="grp-t">Recording</div>
       <div class="grp">
+        <div class="f-row col"><label for="sDg">Deepgram API key (transcription)</label><input type="password" id="sDg" placeholder="Paste your Deepgram key" value="${esc(settings.dgKey)}" autocomplete="off" spellcheck="false"></div>
         <div class="f-row"><label for="sLang">Speaker’s language</label><select id="sLang">${langs.map(([v, l]) => `<option value="${v}" ${settings.lang === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="f-row"><label for="sAudio" style="flex:1">Keep audio with the transcript</label><span class="switch"><input type="checkbox" id="sAudio" ${settings.keepAudio ? 'checked' : ''}><span></span></span></div>
         <div class="f-row"><label for="sClean" style="flex:1">Clean up transcripts with Claude</label><span class="switch"><input type="checkbox" id="sClean" ${settings.autoClean ? 'checked' : ''} ${settings.apiKey ? '' : 'disabled'}><span></span></span></div>
         <div class="f-row col"><label for="sVocab">Words to get right (names, companies, acronyms)</label><textarea id="sVocab" rows="2" placeholder="Workday, CHRO, HRBP, Rebecca Lane" style="min-height:52px">${esc(state.conference.vocab || '')}</textarea></div>
       </div>
       <p class="f-cap">With clean-up on, each recording’s transcript is sent to Claude when you stop recording: filler words, false starts and repetitions go, punctuation and paragraphs are added, and misheard names are fixed using the session, the agenda’s speakers and your words above. The original is always kept. Off, each transcript has a Clean Up button that asks first.</p>
-      <p class="f-cap">${SR ? 'Live transcription uses your browser’s speech recognition (Safari and Chrome).' : 'This browser has no live transcription, so recordings are saved as audio only. Safari and Chrome support it.'} If transcription keeps stopping on iPhone, turn off Keep audio.</p>
+      <p class="f-cap">${settings.dgKey ? 'Recordings are transcribed live by Deepgram' : 'With a Deepgram key, recordings are transcribed live by Deepgram'}: it hears distant and noisy speakers, labels who is speaking and gets your words above right. Create a key at <a href="https://console.deepgram.com/" target="_blank" rel="noopener">console.deepgram.com</a> (new accounts get free credit; then about $0.26 an hour). It stays on this device and is sent only to Deepgram. ${settings.dgKey ? '' : SR ? 'Without one, the browser’s own speech recognition is used: it is made for dictation close to the phone and misses most of a talk on iPhone.' : 'Without one, this browser saves audio only.'}</p>
 
       <div class="grp-t">Data</div>
       <div class="grp">
@@ -3986,6 +4139,7 @@ function openSettings() {
       $('#sConf', el).onchange = (e) => { state.conference = { ...state.conference, name: e.target.value.trim(), updatedAt: now() }; touch(); renderSidebar(); renderList(); };
       $('#sClient', el).onchange = (e) => { settings.clientId = e.target.value.trim(); saveSettings(); if (settings.clientId) loadGis().catch(() => {}); renderSync(); };
       $('#sKey', el).onchange = (e) => { settings.apiKey = e.target.value.trim(); saveSettings(); };
+      $('#sDg', el).onchange = (e) => { settings.dgKey = e.target.value.trim(); saveSettings(); };
       $('#sWs', el).onchange = (e) => { settings.workspaceId = e.target.value.trim(); saveSettings(); };
       $('#sModel', el).onchange = (e) => { settings.model = e.target.value; saveSettings(); };
       $('#sLang', el).onchange = (e) => { settings.lang = e.target.value; saveSettings(); };
