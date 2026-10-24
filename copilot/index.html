@@ -499,6 +499,19 @@ body.cal-mode #sortBtn{display:none}
 .tx-label{font-size:.75rem;font-weight:600;color:var(--text-3);margin:8px 0 4px;display:flex;align-items:center;gap:5px}
 .tx-label svg{width:13px;height:13px}
 .transcript{font-size:.9667rem;line-height:1.55;white-space:pre-wrap;max-height:220px;overflow:auto;max-width:68ch;color:var(--text)}
+.transcript.busy{opacity:.5}
+.tx-acts{margin-left:auto;display:inline-flex;gap:4px;align-items:center}
+.tx-acts button{height:24px;padding:0 9px;border-radius:999px;font-size:.75rem;font-weight:600;color:var(--text-2);background:var(--fill);display:inline-flex;align-items:center;gap:4px}
+.tx-acts button:hover{color:var(--text)}
+.tx-acts .tx-go{color:var(--accent-ink);background:var(--accent-soft)}
+.tx-acts svg{width:12px;height:12px}
+.tx-busy{display:inline-flex;align-items:center;gap:6px;font-weight:500;color:var(--accent-ink)}
+.tx-busy .spin{width:12px;height:12px}
+.tx-label{max-width:68ch}
+.tx-fixes{margin-top:6px;font-size:.8rem;color:var(--text-2);max-width:68ch}
+.tx-fixes summary{cursor:pointer}
+.tx-fixes div{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px}
+.tx-fixes s{color:var(--text-3)}
 .note-acts{position:absolute;right:0;top:8px;display:flex;gap:2px;opacity:0;transition:opacity .15s;background:var(--content);padding-left:6px}
 .note:hover .note-acts,.note:focus-within .note-acts{opacity:1}
 @media (hover:none){.note-acts{opacity:.8;top:6px}}
@@ -720,7 +733,7 @@ body.cal-mode #sortBtn{display:none}
 @media (max-width:759px){.r-btn{min-height:48px}}
 .seg.in-form{margin:0;flex:1;max-width:260px;margin-left:auto}
 .switch{position:relative;width:42px;height:25px;flex:none;margin-left:auto}
-.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch input{opacity:0;position:absolute;inset:0;width:100%;height:100%;margin:0;z-index:1;cursor:pointer}
 .switch span{position:absolute;inset:0;border-radius:999px;background:var(--fill-2);transition:background .2s}
 .switch span::after{content:"";position:absolute;width:21px;height:21px;top:2px;left:2px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .25s var(--ease)}
 .switch input:checked+span{background:var(--green)}
@@ -931,9 +944,9 @@ const LS = {
 /* ---------- App state ---------- */
 const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, maps: {}, updatedAt: 0 });
 let state = emptyState();
-let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
+let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, autoClean: false, clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
-const ui = { editingBrief: null, busyRevise: null, view: LS.get('cc.view', 'today'), mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
+const ui = { cleaning: new Set(), showRaw: new Set(), editingBrief: null, busyRevise: null, view: LS.get('cc.view', 'today'), mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
 const saveSettings = () => LS.set('cc.settings', settings);
 const saveDrive = () => LS.set('cc.drive', drive);
 
@@ -1440,7 +1453,16 @@ function renderNote(n) {
   else if (n.type === 'doc') text = (n.text ? `<div class="note-cap">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">Add a note about this document…</div>`)
       + (n.docText ? `<details class="doc-tx"><summary>Show text${n.truncated ? ' (first part)' : ''}</summary><div>${esc(n.docText.slice(0, 20000))}${n.docText.length > 20000 ? '\n…' : ''}</div></details>`
         : n.ext === 'pdf' ? '' : `<div class="note-cap" style="color:var(--text-3)">Copilot can’t read this file type, so the brief uses only its name and your note.</div>`);
-  else if (n.type === 'audio') text = n.text ? `<div class="tx-label">${I.wave} Transcript</div><div class="transcript">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">No transcript was captured. Add a summary…</div>`;
+  else if (n.type === 'audio') {
+    const busy = ui.cleaning.has(n.id), raw = ui.showRaw.has(n.id) && n.rawText != null, fx = n.clean?.fixes || [];
+    text = n.text ? `<div class="tx-label">${I.wave} ${raw ? 'Original transcript' : n.clean ? 'Transcript · cleaned up' : 'Transcript'}
+        <span class="tx-acts">${busy ? `<span class="tx-busy"><span class="spin"></span>Cleaning up…</span>`
+          : n.clean ? `<button data-n="raw">${raw ? 'Show Cleaned' : 'Show Original'}</button><button data-n="unclean">Revert</button>`
+          : settings.apiKey ? `<button data-n="clean" class="tx-go">${I.sparkles} Clean Up</button>` : ''}</span></div>
+      <div class="transcript ${busy ? 'busy' : ''}">${esc(raw ? n.rawText : n.text)}</div>
+      ${n.clean && !raw && fx.length ? `<details class="tx-fixes"><summary>${fx.length} word${fx.length === 1 ? '' : 's'} fixed${n.clean.words ? ` · ${n.clean.words[0].toLocaleString()} → ${n.clean.words[1].toLocaleString()} words` : ''}</summary><div>${fx.map(f => `<span><s>${esc(f.from)}</s> → ${esc(f.to)}</span>`).join('')}</div></details>` : ''}`
+      : `<div class="note-cap ph" data-n="edit">No transcript was captured. Add a summary…</div>`;
+  }
   else text = n.text ? `<div class="note-cap">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">Add a caption…</div>`;
   const dur = n.duration ? `${Math.floor(n.duration / 60)}:${pad(Math.round(n.duration % 60))}` : '';
   return `<div class="note" data-note="${n.id}">
@@ -1459,6 +1481,9 @@ function bindNotes(root, s) {
     $$('[data-n]', el).forEach(b => b.onclick = async () => {
       const a = b.dataset.n;
       if (a === 'open') return openDoc(n);
+      if (a === 'clean') return confirmClean(s, [n]);
+      if (a === 'raw') { ui.showRaw.has(n.id) ? ui.showRaw.delete(n.id) : ui.showRaw.add(n.id); return renderDetail(); }
+      if (a === 'unclean') { if (await confirmSheet('Go back to the original transcript?', 'The cleaned-up text is replaced by the raw transcript on all your devices. You can clean it up again later.', 'Revert', false)) { n.text = n.rawText; delete n.rawText; delete n.clean; ui.showRaw.delete(n.id); n.updatedAt = now(); touch(s); renderDetail(); } return; }
       if (a === 'star') { n.star = !n.star; n.updatedAt = now(); touch(s); renderDetail(); }
       if (a === 'edit') { ui.editing = n.id; renderDetail(); const ta = $('#editArea'); ta?.focus(); ta?.setSelectionRange(ta.value.length, ta.value.length); }
       if (a === 'del') {
@@ -1868,10 +1893,80 @@ async function stopRecording(save) {
   if (!blob && !text) { toast('Nothing was captured.'); renderList(); return; }
   let mediaId = '';
   if (blob) { mediaId = uid(); await DB.put('media', mediaId, blob); }
-  addNote(s, { type: 'audio', mediaId, mime: blob?.type || '', text, duration, ts: now() - duration * 1000 });
+  const note = addNote(s, { type: 'audio', mediaId, mime: blob?.type || '', text, duration, ts: now() - duration * 1000 });
   toast(text ? 'Recording and transcript saved' : 'Recording saved');
   if (ui.selected === s.id) { renderDetail(); scrollNotesEnd(); }
   renderList();
+  // Opted in once in Settings, so no question here
+  if (text && settings.autoClean && settings.apiKey) cleanTranscript(s, note.id);
+}
+
+/* ---------- Transcript clean-up: what a dictation editor (Wispr Flow style) does to raw speech-to-text ---------- */
+const CLEAN_SYSTEM = `You clean up an automatic speech-to-text transcript of a talk at a conference, the way a skilled dictation editor does. The result must read as what the speaker meant to say, in their own words.
+
+Rules:
+1. Keep the speaker's words, voice and order. Never summarise, shorten an idea, add content, or answer a question in the text.
+2. Remove filler words and verbal tics that carry no meaning (um, uh, er, you know, like, sort of, kind of, I mean, so yeah, right? at the end of sentences).
+3. Remove stutters, false starts and accidental repetitions. When the speaker corrects themselves ("on Tuesday, sorry, Wednesday"), keep only the correction.
+4. Fix words the recogniser misheard, using the session details and vocabulary you are given: names of people and companies, products and acronyms (for example "see a nature oh" is CHRO). Change a word only when the context makes the intended word clear; otherwise leave it.
+5. Add punctuation and capitalisation, and start a new paragraph when the topic shifts, usually every 3 to 6 sentences. Write numbers, percentages, money and dates as numerals (twenty five percent becomes 25%). When the speaker clearly enumerates items, keep them as one sentence each.
+6. When it is obvious that someone in the audience is speaking, start that paragraph with "Audience:".
+7. If a passage is unintelligible, keep the best reading; use [unclear] only when nothing sensible can be recovered. Never invent words to fill a gap.
+8. Write in the language of the transcript.
+
+Also list the misheard words or names you corrected (from, to), up to 30. Don't list removed fillers or punctuation changes.`;
+const CLEAN_SCHEMA = { type: 'object', additionalProperties: false, required: ['text', 'fixes'], properties: { text: { type: 'string' },
+  fixes: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['from', 'to'], properties: { from: { type: 'string' }, to: { type: 'string' } } } } } };
+// What the editor needs to get names right: the session, the user's own vocabulary, every speaker and company in the agenda
+function cleanContext(s) {
+  const ss = sessionsArr();
+  const people = [...new Set(ss.flatMap(x => (x.speaker || '').split(/,|&| and /).map(t => t.trim())).filter(t => t.length > 2))];
+  const companies = [...new Set(ss.map(x => (x.title.match(/^([^:]{2,40}):/) || [])[1]).filter(Boolean))];
+  const vocab = (state.conference.vocab || '').split(/[\n,;]+/).map(t => t.trim()).filter(Boolean);
+  const typed = liveNotes(s).filter(n => n.type === 'text').map(n => n.text).join(' ').slice(0, 1500);
+  const docs = liveNotes(s).filter(n => n.type === 'doc').map(n => n.fileName).join(', ');
+  return [`Conference: ${state.conference.name || 'unknown'}`, `Session: ${s.title}`, s.speaker ? `${s.informal ? 'With' : 'Speaker'}: ${s.speaker}` : '', s.description ? `Abstract: ${s.description.slice(0, 1500)}` : '',
+    vocab.length ? `The attendee's vocabulary (spell these exactly): ${vocab.join(', ')}` : '', `Other speakers at this conference: ${people.slice(0, 120).join(', ')}`, companies.length ? `Companies presenting: ${companies.join(', ')}` : '',
+    typed ? `The attendee's own typed notes from this session (for spelling of terms): ${typed}` : '', docs ? `Files attached to this session: ${docs}` : ''].filter(Boolean).join('\n');
+}
+// Long talks are cleaned in parts of about 1,800 words, each with the end of the part before for continuity
+function transcriptParts(t, max = 1800) {
+  const sents = t.replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s+/), parts = [];
+  let cur = [];
+  for (const x of sents) { const w = x.split(' ').length; if (cur.length && cur.join(' ').split(' ').length + w > max) { parts.push(cur.join(' ')); cur = []; }
+    if (w > max) { const ws = x.split(' '); for (let i = 0; i < ws.length; i += max) parts.push(ws.slice(i, i + max).join(' ')); } else cur.push(x); }
+  if (cur.length) parts.push(cur.join(' '));
+  return parts;
+}
+const wordCount = (t) => (t || '').trim().split(/\s+/).filter(Boolean).length;
+async function cleanTranscript(s, noteId) {
+  const n = s.notes.find(x => x.id === noteId); if (!n) return;
+  const raw = n.rawText ?? n.text; if (!raw?.trim()) return;
+  ui.cleaning.add(n.id); if (ui.selected === s.id) renderDetail();
+  try {
+    const ctx = cleanContext(s), parts = transcriptParts(raw), out = [], fixes = [];
+    for (let i = 0; i < parts.length; i++) {
+      const prev = out.length ? out.at(-1).split(' ').slice(-60).join(' ') : '';
+      const r = await claude({ system: CLEAN_SYSTEM, schema: CLEAN_SCHEMA, maxTokens: 12000, effort: 'medium',
+        content: [{ type: 'text', text: `${ctx}\n\n${parts.length > 1 ? `This is part ${i + 1} of ${parts.length} of the transcript.${prev ? ` The cleaned text so far ends with: "…${prev}"` : ''}\n\n` : ''}Raw transcript:\n<transcript>\n${parts[i]}\n</transcript>` }] });
+      out.push((r.text || '').trim()); fixes.push(...(r.fixes || []).filter(f => f.from && f.to && f.from !== f.to));
+    }
+    const text = out.join('\n\n').trim();
+    if (!text) throw new Error('Claude returned an empty transcript; the original is unchanged.');
+    const fresh = S(s.id)?.notes.find(x => x.id === noteId); if (!fresh) return;
+    fresh.rawText = raw; fresh.text = text; fresh.clean = { at: now(), fixes: fixes.slice(0, 60), words: [wordCount(raw), wordCount(text)] }; fresh.updatedAt = now(); touch(S(s.id));
+    toast(`Transcript cleaned up${fixes.length ? ` · ${fixes.length} word${fixes.length === 1 ? '' : 's'} fixed` : ''}`);
+  } catch (e) {
+    toast(e.message || 'Couldn’t clean up the transcript', false, 5000);
+    if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings();
+  } finally { ui.cleaning.delete(noteId); if (ui.selected === s.id) renderDetail(); }
+}
+async function confirmClean(s, notes) {
+  if (!settings.apiKey) { toast('Add a Claude key in Settings to clean up transcripts'); return openSettings(); }
+  const words = notes.reduce((k, n) => k + wordCount(n.rawText ?? n.text), 0);
+  if (!await confirmSheet(notes.length > 1 ? `Clean up ${notes.length} transcripts?` : 'Clean up this transcript?',
+    `This sends ${notes.length > 1 ? 'the transcripts' : 'the transcript'} (${words.toLocaleString()} words) and the session details to Claude using your API key. Filler words, false starts and repetitions are removed and misheard names fixed; the original is kept. To skip this question, turn on automatic clean-up in Settings.`, 'Clean Up', false)) return;
+  for (const n of notes) await cleanTranscript(s, n.id);
 }
 
 /* ---------- Media hydration (local first, then Drive) ---------- */
@@ -2041,7 +2136,7 @@ async function generateBrief(s) {
       for (const n of notes) {
         const head = `[${fmtClock(n.ts)}]${n.star ? ' [KEY POINT]' : ''}`;
         if (n.type === 'text') content.push({ type: 'text', text: `${head} Typed note: ${n.text}` });
-        else if (n.type === 'audio') content.push({ type: 'text', text: n.text ? `${head} Speech-to-text transcript of the speaker (${Math.round(n.duration / 60) || '<1'} min):\n${n.text}` : `${head} An audio recording with no transcript.` });
+        else if (n.type === 'audio') content.push({ type: 'text', text: n.text ? `${head} ${n.clean ? 'Transcript of the speaker, cleaned up from speech-to-text' : 'Speech-to-text transcript of the speaker'} (${Math.round(n.duration / 60) || '<1'} min):\n${n.text}` : `${head} An audio recording with no transcript.` });
         else if (n.type === 'doc') {
           const cap = n.text ? ` (attendee's note: ${n.text})` : '';
           if (n.ext === 'pdf' && pdfs < 3 && (n.size || 0) < 24 * 1048576) {
@@ -3732,6 +3827,7 @@ function sessionMenu(anchor, at) {
     ...(hasNotes ? [{ label: s.brief ? 'Update Brief' : 'Finish & Brief', icon: I.sparkles, kbd: '⌘↩', run: () => generateBrief(s) }] : []),
     ...(s.brief ? [{ label: 'Share Brief…', icon: I.share, run: () => shareBrief(s) }, { label: 'Save Brief to Google Docs', icon: I.doc, run: () => briefToDoc(s) }] : []),
     { sep: true },
+    ...(settings.apiKey && liveNotes(s).filter(n => n.type === 'audio' && n.text && !n.clean).length > 1 ? [{ label: 'Clean Up All Transcripts…', icon: I.wave, run: () => confirmClean(s, liveNotes(s).filter(n => n.type === 'audio' && n.text && !n.clean)) }] : []),
     ...(s.room ? [{ label: 'Show on Venue Map', icon: I.pin, run: () => openMaps({ sessionId: s.id }) }] : []),
     { label: 'Edit Session Details…', icon: I.pencil, run: () => openSessionForm(s) },
     ...(s.brief ? [{ label: 'Delete Brief…', icon: I.trash, run: () => confirmDeleteBriefing({ kind: 'session', key: s.id }) }] : []),
@@ -3797,7 +3893,10 @@ function openSettings() {
       <div class="grp">
         <div class="f-row"><label for="sLang">Speaker’s language</label><select id="sLang">${langs.map(([v, l]) => `<option value="${v}" ${settings.lang === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="f-row"><label for="sAudio" style="flex:1">Keep audio with the transcript</label><span class="switch"><input type="checkbox" id="sAudio" ${settings.keepAudio ? 'checked' : ''}><span></span></span></div>
+        <div class="f-row"><label for="sClean" style="flex:1">Clean up transcripts with Claude</label><span class="switch"><input type="checkbox" id="sClean" ${settings.autoClean ? 'checked' : ''} ${settings.apiKey ? '' : 'disabled'}><span></span></span></div>
+        <div class="f-row col"><label for="sVocab">Words to get right (names, companies, acronyms)</label><textarea id="sVocab" rows="2" placeholder="Workday, CHRO, HRBP, Rebecca Lane" style="min-height:52px">${esc(state.conference.vocab || '')}</textarea></div>
       </div>
+      <p class="f-cap">With clean-up on, each recording’s transcript is sent to Claude when you stop recording: filler words, false starts and repetitions go, punctuation and paragraphs are added, and misheard names are fixed using the session, the agenda’s speakers and your words above. The original is always kept. Off, each transcript has a Clean Up button that asks first.</p>
       <p class="f-cap">${SR ? 'Live transcription uses your browser’s speech recognition (Safari and Chrome).' : 'This browser has no live transcription, so recordings are saved as audio only. Safari and Chrome support it.'} If transcription keeps stopping on iPhone, turn off Keep audio.</p>
 
       <div class="grp-t">Data</div>
@@ -3810,13 +3909,15 @@ function openSettings() {
     onMount: (sh) => {
       const el = sh.el;
       $$('#sTheme button', el).forEach(b => b.onclick = () => { setTheme(b.dataset.t); $$('#sTheme button', el).forEach(x => x.classList.toggle('on', x === b)); });
-      $('#sConf', el).onchange = (e) => { state.conference = { name: e.target.value.trim(), updatedAt: now() }; touch(); renderSidebar(); renderList(); };
+      $('#sConf', el).onchange = (e) => { state.conference = { ...state.conference, name: e.target.value.trim(), updatedAt: now() }; touch(); renderSidebar(); renderList(); };
       $('#sClient', el).onchange = (e) => { settings.clientId = e.target.value.trim(); saveSettings(); if (settings.clientId) loadGis().catch(() => {}); renderSync(); };
       $('#sKey', el).onchange = (e) => { settings.apiKey = e.target.value.trim(); saveSettings(); };
       $('#sWs', el).onchange = (e) => { settings.workspaceId = e.target.value.trim(); saveSettings(); };
       $('#sModel', el).onchange = (e) => { settings.model = e.target.value; saveSettings(); };
       $('#sLang', el).onchange = (e) => { settings.lang = e.target.value; saveSettings(); };
       $('#sAudio', el).onchange = (e) => { settings.keepAudio = e.target.checked; saveSettings(); };
+      $('#sClean', el).onchange = (e) => { settings.autoClean = e.target.checked; saveSettings(); };
+      $('#sVocab', el).onchange = (e) => { state.conference = { ...state.conference, vocab: e.target.value.trim(), updatedAt: now() }; touch(); };
       $('#sConnect', el).onclick = () => {
         settings.clientId = $('#sClient', el).value.trim(); saveSettings();
         if (!settings.clientId) return toast('Paste your OAuth Client ID first');
