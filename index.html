@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patchwork Town — A Cozy Block Garden</title>
+<style>
+  :root {
+    --sky-top: #bfe6f0;
+    --sky-low: #ffe7bf;
+    --cream:  #fdf2d8;
+    --kraft:  #d9b582;
+    --thread: #8a6a45;
+    --ink:    #5b4632;
+    --leaf:   #74b95a;
+    --sun:    #ffd56b;
+    --grid: rgba(91, 70, 45, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  /* Warm daytime felt sky */
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(circle at 78% 20%, rgba(255,213,107,0.55) 0 90px, transparent 150px),
+      linear-gradient(180deg, var(--sky-top) 0%, #d9eecf 55%, var(--sky-low) 100%);
+  }
+
+  /* Crafted town backdrop: sun, clouds, rolling felt hills */
+  .scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+
+  /* fine woolly fibre grain laid over the whole scene */
+  .grain {
+    position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    mix-blend-mode: soft-light; opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .sun {
+    position: absolute;
+    right: 14%;
+    top: 12%;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 35%, #ffe9a8, var(--sun) 70%, #f4bf52);
+    box-shadow: 0 0 0 6px rgba(255,213,107,0.35), 0 0 40px 10px rgba(255,213,107,0.45);
+    border: 3px solid #e9b84a;
+    filter: url(#wool);
+    animation: bob 7s ease-in-out infinite;
+  }
+  @keyframes bob { 50% { transform: translateY(-10px); } }
+
+  .cloud {
+    position: absolute;
+    background: #fffdf6;
+    border-radius: 40px;
+    box-shadow: 0 4px 0 rgba(140,160,150,0.18), inset 0 -6px 0 rgba(0,0,0,0.04);
+    opacity: 0.95;
+    filter: url(#wool);
+  }
+  .cloud::before, .cloud::after {
+    content: ""; position: absolute; background: #fffdf6; border-radius: 50%;
+  }
+  .cloud::before { width: 46%; height: 150%; left: 12%; top: -55%; }
+  .cloud::after  { width: 34%; height: 130%; right: 14%; top: -40%; }
+  .c1 { width: 150px; height: 46px; top: 16%; left: 10%; animation: drift 38s linear infinite; }
+  .c2 { width: 110px; height: 34px; top: 30%; left: 38%; animation: drift 52s linear infinite; }
+  .c3 { width: 130px; height: 40px; top: 9%;  left: 60%; animation: drift 46s linear infinite; }
+  @keyframes drift {
+    from { transform: translateX(-20vw); }
+    to   { transform: translateX(120vw); }
+  }
+
+  /* Layered felt hills along the bottom */
+  .hill {
+    position: absolute;
+    left: -10%; right: -10%;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    box-shadow: inset 0 6px 0 rgba(255,255,255,0.12);
+    filter: url(#hillwool);
+  }
+  .h1 { bottom: 0;   height: 26%; background: #8cc168; }
+  .h2 { bottom: 0;   height: 19%; left: -20%; right: 40%; background: #79b258; }
+  .h3 { bottom: 0;   height: 22%; left: 45%;  right: -20%; background: #6fa850; }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+    padding: 18px;
+  }
+
+  .board-col { display: flex; flex-direction: column; align-items: center; }
+  .board-stage { position: relative; touch-action: none; }
+
+  /* On-screen touch controls — hidden until a touch device is detected.
+     Large tap targets so they're comfortable on iPad / iPhone. */
+  .touchpad {
+    display: none;
+    width: min(94vw, 460px);
+    margin-top: 16px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    touch-action: manipulation;
+  }
+  .tbtn {
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    cursor: pointer;
+    font-size: 34px;
+    font-weight: 800;
+    color: #fff;
+    min-height: 78px;
+    padding: 18px 0;
+    border-radius: 20px;
+    border: 3px dashed var(--cream);
+    background: linear-gradient(180deg, #7fbf63, #5d9a44);
+    box-shadow: inset 0 3px 6px rgba(255,255,255,0.4), 0 6px 0 #4c7e38;
+  }
+  .tbtn.wide { font-size: 24px; letter-spacing: 1px; }
+  .tbtn:active { transform: translateY(4px); box-shadow: inset 0 3px 6px rgba(255,255,255,0.4), 0 2px 0 #4c7e38; }
+  body.has-touch .touchpad { display: grid; }
+
+  .title {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin: 0 0 14px;
+    color: var(--cream);
+    text-shadow:
+      2px 2px 0 var(--thread),
+      -1px -1px 0 var(--thread),
+      0 4px 8px rgba(0,0,0,0.18);
+  }
+
+  /* Near-white knitted board; the canvas paints the wool, this is the frame */
+  #board {
+    width: 300px; height: 600px;
+    border: 3px dashed var(--thread);
+    border-radius: 14px;
+    background-color: #f4f0e6;
+    box-shadow:
+      0 0 0 5px var(--kraft),
+      0 10px 22px rgba(80,60,40,0.32);
+    display: block;
+  }
+
+  .panel {
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Kraft-paper / felt patches with a brown thread seam */
+  .card {
+    background-color: var(--cream);
+    background-image:
+      repeating-linear-gradient(45deg,  rgba(138,106,69,0.05) 0 2px, transparent 2px 6px),
+      repeating-linear-gradient(-45deg, rgba(138,106,69,0.05) 0 2px, transparent 2px 6px);
+    border: 2px dashed var(--thread);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 4px 0 rgba(138,106,69,0.25), 0 6px 14px rgba(80,60,40,0.18);
+  }
+  .card h2 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--thread);
+  }
+  .stat { font-size: 30px; font-weight: 800; color: #c0563f; }
+  .stat.small { font-size: 22px; }
+
+  #next { display: block; margin: 0 auto; width: 120px; height: 120px; }
+
+  .keys { font-size: 12px; line-height: 1.9; color: var(--ink); }
+  .keys b { color: #c0563f; }
+
+  .btn {
+    cursor: pointer;
+    border: 2px dashed var(--cream);
+    background: linear-gradient(180deg, #7fbf63, #5d9a44);
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 10px;
+    border-radius: 14px;
+    text-transform: uppercase;
+    font-size: 13px;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.35), 0 4px 0 #4c7e38;
+    transition: transform .08s, box-shadow .12s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(3px); box-shadow: inset 0 2px 4px rgba(255,255,255,0.35), 0 1px 0 #4c7e38; }
+
+  /* Overlay */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: rgba(253, 242, 216, 0.82);
+    backdrop-filter: blur(2px);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .overlay.hidden { display: none; }
+  .overlay h1 {
+    font-size: 38px;
+    margin: 0;
+    letter-spacing: 1px;
+    color: #c0563f;
+    text-shadow: 2px 2px 0 var(--cream), 3px 3px 0 rgba(138,106,69,0.4);
+  }
+  .overlay p { margin: 0; color: var(--ink); max-width: 280px; }
+
+  .levelflash {
+    position: absolute;
+    z-index: 3;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.6);
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--cream);
+    text-shadow: 2px 2px 0 var(--thread), 0 4px 10px rgba(0,0,0,0.25);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .levelflash.show { animation: flash 1.4s ease-out; }
+  @keyframes flash {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(0.5); }
+    25% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(1.2); }
+  }
+
+  /* Phones & tablets: stack the board over a compact panel, allow scroll,
+     scale the board up, and show big touch controls. */
+  @media (max-width: 760px), (pointer: coarse) {
+    html, body { overflow-y: auto; height: auto; min-height: 100%; }
+    body { align-items: flex-start; }
+    .wrap { flex-direction: column; align-items: center; gap: 14px; padding: 10px; }
+    .title { font-size: 26px; margin-bottom: 8px; }
+    #board { width: min(92vw, 440px); height: auto; aspect-ratio: 1 / 2; }
+    .panel { width: min(94vw, 460px); flex-direction: row; flex-wrap: wrap; justify-content: center; }
+    .panel .card { flex: 1 1 96px; padding: 10px 12px; }
+    .stat { font-size: 24px; }
+    .keys { display: none; }            /* keyboard hints not needed on touch */
+    .touchpad { display: grid; }        /* always show controls here */
+  }
+</style>
+</head>
+<body>
+  <!-- SVG filters that give surfaces a fuzzy, woolly, knitted feel -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <!-- soft fuzzy fringe for clouds / sun / houses -->
+      <filter id="wool" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="4"
+            xChannelSelector="R" yChannelSelector="G"/>
+        <feGaussianBlur stdDeviation="0.35"/>
+      </filter>
+      <!-- knitted relief + fuzzy edge for the felt hills -->
+      <filter id="hillwool" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="turbulence" baseFrequency="0.012 0.05" numOctaves="3" seed="11" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="7" result="disp"/>
+        <feTurbulence type="turbulence" baseFrequency="0.03 0.09" numOctaves="2" seed="4" result="bump"/>
+        <feDiffuseLighting in="bump" surfaceScale="2.2" diffuseConstant="1.05"
+            lighting-color="#ffffff" result="light">
+          <feDistantLight azimuth="235" elevation="58"/>
+        </feDiffuseLighting>
+        <feComposite in="light" in2="disp" operator="arithmetic" k1="1.0" k2="0" k3="0" k4="0" result="lit"/>
+        <feComposite in="lit" in2="disp" operator="in"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="scene">
+    <div class="grain"></div>
+    <div class="sun"></div>
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+    <div class="hill h2"></div>
+    <div class="hill h3"></div>
+    <div class="hill h1"></div>
+    <!-- little stitched town nestled on the hills -->
+    <svg class="town" width="100%" height="100%" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMax slice"
+         style="position:absolute;inset:0;z-index:0;pointer-events:none">
+      <g stroke-linejoin="round" stroke-dasharray="5 4" filter="url(#wool)">
+        <!-- house 1 -->
+        <g transform="translate(120 600)">
+          <rect x="0" y="40" width="90" height="70" rx="6" fill="#e7c79a" stroke="#8a6a45" stroke-width="3"/>
+          <path d="M-8 44 L45 4 L98 44 Z" fill="#c0563f" stroke="#8a6a45" stroke-width="3"/>
+          <rect x="34" y="70" width="24" height="40" rx="4" fill="#9a6b40" stroke="#8a6a45" stroke-width="2.5"/>
+        </g>
+        <!-- house 2 -->
+        <g transform="translate(930 610)">
+          <rect x="0" y="46" width="100" height="64" rx="6" fill="#d6e3ef" stroke="#8a6a45" stroke-width="3"/>
+          <path d="M-8 50 L50 8 L108 50 Z" fill="#5a8fb0" stroke="#8a6a45" stroke-width="3"/>
+          <rect x="38" y="74" width="26" height="36" rx="4" fill="#9a6b40" stroke="#8a6a45" stroke-width="2.5"/>
+        </g>
+        <!-- little tree -->
+        <g transform="translate(1060 640)">
+          <rect x="20" y="40" width="12" height="40" fill="#9a6b40" stroke="#8a6a45" stroke-width="2.5"/>
+          <circle cx="26" cy="34" r="30" fill="#6fa850" stroke="#4f7d38" stroke-width="3"/>
+        </g>
+        <g transform="translate(40 650)">
+          <rect x="20" y="34" width="10" height="34" fill="#9a6b40" stroke="#8a6a45" stroke-width="2.5"/>
+          <circle cx="25" cy="28" r="26" fill="#79b258" stroke="#4f7d38" stroke-width="3"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <div class="wrap">
+    <div class="board-col">
+      <h1 class="title">PATCHWORK TOWN</h1>
+      <div class="board-stage">
+        <canvas id="board" width="300" height="600"></canvas>
+        <div id="flash" class="levelflash"></div>
+        <div id="overlay" class="overlay">
+          <h1 id="ov-title">PATCHWORK TOWN</h1>
+          <p id="ov-text">A cozy little block garden.<br>Stack the woolly pieces, tidy the rows, and watch the town grow.</p>
+          <button id="startBtn" class="btn">Start Stitching</button>
+        </div>
+      </div>
+
+      <!-- On-screen controls for touch devices (iPad / iPhone) -->
+      <div id="touchpad" class="touchpad">
+        <button class="tbtn" data-act="left" aria-label="Move left">◀</button>
+        <button class="tbtn" data-act="rotate" aria-label="Rotate">⟳</button>
+        <button class="tbtn" data-act="right" aria-label="Move right">▶</button>
+        <button class="tbtn" data-act="soft" aria-label="Soft drop">▼</button>
+        <button class="tbtn wide" data-act="hard" aria-label="Hard drop">⇊ DROP</button>
+        <button class="tbtn" data-act="pause" aria-label="Pause">⏸</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card">
+        <h2>Score</h2>
+        <div id="score" class="stat">0</div>
+      </div>
+      <div class="card">
+        <h2>Level</h2>
+        <div id="level" class="stat">1</div>
+      </div>
+      <div class="card">
+        <h2>Lines</h2>
+        <div id="lines" class="stat small">0</div>
+      </div>
+      <div class="card">
+        <h2>Next</h2>
+        <canvas id="next" width="120" height="120"></canvas>
+      </div>
+      <div class="card keys">
+        <h2>Controls</h2>
+        <b>← →</b> Move<br>
+        <b>↑ / X</b> Rotate CW<br>
+        <b>Z</b> Rotate CCW<br>
+        <b>↓</b> Soft drop<br>
+        <b>Space</b> Hard drop<br>
+        <b>P</b> Pause &nbsp; <b>M</b> Mute
+      </div>
+      <button id="soundBtn" class="btn">♪ Sound: On</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  const COLS = 10, ROWS = 20, CELL = 30;
+  const DPR = 2; // supersample the canvases for crisp knit detail
+  const board = document.getElementById("board");
+  // backing resolution is supersampled; the on-screen size is set in CSS so it
+  // can scale up on tablets/phones via media queries.
+  board.width = COLS * CELL * DPR;
+  board.height = ROWS * CELL * DPR;
+  const ctx = board.getContext("2d");
+  const nextCanvas = document.getElementById("next");
+  nextCanvas.width *= DPR;
+  nextCanvas.height *= DPR;
+  const nctx = nextCanvas.getContext("2d");
+
+  const scoreEl = document.getElementById("score");
+  const levelEl = document.getElementById("level");
+  const linesEl = document.getElementById("lines");
+  const overlay = document.getElementById("overlay");
+  const ovTitle = document.getElementById("ov-title");
+  const ovText = document.getElementById("ov-text");
+  const startBtn = document.getElementById("startBtn");
+  const soundBtn = document.getElementById("soundBtn");
+  const flash = document.getElementById("flash");
+
+  // Tetromino definitions (4x4 rotation states generated from base shapes)
+  const SHAPES = {
+    I: [[0,1],[1,1],[2,1],[3,1]],
+    J: [[0,0],[0,1],[1,1],[2,1]],
+    L: [[2,0],[0,1],[1,1],[2,1]],
+    O: [[1,0],[2,0],[1,1],[2,1]],
+    S: [[1,0],[2,0],[0,1],[1,1]],
+    T: [[1,0],[0,1],[1,1],[2,1]],
+    Z: [[0,0],[1,0],[1,1],[2,1]],
+  };
+  // Rich wool palette — deep, saturated yarns that pop on a near-white board
+  const COLORS = {
+    I: "#1397ab", J: "#324fc4", L: "#df6f1f",
+    O: "#e0a81d", S: "#3f9b39", T: "#8a3fbf", Z: "#cf3340",
+  };
+  const TYPES = Object.keys(SHAPES);
+
+  // Gentle warm guide-stitch tint per level band — a soft seasonal shift
+  const LEVEL_TINTS = [
+    "rgba(91,70,45,0.14)",     // warm brown thread
+    "rgba(90,120,90,0.13)",    // soft sage
+    "rgba(120,90,70,0.13)",    // cocoa
+    "rgba(80,100,130,0.12)",   // dusk blue
+    "rgba(150,110,60,0.13)",   // honey
+  ];
+
+  let grid, current, nextPiece, score, lines, level;
+  let dropCounter, dropInterval, lastTime, running, paused, over;
+  let bag = [];
+
+  // ---------- Synthwave sound engine (Web Audio, no assets) ----------
+  const Sfx = (() => {
+    let ac = null;
+    let master = null;
+    let muted = false;
+
+    function ensure() {
+      if (!ac) {
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        master = ac.createGain();
+        master.gain.value = 0.35;
+        master.connect(ac.destination);
+      }
+      if (ac.state === "suspended") ac.resume();
+      return ac;
+    }
+
+    // A single synth voice: oscillator -> gain envelope -> master
+    function tone(freq, dur, { type = "square", vol = 0.5, glide = 0, delay = 0 } = {}) {
+      if (muted || !ac) return;
+      const t0 = ac.currentTime + delay;
+      const osc = ac.createOscillator();
+      const g = ac.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      if (glide) osc.frequency.exponentialRampToValueAtTime(Math.max(1, freq + glide), t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g).connect(master);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    }
+
+    // Noise burst for percussive hits (lock / hard drop)
+    function noise(dur, { vol = 0.4, delay = 0, hp = 800 } = {}) {
+      if (muted || !ac) return;
+      const t0 = ac.currentTime + delay;
+      const frames = Math.floor(ac.sampleRate * dur);
+      const buf = ac.createBuffer(1, frames, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const filt = ac.createBiquadFilter();
+      filt.type = "highpass";
+      filt.frequency.value = hp;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(vol, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(filt).connect(g).connect(master);
+      src.start(t0);
+      src.stop(t0 + dur);
+    }
+
+    return {
+      resume: () => ensure(),
+      toggle() { muted = !muted; return muted; },
+      isMuted: () => muted,
+      ctx: () => ac,
+      out: () => master,
+      // soft, rounded wooden/music-box voices — gentle and unhurried
+      move()    { tone(330, 0.05, { type: "sine", vol: 0.14 }); },
+      rotate()  { tone(523, 0.07, { type: "triangle", vol: 0.16, glide: 60 }); },
+      soft()    { tone(247, 0.04, { type: "sine", vol: 0.12 }); },
+      lock()    { tone(196, 0.12, { type: "sine", vol: 0.22, glide: -30 }); },
+      hard()    { tone(147, 0.16, { type: "triangle", vol: 0.26, glide: -24 }); noise(0.05, { vol: 0.1, hp: 700 }); },
+      // warm ascending pentatonic chime; the bigger the clear, the more notes
+      clear(n) {
+        const notes = [523, 587, 698, 784, 880]; // C D F G A — gentle pentatonic
+        const count = Math.min(n + 2, notes.length);
+        for (let i = 0; i < count; i++) {
+          tone(notes[i], 0.3, { type: "triangle", vol: 0.3, delay: i * 0.08 });
+        }
+      },
+      levelUp() {
+        const seq = [523, 659, 784, 988]; // soft major arpeggio up
+        seq.forEach((f, i) => tone(f, 0.32, { type: "triangle", vol: 0.26, delay: i * 0.1 }));
+      },
+      gameOver() {
+        const seq = [587, 494, 440, 392]; // gentle settling-down, not a sting
+        seq.forEach((f, i) => tone(f, 0.45, { type: "sine", vol: 0.26, delay: i * 0.22 }));
+      },
+    };
+  })();
+
+  // ---------- Gentle looping music-box lullaby ----------
+  const Music = (() => {
+    // A warm, unhurried I–V–vi–IV in C major (C - G - Am - F).
+    // Each bar = 8 eighth-note steps. Soft bass + pad + a lilting melody.
+    const N = { // note frequencies (Hz)
+      C3:130.81, F2:87.31, G2:98.00, A2:110.00,
+      F3:174.61, G3:196.00, A3:220.00, B3:246.94, C4:261.63, D4:293.66, E4:329.63, G4:392.00,
+      A4:440.00, B4:493.88, C5:523.25, D5:587.33, E5:659.25, F5:698.46, G5:783.99,
+    };
+    const PROG = [
+      { bass: N.C3, pad: [N.C4, N.E4, N.G4],
+        mel: [N.C5, null, N.E5, N.G5, null, N.E5, N.D5, null] },        // C
+      { bass: N.G2, pad: [N.G3, N.B3, N.D4],
+        mel: [N.B4, null, N.D5, N.G5, null, N.D5, N.B4, null] },        // G
+      { bass: N.A2, pad: [N.A3, N.C4, N.E4],
+        mel: [N.A4, null, N.C5, N.E5, null, N.C5, N.A4, null] },        // Am
+      { bass: N.F2, pad: [N.F3, N.A3, N.C4],
+        mel: [N.A4, null, N.C5, N.F5, null, N.A4, N.G4, null] },        // F
+    ];
+
+    let gain = null, timer = null;
+    let step = 0, nextTime = 0, bpm = 66, playing = false;
+    const STEPS_PER_BAR = 8;
+
+    function bus() {
+      const master = Sfx.out();
+      if (!gain && master) {
+        gain = Sfx.ctx().createGain();
+        gain.gain.value = 0.0; // fade in
+        gain.connect(master);
+      }
+      return gain;
+    }
+
+    // A soft voice with a gentle attack and a long, mellow release.
+    function voice(freq, dur, type, vol, time, attack = 0.01) {
+      const ac = Sfx.ctx();
+      const osc = ac.createOscillator();
+      const g = ac.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, time);
+      g.gain.exponentialRampToValueAtTime(vol, time + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+      osc.connect(g).connect(bus());
+      osc.start(time);
+      osc.stop(time + dur + 0.05);
+    }
+
+    function scheduleStep(s, time) {
+      const bar = Math.floor(s / STEPS_PER_BAR) % PROG.length;
+      const pos = s % STEPS_PER_BAR;
+      const chord = PROG[bar];
+      const beat = 60 / bpm;
+
+      // soft rounded bass on the first and middle beat of the bar
+      if (pos === 0 || pos === 4) voice(chord.bass, beat * 1.6, "sine", 0.16, time, 0.02);
+      // warm sustained pad once per bar, very quiet, fills the room
+      if (pos === 0) {
+        chord.pad.forEach(f => voice(f, beat * 3.4, "sine", 0.045, time, 0.12));
+      }
+      // music-box melody — triangle with a soft ping, plus a faint octave shimmer
+      const m = chord.mel[pos];
+      if (m) {
+        voice(m, beat * 1.1, "triangle", 0.16, time, 0.005);
+        voice(m * 2, beat * 0.5, "sine", 0.05, time, 0.005);
+      }
+    }
+
+    function loop() {
+      const ac = Sfx.ctx();
+      if (!ac) return;
+      const stepDur = 60 / bpm / 2; // eighth note
+      while (nextTime < ac.currentTime + 0.12) {
+        scheduleStep(step, nextTime);
+        nextTime += stepDur;
+        step++;
+      }
+      if (gain) {
+        const target = Sfx.isMuted() ? 0.0 : 0.5;
+        gain.gain.setTargetAtTime(target, ac.currentTime, 0.4);
+      }
+      timer = setTimeout(loop, 30);
+    }
+
+    return {
+      start() {
+        const ac = Sfx.ctx();
+        if (!ac || playing) return;
+        playing = true;
+        step = 0;
+        nextTime = ac.currentTime + 0.06;
+        bus();
+        loop();
+      },
+      stop() {
+        playing = false;
+        if (timer) { clearTimeout(timer); timer = null; }
+        if (gain) gain.gain.setTargetAtTime(0.0, Sfx.ctx().currentTime, 0.4);
+      },
+      // tempo lifts only a touch with level — stays calm and cozy
+      setLevel(level) { bpm = Math.min(86, 66 + (level - 1) * 2); },
+    };
+  })();
+
+  function newGrid() {
+    return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+  }
+
+  // 7-bag randomizer for fair distribution
+  function nextType() {
+    if (bag.length === 0) {
+      bag = TYPES.slice();
+      for (let i = bag.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [bag[i], bag[j]] = [bag[j], bag[i]];
+      }
+    }
+    return bag.pop();
+  }
+
+  function makePiece(type) {
+    return {
+      type,
+      color: COLORS[type],
+      cells: SHAPES[type].map(c => c.slice()),
+      x: 3,
+      y: type === "I" ? -1 : 0,
+    };
+  }
+
+  // Rotate cells within a 4-wide box around a pivot.
+  function rotate(cells, dir) {
+    // pivot at (1.5, 1.5) works well for 4x4 SRS-ish feel
+    return cells.map(([x, y]) => {
+      const dx = x - 1.5, dy = y - 1.5;
+      const nx = dir > 0 ? -dy : dy;
+      const ny = dir > 0 ? dx : -dx;
+      return [Math.round(nx + 1.5), Math.round(ny + 1.5)];
+    });
+  }
+
+  function collides(piece, cells = piece.cells, ox = piece.x, oy = piece.y) {
+    for (const [cx, cy] of cells) {
+      const x = ox + cx, y = oy + cy;
+      if (x < 0 || x >= COLS || y >= ROWS) return true;
+      if (y >= 0 && grid[y][x]) return true;
+    }
+    return false;
+  }
+
+  function tryRotate(dir) {
+    const rotated = rotate(current.cells, dir);
+    // wall kicks: try a few horizontal nudges
+    for (const dx of [0, -1, 1, -2, 2]) {
+      if (!collides(current, rotated, current.x + dx, current.y)) {
+        current.cells = rotated;
+        current.x += dx;
+        Sfx.rotate();
+        return;
+      }
+    }
+  }
+
+  function move(dx) {
+    if (!collides(current, current.cells, current.x + dx, current.y)) {
+      current.x += dx;
+      Sfx.move();
+    }
+  }
+
+  function softDrop() {
+    if (!collides(current, current.cells, current.x, current.y + 1)) {
+      current.y++;
+      score += 1;
+      Sfx.soft();
+      updateStats();
+    } else {
+      lockPiece();
+    }
+    dropCounter = 0;
+  }
+
+  function hardDrop() {
+    let dist = 0;
+    while (!collides(current, current.cells, current.x, current.y + 1)) {
+      current.y++;
+      dist++;
+    }
+    score += dist * 2;
+    Sfx.hard();
+    lockPiece(true);
+  }
+
+  function lockPiece(silent = false) {
+    for (const [cx, cy] of current.cells) {
+      const x = current.x + cx, y = current.y + cy;
+      if (y < 0) { gameOver(); return; }
+      grid[y][x] = current.color;
+    }
+    if (!silent) Sfx.lock();
+    clearLines();
+    spawn();
+  }
+
+  function clearLines() {
+    let cleared = 0;
+    for (let y = ROWS - 1; y >= 0; y--) {
+      if (grid[y].every(c => c)) {
+        grid.splice(y, 1);
+        grid.unshift(Array(COLS).fill(null));
+        cleared++;
+        y++; // recheck same row index
+      }
+    }
+    if (cleared > 0) {
+      // Classic scoring scaled by level
+      const points = [0, 100, 300, 500, 800][cleared] * level;
+      score += points;
+      lines += cleared;
+      Sfx.clear(cleared);
+      const newLevel = Math.floor(lines / 10) + 1;
+      if (newLevel > level) levelUp(newLevel);
+      updateStats();
+    }
+  }
+
+  function levelUp(newLevel) {
+    level = newLevel;
+    // speed curve: gets noticeably faster each level, floored so it stays playable
+    dropInterval = Math.max(80, 1000 - (level - 1) * 85);
+    document.documentElement.style.setProperty(
+      "--grid", LEVEL_TINTS[(level - 1) % LEVEL_TINTS.length]
+    );
+    flash.textContent = "LEVEL " + level;
+    flash.classList.remove("show");
+    void flash.offsetWidth; // restart animation
+    flash.classList.add("show");
+    Sfx.levelUp();
+    Music.setLevel(level);
+  }
+
+  function spawn() {
+    current = nextPiece || makePiece(nextType());
+    nextPiece = makePiece(nextType());
+    drawNext();
+    if (collides(current)) gameOver();
+  }
+
+  function updateStats() {
+    scoreEl.textContent = score;
+    levelEl.textContent = level;
+    linesEl.textContent = lines;
+  }
+
+  // ---------- Rendering ----------
+  // Hyper-real knitted-wool engine. Every block is a chunky knit swatch
+  // rendered at high resolution (layered cord shading + fuzz + ambient
+  // occlusion) and cached, then drawn down-scaled so it stays crisp.
+  const SS = 2;            // canvas supersample (crispness)
+  const TILE = 132;        // internal render resolution of one knit cell
+  const Yarn = (() => {
+    const cache = new Map();
+
+    function hexToRgb(hex) {
+      const h = hex.replace("#", "");
+      return { r: parseInt(h.slice(0,2),16), g: parseInt(h.slice(2,4),16), b: parseInt(h.slice(4,6),16) };
+    }
+    // amt in [-1,1]: positive lightens toward white, negative darkens to black
+    function shade(hex, amt, a = 1) {
+      const { r, g, b } = hexToRgb(hex);
+      const mix = (c) => amt >= 0 ? Math.round(c + (255 - c) * amt) : Math.round(c * (1 + amt));
+      return `rgba(${mix(r)},${mix(g)},${mix(b)},${a})`;
+    }
+    function roundRect(g, x, y, w, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y);
+      g.arcTo(x + w, y, x + w, y + h, r);
+      g.arcTo(x + w, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r);
+      g.arcTo(x, y, x + w, y, r);
+      g.closePath();
+    }
+
+    // Heathered wool isn't a flat colour — sprinkle fibre-coloured specks.
+    function heather(g, w, h, color, n) {
+      for (let i = 0; i < n; i++) {
+        const x = Math.random() * w, y = Math.random() * h;
+        const t = Math.random();
+        g.fillStyle = t < 0.5 ? shade(color, 0.22, 0.10)
+                    : t < 0.8 ? shade(color, -0.28, 0.10)
+                              : shade(color, 0.5, 0.07);
+        g.fillRect(x, y, 1.4, 1.4);
+      }
+    }
+
+    // One stockinette stitch: two interlocking yarn loops forming a "V",
+    // built from stacked matte strokes so each cord reads as a soft 3-D ply.
+    function stitch(g, ox, oy, sw, sh, color, light) {
+      g.lineCap = "round";
+      const arms = (lw, col, dx, dy) => {
+        g.strokeStyle = col;
+        g.lineWidth = lw;
+        g.beginPath();
+        g.moveTo(ox + sw * 0.14 + dx, oy + sh * 0.02 + dy);
+        g.quadraticCurveTo(ox + sw * 0.08 + dx, oy + sh * 0.62 + dy, ox + sw * 0.5 + dx, oy + sh * 0.97 + dy);
+        g.stroke();
+        g.beginPath();
+        g.moveTo(ox + sw * 0.86 + dx, oy + sh * 0.02 + dy);
+        g.quadraticCurveTo(ox + sw * 0.92 + dx, oy + sh * 0.62 + dy, ox + sw * 0.5 + dx, oy + sh * 0.97 + dy);
+        g.stroke();
+      };
+      // 1) deep shadow valley between the plies (ambient occlusion)
+      arms(sw * 0.58, shade(color, -0.55, 0.85), 0, sh * 0.05);
+      // 2) plump matte yarn body
+      arms(sw * 0.44, shade(color, -0.02), 0, 0);
+      arms(sw * 0.34, shade(color, 0.06), 0, -sh * 0.01);
+      // 3) soft, broad highlight (matte wool — no hard shine)
+      arms(sw * 0.2, shade(color, 0.2 + light, 0.6), -sw * 0.05, -sh * 0.05);
+      // 4) faint fibre sheen, kept low so it never looks plastic
+      arms(sw * 0.08, shade(color, 0.4 + light, 0.35), -sw * 0.07, -sh * 0.08);
+    }
+
+    // Lay a full field of knit stitches into ctx g over a w×h area.
+    function knitField(g, w, h, color, stitchW, vlight = 0) {
+      const cols = Math.round(w / stitchW);
+      const sw = w / cols;
+      const sh = sw * 1.18;                 // slightly tall stitches
+      const rows = Math.ceil(h / (sh * 0.82)) + 1;
+      for (let yy = -1; yy < rows; yy++) {
+        const lz = vlight * (1 - yy / rows);
+        for (let xx = -1; xx <= cols; xx++) {
+          const ox = xx * sw + (yy % 2 ? sw * 0.5 : 0);
+          stitch(g, ox, yy * sh * 0.82, sw, sh, color, lz);
+        }
+      }
+    }
+
+    // Scatter many fine, soft fibres for a fuzzy, woolly surface + halo.
+    function fuzz(g, w, h, color, n) {
+      for (let i = 0; i < n; i++) {
+        const x = Math.random() * w, y = Math.random() * h;
+        const a = Math.random() * Math.PI - Math.PI / 2;     // mostly downward
+        const len = Math.random() * w * 0.07 + w * 0.012;
+        // bias fibres lighter (catching light) but keep some dark strands
+        const t = Math.random();
+        g.strokeStyle = t < 0.6 ? shade(color, 0.5, 0.12)
+                      : t < 0.85 ? shade(color, -0.45, 0.1)
+                                 : shade(color, 0.8, 0.08);
+        g.lineWidth = Math.random() * 0.9 + 0.35;
+        const mx = x + Math.cos(a) * len * 0.5 + (Math.random() - 0.5) * 3;
+        const my = y + Math.sin(a) * len * 0.5;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.quadraticCurveTo(mx, my, x + Math.cos(a) * len, y + Math.sin(a) * len);
+        g.stroke();
+      }
+    }
+
+    function build(color) {
+      const size = TILE;
+      const c = document.createElement("canvas");
+      c.width = c.height = size;
+      const g = c.getContext("2d");
+      const pad = size * 0.03;
+      const r = size * 0.22;
+
+      g.save();
+      roundRect(g, pad, pad, size - pad * 2, size - pad * 2, r);
+      g.clip();
+
+      // wool base + heathered fibre
+      g.fillStyle = shade(color, -0.05);
+      g.fillRect(0, 0, size, size);
+      heather(g, size, size, color, 900);
+
+      // the knit, then a thick layer of soft fuzz
+      knitField(g, size, size, color, size / 4.4, 0.1);
+      fuzz(g, size, size, color, 520);
+
+      // plush form lighting: gentle top-left light, soft bottom-right shade
+      const rg = g.createRadialGradient(size * 0.34, size * 0.3, size * 0.08, size * 0.55, size * 0.62, size * 0.95);
+      rg.addColorStop(0, "rgba(255,255,255,0.16)");
+      rg.addColorStop(0.55, "rgba(255,255,255,0)");
+      rg.addColorStop(1, "rgba(0,0,0,0.24)");
+      g.fillStyle = rg;
+      g.fillRect(0, 0, size, size);
+
+      // gentle edge ambient occlusion only — no hard seam, so it doesn't read flat
+      g.lineWidth = size * 0.06;
+      g.strokeStyle = "rgba(0,0,0,0.12)";
+      roundRect(g, pad, pad, size - pad * 2, size - pad * 2, r);
+      g.stroke();
+      g.restore();
+
+      return c;
+    }
+
+    // A large knitted backing swatch for the empty board (cached once).
+    function buildBacking(w, h, color) {
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      const g = c.getContext("2d");
+      g.fillStyle = shade(color, -0.02);
+      g.fillRect(0, 0, w, h);
+      heather(g, w, h, color, Math.round(w * h / 60));
+      knitField(g, w, h, color, Math.max(16, w / 17), 0.04);
+      fuzz(g, w, h, color, Math.round(w * h / 360));
+      // light wash to mute the knit so settled pieces read clearly on top
+      g.fillStyle = shade(color, 0.45, 0.5);
+      g.fillRect(0, 0, w, h);
+      // very gentle inset shade so the light board still has soft depth
+      const rg = g.createRadialGradient(w / 2, h * 0.4, h * 0.15, w / 2, h * 0.5, h * 0.66);
+      rg.addColorStop(0, "rgba(0,0,0,0)");
+      rg.addColorStop(1, "rgba(60,50,35,0.16)");
+      g.fillStyle = rg;
+      g.fillRect(0, 0, w, h);
+      return c;
+    }
+
+    return {
+      tile(color) {
+        let t = cache.get(color);
+        if (!t) { t = build(color); cache.set(color, t); }
+        return t;
+      },
+      backing(w, h, color) {
+        const key = "bg" + w + "x" + h;
+        let t = cache.get(key);
+        if (!t) { t = buildBacking(w, h, color); cache.set(key, t); }
+        return t;
+      },
+      shade,
+    };
+  })();
+
+  // ---------- GPU knit shader ----------
+  // Renders a continuous, normal-mapped knitted sheet per colour: a procedural
+  // stockinette height field is lit per-pixel (diffuse + soft wool specular +
+  // ambient occlusion), giving true 3-D relief with no flat per-cell seam.
+  // Falls back to the 2-D Yarn tiles if WebGL is unavailable.
+  const Shader = (() => {
+    let gl = null, prog = null, uColor = null, glCanvas = null, W = 0, H = 0, ok = null;
+    const cache = new Map();
+
+    const VS = "attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }";
+    const FS = [
+      "precision highp float;",
+      "uniform vec2 uRes; uniform float uStitch; uniform vec3 uColor;",
+      "float dseg(vec2 p, vec2 a, vec2 b){ vec2 pa=p-a, ba=b-a;",
+      "  float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0); return length(pa-ba*h); }",
+      // distance to the two splayed legs of one knit loop in cell cc
+      "float leg(vec2 p, vec2 cc){ vec2 b=cc+vec2(0.5,1.04);",
+      "  return min(dseg(p,b,cc+vec2(0.08,-0.04)), dseg(p,b,cc+vec2(0.92,-0.04))); }",
+      "float hash(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5453); }",
+      "float height(vec2 st){ float row=floor(st.y); st.x += mod(row,2.0)*0.5;",
+      "  vec2 c=floor(st); float d=10.0;",
+      "  for(int j=-1;j<=1;j++){ for(int i=-1;i<=1;i++){",
+      "    d=min(d, leg(st, c+vec2(float(i),float(j)))); } }",
+      "  float t=clamp(1.0-d/0.36,0.0,1.0); float hgt=sqrt(t);",
+      "  hgt += (hash(floor(st*9.0))-0.5)*0.05; return hgt; }",
+      "void main(){",
+      "  vec2 st = gl_FragCoord.xy / uStitch;",
+      "  float e=0.04;",
+      "  float h=height(st), hx=height(st+vec2(e,0.0)), hy=height(st+vec2(0.0,e));",
+      "  vec3 N=normalize(vec3((h-hx)*2.4,(h-hy)*2.4,1.0));",
+      "  vec3 L=normalize(vec3(-0.45,0.6,0.72));",
+      "  float diff=max(dot(N,L),0.0);",
+      "  vec3 Hh=normalize(L+vec3(0.0,0.0,1.0));",
+      "  float spec=pow(max(dot(N,Hh),0.0),16.0)*0.10;",
+      "  float ao=mix(0.5,1.0,clamp(h,0.0,1.0));",
+      "  float fib=(hash(floor(st*vec2(7.0,7.0)))-0.5)*0.07;",
+      "  vec3 base=uColor*(1.0+fib);",
+      "  vec3 col=base*(0.5*ao + diff*0.85) + spec;",
+      "  gl_FragColor=vec4(col,1.0);",
+      "}",
+    ].join("\n");
+
+    function compile(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        console.warn("shader:", gl.getShaderInfoLog(s)); return null;
+      }
+      return s;
+    }
+    function init(w, h) {
+      W = w; H = h;
+      glCanvas = document.createElement("canvas");
+      glCanvas.width = w; glCanvas.height = h;
+      const attrs = { preserveDrawingBuffer: true, antialias: false, depth: false };
+      gl = glCanvas.getContext("webgl", attrs) || glCanvas.getContext("experimental-webgl", attrs);
+      if (!gl) { ok = false; return; }
+      const vs = compile(gl.VERTEX_SHADER, VS), fs = compile(gl.FRAGMENT_SHADER, FS);
+      if (!vs || !fs) { ok = false; return; }
+      prog = gl.createProgram();
+      gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { ok = false; return; }
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, "p");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform2f(gl.getUniformLocation(prog, "uRes"), w, h);
+      gl.uniform1f(gl.getUniformLocation(prog, "uStitch"), (CELL * SS) / 2.0); // ~2 stitches/cell
+      uColor = gl.getUniformLocation(prog, "uColor");
+      ok = true;
+    }
+    function rgb(hex) {
+      const n = parseInt(hex.replace("#", ""), 16);
+      return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255];
+    }
+    return {
+      get ok() { return ok !== false; },
+      // a board-sized colour sheet; cells sample from it so knit stays continuous
+      sheet(color, w, h) {
+        if (ok === null) init(w, h);
+        if (!ok) return null;
+        let c = cache.get(color);
+        if (c) return c;
+        const [r, g, b] = rgb(color);
+        gl.uniform3f(uColor, r, g, b);
+        gl.viewport(0, 0, W, H);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        c = document.createElement("canvas");
+        c.width = W; c.height = H;
+        c.getContext("2d").drawImage(glCanvas, 0, 0);
+        cache.set(color, c);
+        return c;
+      },
+    };
+  })();
+
+  const SHEET_W = COLS * CELL * SS, SHEET_H = ROWS * CELL * SS, CSS = CELL * SS;
+
+  // Draw one cell. Prefer the GPU sheet (continuous, shaded knit); the sheet is
+  // sampled at the cell's board position so neighbouring cells join seamlessly.
+  function drawCell(c, x, y, color, ghost = false) {
+    const px = x * CELL, py = y * CELL;
+    const sheet = Shader.sheet(color, SHEET_W, SHEET_H);
+    if (sheet) {
+      if (ghost) {
+        c.save(); c.globalAlpha = 0.2;
+        c.drawImage(sheet, x * CSS, y * CSS, CSS, CSS, px, py, CELL, CELL);
+        c.restore(); return;
+      }
+      c.drawImage(sheet, x * CSS, y * CSS, CSS, CSS, px, py, CELL, CELL);
+      return;
+    }
+    // fallback: 2-D yarn tiles
+    if (ghost) {
+      c.save(); c.globalAlpha = 0.22;
+      c.drawImage(Yarn.tile(color), px, py, CELL, CELL);
+      c.restore(); return;
+    }
+    c.drawImage(Yarn.tile(color), px, py, CELL, CELL);
+  }
+
+  function ghostY() {
+    let gy = current.y;
+    while (!collides(current, current.cells, current.x, gy + 1)) gy++;
+    return gy;
+  }
+
+  const BOARD_W = COLS * CELL, BOARD_H = ROWS * CELL;
+  const RAD = CELL * 0.46;     // how rounded an exposed corner gets (plump bag edge)
+  const BEV = CELL * 0.46;     // width of the soft edge bevel
+
+  // Trace a cell outline, rounding only convex corners exposed to empty space
+  // so a multi-cell piece becomes one soft-edged shape (no internal rounding).
+  function cellPath(c, x, y, U, R, D, L) {
+    const px = x * CELL, py = y * CELL, w = CELL, h = CELL;
+    const tl = (!U && !L) ? RAD : 0, tr = (!U && !R) ? RAD : 0;
+    const br = (!D && !R) ? RAD : 0, bl = (!D && !L) ? RAD : 0;
+    c.moveTo(px + tl, py);
+    c.lineTo(px + w - tr, py);
+    if (tr) c.arcTo(px + w, py, px + w, py + tr, tr); else c.lineTo(px + w, py);
+    c.lineTo(px + w, py + h - br);
+    if (br) c.arcTo(px + w, py + h, px + w - br, py + h, br); else c.lineTo(px + w, py + h);
+    c.lineTo(px + bl, py + h);
+    if (bl) c.arcTo(px, py + h, px, py + h - bl, bl); else c.lineTo(px, py + h);
+    c.lineTo(px, py + tl);
+    if (tl) c.arcTo(px, py, px + tl, py, tl); else c.lineTo(px, py);
+    c.closePath();
+  }
+
+  // Soft puffy bevel on exposed faces: top/left catch light, bottom/right fall
+  // into shadow, so each outer edge rolls over like a stuffed knitted bag.
+  function edgeShade(c, x, y, U, R, D, L) {
+    const px = x * CELL, py = y * CELL;
+    let g;
+    if (!U) { g = c.createLinearGradient(0, py, 0, py + BEV);
+      g.addColorStop(0, "rgba(255,255,255,0.30)"); g.addColorStop(1, "rgba(255,255,255,0)");
+      c.fillStyle = g; c.fillRect(px, py, CELL, BEV); }
+    if (!L) { g = c.createLinearGradient(px, 0, px + BEV, 0);
+      g.addColorStop(0, "rgba(255,255,255,0.22)"); g.addColorStop(1, "rgba(255,255,255,0)");
+      c.fillStyle = g; c.fillRect(px, py, BEV, CELL); }
+    if (!D) { g = c.createLinearGradient(0, py + CELL, 0, py + CELL - BEV);
+      g.addColorStop(0, "rgba(40,28,16,0.40)"); g.addColorStop(1, "rgba(40,28,16,0)");
+      c.fillStyle = g; c.fillRect(px, py + CELL - BEV, CELL, BEV); }
+    if (!R) { g = c.createLinearGradient(px + CELL, 0, px + CELL - BEV, 0);
+      g.addColorStop(0, "rgba(40,28,16,0.34)"); g.addColorStop(1, "rgba(40,28,16,0)");
+      c.fillStyle = g; c.fillRect(px + CELL - BEV, py, BEV, CELL); }
+  }
+
+  // Draw one molded cell (rounded silhouette + bevel) sampling the knit sheet.
+  function moldCell(c, x, y, color, filled) {
+    const px = x * CELL, py = y * CELL;
+    const U = filled(x, y - 1), R = filled(x + 1, y), D = filled(x, y + 1), L = filled(x - 1, y);
+    const exposed = !U || !R || !D || !L;
+    const sheet = Shader.sheet(color, SHEET_W, SHEET_H);
+    if (exposed) {
+      c.save();
+      c.beginPath();
+      cellPath(c, x, y, U, R, D, L);
+      c.clip();
+      if (sheet) c.drawImage(sheet, x * CSS, y * CSS, CSS, CSS, px, py, CELL, CELL);
+      else c.drawImage(Yarn.tile(color), px, py, CELL, CELL);
+      edgeShade(c, x, y, U, R, D, L);
+      c.restore();
+    } else {
+      if (sheet) c.drawImage(sheet, x * CSS, y * CSS, CSS, CSS, px, py, CELL, CELL);
+      else c.drawImage(Yarn.tile(color), px, py, CELL, CELL);
+    }
+  }
+
+  // A single soft drop shadow cast by the whole silhouette of a set of cells.
+  function shadowPass(cells, filled, blur, oy, alpha) {
+    ctx.save();
+    ctx.shadowColor = "rgba(45,33,22," + alpha + ")";
+    ctx.shadowBlur = blur; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = oy;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    for (const [x, y] of cells) {
+      if (y < 0) continue;
+      cellPath(ctx, x, y, filled(x, y - 1), filled(x + 1, y), filled(x, y + 1), filled(x - 1, y));
+    }
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.setTransform(SS, 0, 0, SS, 0, 0);
+    ctx.clearRect(0, 0, BOARD_W, BOARD_H);
+    // near-white knitted wool backing behind everything
+    ctx.drawImage(Yarn.backing(BOARD_W, BOARD_H, "#f4f0e6"), 0, 0, BOARD_W, BOARD_H);
+
+    // settled blocks
+    const sFilled = (x, y) => x >= 0 && x < COLS && y >= 0 && y < ROWS && !!grid[y][x];
+    const sCells = [];
+    for (let y = 0; y < ROWS; y++)
+      for (let x = 0; x < COLS; x++)
+        if (grid[y][x]) sCells.push([x, y]);
+    if (sCells.length) shadowPass(sCells, sFilled, 8, 6, 0.34);
+    for (const [x, y] of sCells) moldCell(ctx, x, y, grid[y][x], sFilled);
+
+    if (current) {
+      // ghost — a faint woolly preview of where it lands
+      const gy = ghostY();
+      const gCells = current.cells.map(([cx, cy]) => [current.x + cx, gy + cy]);
+      const gSet = new Set(gCells.map(([a, b]) => a + "," + b));
+      const gFilled = (x, y) => gSet.has(x + "," + y);
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      for (const [x, y] of gCells) if (y >= 0) moldCell(ctx, x, y, current.color, gFilled);
+      ctx.restore();
+
+      // active piece, lifted off the board with a strong drop shadow
+      const aCells = current.cells.map(([cx, cy]) => [current.x + cx, current.y + cy]);
+      const aSet = new Set(aCells.map(([a, b]) => a + "," + b));
+      const aFilled = (x, y) => aSet.has(x + "," + y);
+      shadowPass(aCells, aFilled, 12, 9, 0.42);
+      for (const [x, y] of aCells) if (y >= 0) moldCell(ctx, x, y, current.color, aFilled);
+    }
+  }
+
+  function drawNext() {
+    nctx.setTransform(SS, 0, 0, SS, 0, 0);
+    const NW = nextCanvas.width / SS, NH = nextCanvas.height / SS;
+    nctx.clearRect(0, 0, NW, NH);
+    if (!nextPiece) return;
+    const cell = 26;
+    const xs = nextPiece.cells.map(c => c[0]);
+    const ys = nextPiece.cells.map(c => c[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const w = (maxX - minX + 1) * cell, h = (maxY - minY + 1) * cell;
+    const offX = (NW - w) / 2 - minX * cell;
+    const offY = (NH - h) / 2 - minY * cell;
+    const sheet = Shader.sheet(nextPiece.color, SHEET_W, SHEET_H);
+    const sc = cell * SS;
+    for (const [cx, cy] of nextPiece.cells) {
+      const px = offX + cx * cell, py = offY + cy * cell;
+      if (sheet) {
+        nctx.drawImage(sheet, (cx + 1) * sc, (cy + 1) * sc, sc, sc, px, py, cell, cell);
+      } else {
+        nctx.drawImage(Yarn.tile(nextPiece.color), px, py, cell, cell);
+      }
+    }
+  }
+
+  // ---------- Loop ----------
+  function update(time = 0) {
+    if (!running) return;
+    const delta = time - lastTime;
+    lastTime = time;
+    if (!paused && !over) {
+      dropCounter += delta;
+      if (dropCounter > dropInterval) {
+        if (!collides(current, current.cells, current.x, current.y + 1)) {
+          current.y++;
+        } else {
+          lockPiece();
+        }
+        dropCounter = 0;
+      }
+    }
+    draw();
+    requestAnimationFrame(update);
+  }
+
+  function start() {
+    grid = newGrid();
+    score = 0; lines = 0; level = 1;
+    dropInterval = 1000; dropCounter = 0; lastTime = 0;
+    bag = [];
+    over = false; paused = false; running = true;
+    Object.values(COLORS).forEach(col => Shader.sheet(col, SHEET_W, SHEET_H)); // warm GPU sheets
+    Sfx.resume(); // unlock/resume audio on the start gesture
+    Music.setLevel(1);
+    Music.start();
+    document.documentElement.style.setProperty("--grid", LEVEL_TINTS[0]);
+    nextPiece = makePiece(nextType());
+    spawn();
+    updateStats();
+    overlay.classList.add("hidden");
+    requestAnimationFrame(update);
+  }
+
+  function gameOver() {
+    over = true; running = false;
+    Music.stop();
+    Sfx.gameOver();
+    ovTitle.textContent = "ALL TUCKED IN";
+    ovText.innerHTML = `Your town reached <b>Level ${level}</b> with <b>${score}</b> stitches.<br>Tidy up and start a fresh patch?`;
+    startBtn.textContent = "Stitch Again";
+    overlay.classList.remove("hidden");
+  }
+
+  function togglePause() {
+    if (over || !running) return;
+    paused = !paused;
+    if (paused) {
+      Music.stop();
+      ovTitle.textContent = "RESTING";
+      ovText.textContent = "Take your time. Press P or the button when you're ready.";
+      startBtn.textContent = "Resume";
+      overlay.classList.remove("hidden");
+    } else {
+      Music.start();
+      overlay.classList.add("hidden");
+    }
+  }
+
+  // ---------- Input ----------
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "p" || e.key === "P") { togglePause(); return; }
+    if (e.key === "m" || e.key === "M") {
+      const muted = Sfx.toggle();
+      soundBtn.textContent = muted ? "♪ Sound: Off" : "♪ Sound: On";
+      return;
+    }
+    if (!running || over || paused) return;
+    switch (e.key) {
+      case "ArrowLeft": move(-1); break;
+      case "ArrowRight": move(1); break;
+      case "ArrowDown": softDrop(); break;
+      case "ArrowUp": case "x": case "X": tryRotate(1); break;
+      case "z": case "Z": tryRotate(-1); break;
+      case " ": e.preventDefault(); hardDrop(); break;
+      default: return;
+    }
+    if (["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key)) e.preventDefault();
+    draw();
+  });
+
+  startBtn.addEventListener("click", () => {
+    if (paused && !over) { togglePause(); return; }
+    start();
+  });
+
+  soundBtn.addEventListener("click", () => {
+    Sfx.resume();
+    const muted = Sfx.toggle();
+    soundBtn.textContent = muted ? "♪ Sound: Off" : "♪ Sound: On";
+  });
+
+  // ---------- Touch controls (iPad / iPhone) ----------
+  function doAction(act) {
+    if (act === "pause") { togglePause(); return; }
+    if (!running || over || paused) return;
+    switch (act) {
+      case "left":   move(-1); break;
+      case "right":  move(1); break;
+      case "soft":   softDrop(); break;
+      case "rotate": tryRotate(1); break;
+      case "hard":   hardDrop(); break;
+    }
+    draw();
+  }
+
+  // reveal the on-screen pad as soon as the device reports a touch
+  window.addEventListener("touchstart",
+    () => document.body.classList.add("has-touch"), { once: true, passive: true });
+
+  // on-screen buttons, with press-and-hold auto-repeat for movement
+  const touchpad = document.getElementById("touchpad");
+  const REPEAT = { left: 1, right: 1, soft: 1 };
+  touchpad.querySelectorAll(".tbtn").forEach((btn) => {
+    const act = btn.dataset.act;
+    let iv = null;
+    const press = (e) => {
+      e.preventDefault();
+      Sfx.resume();
+      doAction(act);
+      if (REPEAT[act]) iv = setInterval(() => doAction(act), 110);
+    };
+    const release = () => { if (iv) { clearInterval(iv); iv = null; } };
+    btn.addEventListener("pointerdown", press);
+    btn.addEventListener("pointerup", release);
+    btn.addEventListener("pointerleave", release);
+    btn.addEventListener("pointercancel", release);
+    btn.addEventListener("click", (e) => e.preventDefault());
+  });
+
+  // swipe / tap gestures directly on the board
+  const stage = document.querySelector(".board-stage");
+  // one "step" is ~0.8 of a displayed cell, so it scales with the board size
+  function stepPx() { return Math.max(16, (board.clientWidth / COLS) * 0.8); }
+  let sx = null, sy = null, st = 0, lastX = 0, lastY = 0, moved = false, STEP = 24;
+  stage.addEventListener("pointerdown", (e) => {
+    if (!running || over || paused) return;
+    Sfx.resume();
+    STEP = stepPx();
+    sx = lastX = e.clientX; sy = lastY = e.clientY; st = Date.now(); moved = false;
+    try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  stage.addEventListener("pointermove", (e) => {
+    if (sx === null) return;
+    let dx = e.clientX - lastX;
+    while (Math.abs(dx) >= STEP) {            // horizontal drag = step sideways
+      doAction(dx > 0 ? "right" : "left");
+      lastX += dx > 0 ? STEP : -STEP;
+      dx = e.clientX - lastX;
+      moved = true;
+    }
+    let dy = e.clientY - lastY;
+    while (dy >= STEP) {                       // downward drag = soft drop
+      doAction("soft");
+      lastY += STEP;
+      dy = e.clientY - lastY;
+      moved = true;
+    }
+  });
+  const endSwipe = (e) => {
+    if (sx === null) return;
+    const dt = Date.now() - st;
+    const adx = Math.abs(e.clientX - sx), ady = e.clientY - sy;
+    if (!moved && dt < 250 && adx < 12 && Math.abs(ady) < 12) {
+      doAction("rotate");                      // quick tap = rotate
+    } else if (ady > 80 && dt < 220 && adx < 40) {
+      doAction("hard");                        // fast flick down = hard drop
+    }
+    sx = sy = null;
+  };
+  stage.addEventListener("pointerup", endSwipe);
+  stage.addEventListener("pointercancel", () => { sx = sy = null; });
+})();
+</script>
+</body>
+</html>
