@@ -27,6 +27,7 @@ Conference Copilot turns the attendee's agenda into one notebook per session. Du
 ## Capabilities and Constraints
 
 - Agenda import: paste text (heuristic or Claude), .ics, photo/PDF (Claude), single session form, sample agenda.
+- Adding a typed note: Return (Shift-Return for a new line, the Mac default), ⌘-Return, a key combination the user records, or the send button only (the iPhone default); chosen in Settings → Notes or from the hint under the note field, saved per device.
 - Notes: typed (with key-point star), photos, video (frame extracted for AI), audio recording with live browser speech recognition.
 - Record and type at once: notes typed (and photos taken) while a session is recording are stamped with their time in the recording; tapping the stamp plays the talk from there, and briefs read the notes woven into the transcript where they were written. Live transcription survives silences and offers Resume when the browser stops it.
 - Transcript clean-up (Wispr Flow style): Claude removes fillers, false starts and repetitions, keeps self-corrections' final form, adds punctuation and paragraphs, and fixes misheard names using the session, the agenda's speakers and companies, and the user's vocabulary. Never summarises; the raw transcript is kept and can be shown or restored. Per recording after a confirmation, or automatically when the user turns it on in Settings.
