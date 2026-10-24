@@ -187,6 +187,10 @@ svg{display:block;flex:none}
   body.writing .field textarea{font-size:17px!important;line-height:24px;min-height:72px;max-height:34vh;padding:10px 0}
   body.writing .note{padding:10px 0}
   body.writing .note-acts{display:none}
+  body.writing .dock{padding:6px 8px 6px 12px;margin-bottom:6px;gap:8px;flex-wrap:nowrap}
+  body.writing .dock .dock-tx,body.writing .dock .dock-levels{display:none}
+  body.writing .dock.stalled .dock-tx{display:block;flex:1;-webkit-line-clamp:1}
+  body.writing .dock.stalled .dock-tx .interim{display:none}
   .note.just-added{animation:flash 1.2s var(--ease)}
 }
 @keyframes flash{from{background:var(--accent-soft)}}
@@ -585,6 +589,11 @@ body.cal-mode #sortBtn{display:none}
 .dock-time{font-variant-numeric:tabular-nums;font-weight:600;font-size:.9667rem;min-width:44px}
 .dock-tx{flex:1;min-width:0;font-size:.9rem;color:var(--text-2);line-height:1.35;max-height:2.7em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .dock-tx .interim{color:var(--text-3)}
+.dock-resume{white-space:nowrap;margin-left:6px;height:24px;padding:0 9px;border-radius:999px;font-size:.75rem;font-weight:600;color:var(--accent-ink);background:var(--accent-soft)}
+.rec-at{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;font-size:.7rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--red);background:var(--red-soft)}
+.rec-at i{width:6px;height:6px;border-radius:50%;background:var(--red)}
+.rec-at svg{width:10px;height:10px}
+button.rec-at:hover{filter:brightness(.96)}
 .dock-tx.expanded{max-height:40vh;overflow:auto;-webkit-line-clamp:unset;display:block;white-space:pre-wrap}
 .dock-levels{display:flex;gap:2px;align-items:center;height:22px}
 .dock-levels i{width:3px;border-radius:2px;background:var(--red);height:3px;opacity:.75}
@@ -1012,6 +1021,7 @@ Object.assign(I, {
   auto: P('<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none"/>'),
   sun2: P('<circle cx="12" cy="12" r="4"/>'),
   stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="6.5" width="11" height="11" rx="2.5"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   recDot: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>',
   bulb: P('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.9V16h5v-.2c0-.8.4-1.5 1-1.9A6 6 0 0 0 12 3z"/>'),
   quote: P('<path d="M7 7h4v4c0 3-1.5 5-4 6M14 7h4v4c0 3-1.5 5-4 6"/>'),
@@ -1438,6 +1448,15 @@ function bindBrief(root, s) {
   });
 }
 
+// "● 12:34": where in the session's recording this note was written; tapping it plays the talk from there
+function recChip(n) {
+  if (!n.recId || n.type === 'audio') return '';
+  const live = rec.active && rec.id === n.recId;
+  const a = !live && S(ui.selected)?.notes.find(x => x.id === n.recId && !x.deleted);
+  if (!live && !a) return '';
+  const t = fmtDur(n.recAt || 0);
+  return a?.mediaId ? `<button class="rec-at" data-n="seek" title="Play the recording from here">${I.play} ${t}</button>` : `<span class="rec-at" title="${live ? 'Written during the recording in progress' : 'Written during the recording'}"><i></i>${t}</span>`;
+}
 function renderNote(n) {
   const types = { text: [I.text, 'Note'], photo: [I.photo, 'Photo'], video: [I.video, 'Video'], audio: [I.wave, 'Recording'] };
   const editing = ui.editing === n.id;
@@ -1466,7 +1485,7 @@ function renderNote(n) {
   else text = n.text ? `<div class="note-cap">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">Add a caption…</div>`;
   const dur = n.duration ? `${Math.floor(n.duration / 60)}:${pad(Math.round(n.duration % 60))}` : '';
   return `<div class="note" data-note="${n.id}">
-    <div class="note-when"><span>${esc(fmtClock(n.ts))}</span>${dur ? `<span>${dur}</span>` : ''}${n.star ? `<span class="kp">${I.starFill}Key</span>` : ''}</div>
+    <div class="note-when"><span>${esc(fmtClock(n.ts))}</span>${dur ? `<span>${dur}</span>` : ''}${n.star ? `<span class="kp">${I.starFill}Key</span>` : ''}${recChip(n)}</div>
     <div class="note-body">${media}${text}</div>
     ${editing ? '' : `<div class="note-acts">
       <button data-n="star" class="${n.star ? 'on' : ''}" aria-label="${n.star ? 'Unmark key point' : 'Mark as key point'}" title="${n.star ? 'Unmark key point' : 'Key point'}">${n.star ? I.starFill : I.star}</button>
@@ -1481,6 +1500,13 @@ function bindNotes(root, s) {
     $$('[data-n]', el).forEach(b => b.onclick = async () => {
       const a = b.dataset.n;
       if (a === 'open') return openDoc(n);
+      if (a === 'seek') {
+        const au = $(`.note[data-note="${n.recId}"] audio`, root); if (!au) return;
+        au.closest('.note').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const go = () => { au.currentTime = Math.max(0, (n.recAt || 0) - 3); au.play().catch(() => {}); };
+        au.readyState >= 1 ? go() : au.addEventListener('loadedmetadata', go, { once: true });
+        return;
+      }
       if (a === 'clean') return confirmClean(s, [n]);
       if (a === 'raw') { ui.showRaw.has(n.id) ? ui.showRaw.delete(n.id) : ui.showRaw.add(n.id); return renderDetail(); }
       if (a === 'unclean') { if (await confirmSheet('Go back to the original transcript?', 'The cleaned-up text is replaced by the raw transcript on all your devices. You can clean it up again later.', 'Revert', false)) { n.text = n.rawText; delete n.rawText; delete n.clean; ui.showRaw.delete(n.id); n.updatedAt = now(); touch(s); renderDetail(); } return; }
@@ -1770,10 +1796,13 @@ function paintMic() {
   const b = $('#micBtn');
   b.innerHTML = rec.active ? `${I.stop}<span>Stop</span>` : `${I.mic}<span>Record</span>`;
   b.setAttribute('aria-label', rec.active ? 'Stop and save recording' : 'Record the speaker');
+  const ta = $('#noteInput'); if (ta) ta.placeholder = rec.active && rec.sessionId === ui.selected ? 'Type a note while recording' : 'Add a note';
 }
 function autoGrow() { const ta = $('#noteInput'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 180) + 'px'; }
 function addNote(s, note) {
   const n = Object.assign({ id: uid(), ts: now(), updatedAt: now(), text: '', star: false }, note);
+  // Notes taken while this session is being recorded remember where in the recording (and transcript) they were written
+  if (rec.active && rec.sessionId === s.id && n.type !== 'audio') Object.assign(n, { recId: rec.id, recAt: Math.round(recElapsed() / 1000), txAt: rec.finalText.length });
   s.notes = s.notes || []; s.notes.push(n); touch(s);
   scheduleAutoTitle(s);
   return n;
@@ -1790,6 +1819,8 @@ function scrollNotesEnd(smooth = true) { const d = $('#detail'); requestAnimatio
 
 /* ---------- Recording dock + live transcription ---------- */
 const rec = { active: false };
+const recElapsed = () => rec.active ? rec.elapsed + (rec.paused ? 0 : now() - rec.started) : 0;
+const fmtDur = (sec) => `${Math.floor(sec / 3600) ? Math.floor(sec / 3600) + ':' + pad(Math.floor(sec / 60) % 60) : Math.floor(sec / 60)}:${pad(Math.round(sec) % 60)}`;
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 async function startRecording() {
   const s = S(ui.selected); if (!s) return;
@@ -1797,7 +1828,7 @@ async function startRecording() {
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
   catch { toast('Microphone access is blocked. Allow it in your browser settings.', false, 4500); return; }
-  Object.assign(rec, { active: true, sessionId: s.id, stream, chunks: [], finalText: '', interim: '', started: now(), elapsed: 0, paused: false, srErrors: 0, srDenied: false, mr: null, sr: null, wake: null, mime: '', an: null, ac: null });
+  Object.assign(rec, { id: uid(), active: true, sessionId: s.id, stream, chunks: [], finalText: '', interim: '', started: now(), elapsed: 0, paused: false, srErrors: 0, srDenied: false, srHad: false, srStalled: false, srRunning: false, mr: null, sr: null, wake: null, mime: '', an: null, ac: null });
   if (settings.keepAudio && window.MediaRecorder) {
     const mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find(m => MediaRecorder.isTypeSupported?.(m)) || '';
     try {
@@ -1827,12 +1858,16 @@ async function startRecording() {
   $('#recDiscard').onclick = async () => { if (await confirmSheet('Discard recording?', 'The audio and transcript from this recording will be lost.', 'Discard')) stopRecording(false); };
   $('#liveTx').onclick = (e) => e.currentTarget.classList.toggle('expanded');
   rec.timer = setInterval(tickRecording, 120);
+  if (!rec.visHook) { rec.visHook = true; document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && rec.active && !rec.paused && SR && !rec.srRunning && !rec.srDenied) { try { rec.sr?.start(); } catch { rec.srStalled = true; paintTranscript(); } } }); }
   paintMic(); renderList();
+  toast('Recording. Keep typing: each note is stamped to this moment of the talk.', false, 3500);
 }
 function startRecognition() {
   const r = new SR(); rec.sr = r;
   r.continuous = true; r.interimResults = true; r.lang = settings.lang || 'en-US';
+  r.onstart = () => { rec.srRunning = true; };
   r.onresult = (e) => {
+    rec.srHad = true; rec.srErrors = 0; if (rec.srStalled) { rec.srStalled = false; }
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const t = e.results[i][0].transcript;
@@ -1841,12 +1876,35 @@ function startRecognition() {
     }
     rec.interim = interim; paintTranscript();
   };
-  r.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { rec.srDenied = true; paintTranscript(); } rec.srErrors++; };
-  r.onend = () => { if (rec.active && !rec.paused && !rec.srDenied && rec.srErrors < 30) { rec.finalText += rec.finalText ? '\n' : ''; try { r.start(); } catch {} } };
+  // Silence ("no-speech") and our own restarts ("aborted") are normal in a long talk and must not end transcription.
+  // A refusal after it has been working is the browser (Safari) declining a restart without a tap: offer Resume.
+  r.onerror = (e) => {
+    if (e.error === 'no-speech' || e.error === 'aborted') return;
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { if (rec.srHad) rec.srStalled = true; else rec.srDenied = true; paintTranscript(); return; }
+    rec.srErrors++;
+  };
+  r.onend = () => {
+    rec.srRunning = false;
+    if (!rec.active || rec.paused || rec.srDenied || rec.srStalled) return;
+    if (rec.srErrors >= 8) { rec.srStalled = true; return paintTranscript(); }
+    if (rec.finalText && !rec.finalText.endsWith('\n')) rec.finalText += '\n';
+    setTimeout(() => { if (!rec.active || rec.paused || rec.srRunning || rec.sr !== r) return; try { r.start(); } catch { rec.srStalled = true; paintTranscript(); } }, rec.srErrors ? 600 : 50);
+  };
   try { r.start(); } catch (e) { console.warn(e); }
+}
+function resumeTranscript() {
+  rec.srStalled = false; rec.srErrors = 0;
+  try { rec.sr?.abort(); } catch {}
+  startRecognition(); paintTranscript();
 }
 function paintTranscript() {
   const el = $('#liveTx'); if (!el) return;
+  $('#dock').classList.toggle('stalled', !!rec.srStalled);
+  if (rec.srStalled) {
+    el.innerHTML = `<span class="interim">The browser paused the live transcript; the audio is still recording.</span> <button class="dock-resume" id="txResume">Resume transcript</button>`;
+    $('#txResume').onclick = (e) => { e.stopPropagation(); resumeTranscript(); };
+    return;
+  }
   const txt = rec.finalText.replace(/\n+/g, '\n');
   if (!txt && !rec.interim) {
     el.innerHTML = `<span class="interim">${!SR ? 'Recording audio. Live transcription isn’t available in this browser.' : rec.srDenied ? 'Recording audio. Transcription was blocked by the browser.' : 'Listening… the transcript appears here.'}</span>`;
@@ -1893,7 +1951,7 @@ async function stopRecording(save) {
   if (!blob && !text) { toast('Nothing was captured.'); renderList(); return; }
   let mediaId = '';
   if (blob) { mediaId = uid(); await DB.put('media', mediaId, blob); }
-  const note = addNote(s, { type: 'audio', mediaId, mime: blob?.type || '', text, duration, ts: now() - duration * 1000 });
+  const note = addNote(s, { id: rec.id, type: 'audio', mediaId, mime: blob?.type || '', text, txLen: rec.finalText.length, duration, ts: now() - duration * 1000 });
   toast(text ? 'Recording and transcript saved' : 'Recording saved');
   if (ui.selected === s.id) { renderDetail(); scrollNotesEnd(); }
   renderList();
@@ -2106,6 +2164,19 @@ const BRIEF_SCHEMA = {
   required: ['headline', 'summary', 'keyTakeaways', 'learnings', 'quotes', 'actionItems', 'openQuestions'],
   properties: { headline: { type: 'string' }, summary: { type: 'string' }, keyTakeaways: strArr, learnings: strArr, quotes: strArr, actionItems: strArr, openQuestions: strArr },
 };
+// The transcript with the attendee's notes placed where they were typed (positions are scaled when the transcript was cleaned up)
+function weaveNotes(audio, typed) {
+  const t = audio.text, base = audio.txLen || (audio.rawText ?? audio.text).length || 1, ins = [];
+  for (const n of typed.sort((a, b) => (a.txAt || 0) - (b.txAt || 0))) {
+    let pos = Math.min(t.length, Math.round((n.txAt || 0) * t.length / base));
+    // At a sentence end already, or the next one within a sentence's reach, so a note never splits a sentence
+    if (!/[.!?\n]\s*$/.test(t.slice(Math.max(0, pos - 4), pos))) { const m = t.slice(pos, pos + 240).search(/[.!?\n]\s/); if (m >= 0) pos += m + 1; }
+    ins.push([pos, `\n[Attendee's note at ${fmtDur(n.recAt || 0)}${n.star ? ', KEY POINT' : ''}: ${n.text}]\n`]);
+  }
+  let out = '', at = 0;
+  for (const [pos, txt] of ins) { out += t.slice(at, pos) + txt; at = pos; }
+  return (out + t.slice(at)).replace(/\n{3,}/g, '\n\n').trim();
+}
 const BRIEF_SYSTEM = `You are Conference Copilot. You turn one attendee's raw notes from a conference session into a short, useful brief they will reread later.
 
 The notes mix several sources: things the attendee typed, photos of slides or whiteboards, frames from short videos, automatic speech-to-text transcripts of the speaker, and documents the attendee attached (the slide deck, a handout, a paper or a spreadsheet). Transcripts contain recognition errors, so infer the intended words from context and never quote garbled text. Notes marked as key points were flagged by the attendee as important, so give them extra weight. Slides often carry the clearest statement of the speaker's argument; read them carefully. Attached documents give detail and context: build the brief around what this session covered, and use the documents to get facts, figures and terminology right.
@@ -2133,8 +2204,11 @@ async function generateBrief(s) {
     if (settings.apiKey) {
       const content = [{ type: 'text', text: `${s.informal ? `Context: an informal ${(KINDS[s.kind] || 'encounter').toLowerCase()} at the conference, not a scheduled talk. Brief it as such: what was discussed, who was involved, what to follow up on.\n` : ''}Session: ${s.title}\n${s.speaker ? (s.informal ? 'With: ' : 'Speaker: ') + s.speaker + '\n' : ''}${s.date ? 'Date: ' + s.date + (s.start ? ' ' + s.start : '') + '\n' : ''}${s.room ? 'Room: ' + s.room + '\n' : ''}${s.description ? 'Abstract: ' + s.description + '\n' : ''}\nThe attendee's notes, in order:` }];
       let images = 0, pdfs = 0, docBudget = 150000;
+      const woven = new Set(notes.filter(t => t.type === 'text' && t.recId && notes.some(a => a.id === t.recId && a.type === 'audio' && a.text)).map(t => t.id));
       for (const n of notes) {
         const head = `[${fmtClock(n.ts)}]${n.star ? ' [KEY POINT]' : ''}`;
+        if (woven.has(n.id)) continue;
+        if (n.type === 'audio' && n.text && notes.some(t => woven.has(t.id) && t.recId === n.id)) { content.push({ type: 'text', text: `${head} ${n.clean ? 'Transcript of the speaker, cleaned up from speech-to-text' : 'Speech-to-text transcript of the speaker'} (${Math.round(n.duration / 60) || '<1'} min), with the attendee's own typed notes inserted in [brackets] where they wrote them during the talk:\n${weaveNotes(n, notes.filter(t => woven.has(t.id) && t.recId === n.id))}` }); continue; }
         if (n.type === 'text') content.push({ type: 'text', text: `${head} Typed note: ${n.text}` });
         else if (n.type === 'audio') content.push({ type: 'text', text: n.text ? `${head} ${n.clean ? 'Transcript of the speaker, cleaned up from speech-to-text' : 'Speech-to-text transcript of the speaker'} (${Math.round(n.duration / 60) || '<1'} min):\n${n.text}` : `${head} An audio recording with no transcript.` });
         else if (n.type === 'doc') {
