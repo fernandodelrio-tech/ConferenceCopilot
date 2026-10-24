@@ -226,7 +226,7 @@ svg{display:block;flex:none}
 .sb-item .ct.ok svg{width:15px;height:15px}
 @media (min-width:760px){#syncBtn2 span{display:none}}
 .sb-item .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ic-today{background:#F56300} .ic-all{background:#6E6E73} .ic-todo{background:#0071E3} .ic-done{background:#1E9E47} .ic-note{background:#8E44C9} .ic-wrap{background:#0071E3} .ic-conf{background:#1D1D1F} .ic-map{background:#0A84A0}
+.ic-today{background:#F56300} .ic-all{background:#6E6E73} .ic-todo{background:#0071E3} .ic-done{background:#1E9E47} .ic-note{background:#8E44C9} .ic-wrap{background:#0071E3} .ic-conf{background:#1D1D1F} .ic-map{background:#0A84A0} .ic-now{background:#E0245E}
 /* Day icon: a tiny calendar page */
 .sb-item .ic.cal-ic{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--sep-2);display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden;padding:0}
 .cal-ic small{display:block;width:100%;background:#F2363A;color:#fff;font-size:.5rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:9px;text-align:center}
@@ -736,6 +736,36 @@ button.rec-at:hover{filter:brightness(.96)}
 .mp-search{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .mp-search svg{width:13px;height:13px}
 @media (max-width:759px){.sheet.map-sheet{height:93dvh}.mp-rooms{max-height:84px}}
+.nn-card,.nn-compact{margin:16px 0 4px;border:1px solid var(--sep);border-radius:14px;background:var(--surface);padding:10px 6px 6px;max-width:720px}
+.nn-compact{margin:6px 4px 10px}
+.nn-h{display:flex;align-items:center;gap:8px;padding:0 8px 6px;font-size:.8rem;font-weight:600;color:var(--text-2)}
+.nn-h span{display:inline-flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.04em;font-size:.72rem;color:#E0245E}
+.nn-h svg{width:14px;height:14px}
+.nn-h small{margin-left:auto;font-weight:500;color:var(--text-2);font-size:.8rem}
+.nn-h .nn-more{margin-left:auto}
+.nn-item{display:flex;align-items:stretch;border-radius:10px}
+.nn-item:hover{background:var(--fill)}
+.nn-main{flex:1;min-width:0;display:flex;gap:12px;align-items:flex-start;text-align:left;padding:8px;color:var(--text)}
+.nn-time{flex:none;width:72px;display:flex;flex-direction:column}
+.nn-time b{font-weight:600;font-size:.9rem;font-variant-numeric:tabular-nums}
+.nn-time small{font-size:.75rem;color:#E0245E;font-weight:600}
+.nn-tx{min-width:0;display:flex;flex-direction:column;gap:2px}
+.nn-tx b{font-weight:600;font-size:.9333rem;line-height:1.3}
+.nn-tx small{font-size:.8rem;color:var(--text-2)}
+.nn-tx em{font-style:normal;font-size:.75rem;font-weight:600;align-self:flex-start;border-radius:8px;padding:1px 8px;margin-top:3px}
+.nn-far{color:var(--orange);background:var(--orange-soft)}
+.nn-near{color:var(--green);background:var(--green-soft)}
+.nn-item.brk .nn-tx b{font-weight:500;color:var(--text-2)}
+.nn-map{flex:none;width:40px;display:grid;place-items:center;color:var(--accent);border-radius:10px}
+.nn-map:hover{background:var(--accent-soft)}
+.nn-map svg{width:17px;height:17px}
+.nn-sub{margin:0 8px 6px;font-size:.85rem;color:var(--text-2)}
+.nn-lab{padding:8px 8px 2px;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3)}
+.nn-more{font-size:.8rem;font-weight:600;color:var(--accent);padding:6px 8px;border-radius:8px}
+.nn-more:hover{background:var(--accent-soft)}
+.nn-panel{padding:4px 4px 16px}
+.nn-sec{margin-bottom:8px}
+.nn-sec .nn-lab{padding-top:14px}
 .bl-row{display:flex;align-items:center;position:relative}
 .bl-row+.bl-row::before{content:"";position:absolute;top:0;left:50px;right:0;height:1px;background:var(--sep)}
 .bl-open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:9px 4px 9px 12px;text-align:left;color:var(--text)}
@@ -1132,6 +1162,7 @@ function confirmSheet(title, text, okLabel, danger = true) {
    Views & rendering
    ========================================================= */
 const VIEWS = {
+  now: { label: 'Now & Next', icon: I.clock, cls: 'ic-now', test: s => s.date === todayISO() },
   today: { label: 'Today', icon: I.clock, cls: 'ic-today', test: s => s.date === todayISO() },
   all: { label: 'All Sessions', icon: I.tray, cls: 'ic-all', test: () => true },
   todo: { label: 'To Attend', icon: I.circle, cls: 'ic-todo', test: s => !s.attended && !s.informal },
@@ -1168,6 +1199,7 @@ function renderSidebar() {
     <div class="pr-bar"><i style="width:${Math.round(att / formal.length * 100)}%"></i></div>
     <div class="pr-sub"><span>${live ? `${live} happening now` : ''}</span><span>${formal.length - att} to go</span></div></div>` : '';
   const nToday = count(VIEWS.today.test);
+  if (all.some(x => !x.informal && x.date >= todayISO())) html += item('now', VIEWS.now, all.filter(isLive).length);
   if (nToday) html += item('today', VIEWS.today, nToday);
   html += item('all', VIEWS.all, all.length) + item('todo', VIEWS.todo, count(VIEWS.todo.test)) + item('attended', VIEWS.attended, count(VIEWS.attended.test));
   const nInf = count(VIEWS.informal.test);
@@ -1196,6 +1228,81 @@ function renderSidebar() {
   $('[data-maps]', $('#sbNav'))?.addEventListener('click', () => openMaps());
 }
 
+/* ---------- Now & Next: what's on, when it ends, and where to go after ---------- */
+const hmMin = (hm) => { const [h, m] = (hm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
+const curMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+const endMin = (s) => s.end ? hmMin(s.end) : hmMin(s.start) + 60;
+function inMin(m) { if (m <= 0) return 'now'; if (m < 60) return `in ${m} min`; const h = Math.floor(m / 60), r = m % 60; return `in ${h} h${r ? ` ${r} min` : ''}`; }
+const buildingOf = (s) => locParts(s?.room).map(p => p.building).find(Boolean) || '';
+// null when the agenda doesn't say; otherwise whether the two are in the same building
+function sameBuilding(a, b) { const x = normLoc(buildingOf(a)).trim(), y = normLoc(buildingOf(b)).trim(); return !x || !y ? null : x.includes(y) || y.includes(x); }
+// From the session being attended (after it ends), else from now: the next start time, with sessions starting within
+// 15 minutes of it offered together as choices, then the rest of the day, or the next day's first sessions
+function nowNext(from) {
+  const t = todayISO(), cur = curMin();
+  const formal = sessionsArr().filter(s => !s.informal && s.date && s.start).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+  const today = formal.filter(s => s.date === t), now = today.filter(isLive);
+  const anchor = from && !from.informal && from.date === t && from.start ? from : null;
+  const after = anchor ? Math.max(cur, endMin(anchor) - 10) : cur;
+  const upcoming = today.filter(s => s !== anchor && hmMin(s.start) > cur && hmMin(s.start) >= after);
+  const group = (list) => list.length ? list.filter(s => hmMin(s.start) - hmMin(list[0].start) <= 15) : [];
+  const choices = group(upcoming), later = upcoming.filter(s => !choices.includes(s));
+  const nd = formal.find(s => s.date > t), nextDay = nd ? group(formal.filter(s => s.date === nd.date)) : [];
+  return { now, anchor, choices, later, nextDay, cur };
+}
+const isBreak = (s) => /logistic|networking|break|lunch|breakfast|reception|registration/i.test(`${s.type || ''} ${s.title}`) && !/session/i.test(s.type || '');
+function nnItem(s, ref, cur, opts = {}) {
+  const where = locParts(s.room).map(p => p.room).join(' · ') || s.room || '';
+  const bld = buildingOf(s), same = ref ? sameBuilding(ref, s) : null, mapped = roomsFor(s.room).some(w => w.room);
+  const when = s.date !== todayISO() ? fmtDate(s.date, { weekday: 'short' }) : hmMin(s.start) <= cur ? 'now' : inMin(hmMin(s.start) - cur);
+  return `<div class="nn-item ${isBreak(s) ? 'brk' : ''}">
+    <button class="nn-main" data-open="${s.id}"><span class="nn-time"><b>${esc(fmtTime(s.start))}</b><small>${esc(opts.ends ? `ends ${inMin(endMin(s) - cur)}` : when)}</small></span>
+      <span class="nn-tx"><b>${esc(s.title)}</b><small>${esc([where, bld].filter(Boolean).join(' · '))}</small>
+        ${same === false ? `<em class="nn-far">Different building · allow time to walk</em>` : same === true && !opts.ends ? `<em class="nn-near">Same building</em>` : ''}</span></button>
+    ${mapped ? `<button class="nn-map" data-map="${s.id}" title="Show on the venue map">${I.pin}</button>` : ''}</div>`;
+}
+// In the session you're in: when it ends and where to go next
+function upNextHTML(s) {
+  if (!s || s.informal || s.date !== todayISO() || !s.start) return '';
+  const { choices, later, cur } = nowNext(s), live = isLive(s);
+  if (!choices.length && !live) return '';
+  const ends = live ? `This session ends ${inMin(endMin(s) - cur)}` : '';
+  return `<div class="nn-card" id="upNextCard"><div class="nn-h"><span>${I.clock} Up next</span>${ends ? `<small>${esc(ends)}</small>` : ''}</div>
+    ${choices.length ? `${choices.length > 1 ? `<p class="nn-sub">${choices.length} sessions start around then: pick one</p>` : ''}${choices.slice(0, 4).map(x => nnItem(x, s, cur)).join('')}
+      ${later.length ? `<button class="nn-more" data-now>Rest of today · ${later.length} more ›</button>` : ''}` : '<p class="nn-sub">Nothing else on your agenda today.</p>'}</div>`;
+}
+function paintUpNext() {
+  const el = $('#upNext'); if (!el) return;
+  el.innerHTML = upNextHTML(S(ui.selected)); bindNowNext(el);
+}
+// At the top of Today and All Sessions: a glance at now and next
+function nnCompactHTML() {
+  const sel = S(ui.selected), from = sel && isLive(sel) ? sel : null;
+  const ref = from || nowNext().now[0];
+  const { now, choices, cur } = nowNext(ref);
+  if (!now.length && !choices.length) return '';
+  return `<div class="nn-compact"><div class="nn-h"><span>${I.clock} Now & Next</span><button class="nn-more" data-now>Open ›</button></div>
+    ${now.slice(0, 2).map(x => nnItem(x, null, cur, { ends: true })).join('')}
+    ${choices.length ? `<div class="nn-lab">Next${choices.length > 1 ? ` · ${choices.length} choices` : ''}</div>${nnItem(choices[0], ref, cur)}` : ''}</div>`;
+}
+// The full view: now, up next (with choices), rest of today, or the next day
+function renderNowPanel(list) {
+  const sel = S(ui.selected), from = sel && isLive(sel) ? sel : nowNext().now[0];
+  const { now, choices, later, nextDay, cur } = nowNext(from), ref = from || now[0];
+  const sec = (t, body) => `<div class="nn-sec"><div class="nn-lab">${t}</div>${body}</div>`;
+  list.innerHTML = `<div class="nn-panel">
+    ${sec('Now', now.length ? now.map(x => nnItem(x, null, cur, { ends: true })).join('') : '<p class="nn-sub">Nothing on right now.</p>')}
+    ${choices.length ? sec(`Up next${from ? ` after ${esc(from.title.length > 40 ? from.title.slice(0, 38) + '…' : from.title)}` : ''}${choices.length > 1 ? ' · pick one' : ''}`, choices.map(x => nnItem(x, ref, cur)).join('')) : ''}
+    ${later.length ? sec('Later today', later.map(x => nnItem(x, null, cur)).join('')) : ''}
+    ${!choices.length && !later.length ? (nextDay.length ? sec(`Next: ${esc(fmtDate(nextDay[0].date, { weekday: 'long', month: 'short', day: 'numeric' }))}`, nextDay.map(x => nnItem(x, null, cur)).join('')) : sec('Up next', '<p class="nn-sub">Nothing else on your agenda.</p>')) : ''}
+  </div>`;
+  bindNowNext(list);
+}
+function bindNowNext(root) {
+  $$('[data-open]', root).forEach(b => b.onclick = () => select(b.dataset.open));
+  $$('[data-map]', root).forEach(b => b.onclick = (e) => { e.stopPropagation(); openMaps({ sessionId: b.dataset.map }); });
+  $$('[data-now]', root).forEach(b => b.onclick = () => setView('now'));
+}
 function renderList() {
   renderSidebar();
   $('#confName').textContent = state.conference.name || '';
@@ -1206,9 +1313,10 @@ function renderList() {
   const items = listedSessions();
   $('#listTitle').innerHTML = `${esc(vd.label)}`;
   $$('#modeSeg button').forEach(b => { b.classList.toggle('on', b.dataset.mode === ui.mode); b.setAttribute('aria-selected', b.dataset.mode === ui.mode); });
-  const cal = ui.mode === 'calendar';
+  const cal = ui.mode === 'calendar' && ui.view !== 'now';
   list.classList.toggle('hidden', cal); $('#calendar').classList.toggle('hidden', !cal);
   if (cal) { renderCalendar(); return; }
+  if (ui.view === 'now' && all.length) { renderNowPanel(list); return; }
   if (!all.length) {
     list.innerHTML = matchMedia('(min-width:760px)').matches
       ? `<div class="empty"><p>No sessions yet.</p></div>`
@@ -1232,6 +1340,7 @@ function renderList() {
   else groups.set('', items);
   const showDayHeads = byTime && !ui.view.startsWith('day:') && ui.view !== 'today';
   let html = byTime && !ui.sortRev ? '' : `<div class="sort-hint"><span>Sorted by ${esc(SORTS[ui.sort]?.[0] || 'Time')}${ui.sortRev ? ', reversed' : ''}</span><span class="spacer"></span><button id="sortReset">Sort by Time</button></div>`;
+  if ((ui.view === 'today' || ui.view === 'all') && !ui.q) html += nnCompactHTML();
   if (ui.view === 'attended' && items.filter(s => s.brief).length >= 2) html += `<div style="padding:6px 4px 4px"><button class="btn btn-tinted btn-sm" style="width:100%" id="recapBtn">${I.book} Conference takeaways</button></div>`;
   for (const [date, ss] of groups) {
     if (showDayHeads) {
@@ -1244,6 +1353,7 @@ function renderList() {
     for (const s of ss) html += rowHTML(s, !byTime);
   }
   list.innerHTML = html;
+  const nnc = $('.nn-compact', list); if (nnc) bindNowNext(nnc);
   $$('.row', list).forEach(r => {
     r.onclick = (e) => { if (e.target.closest('.chk')) return; select(r.dataset.id); };
     r.oncontextmenu = (e) => { e.preventDefault(); select(r.dataset.id, false); sessionMenu(null, { x: e.clientX, y: e.clientY }); };
@@ -1340,6 +1450,7 @@ function renderDetail() {
     ${s.informal ? `<div class="kinds" role="group" aria-label="Kind of note">${Object.entries(KINDS).map(([k, v]) => `<button class="kind-chip" data-kind="${k}" aria-pressed="${s.kind === k}">${v}</button>`).join('')}${settings.apiKey && notes.length ? `<button class="kind-chip qn-suggest" id="suggestTitle" ${ui.busyTitle === s.id ? 'disabled' : ''}>${ui.busyTitle === s.id ? '<span class="spin"></span> Suggesting…' : `${I.sparkles} Suggest Title`}</button>` : ''}</div>` : ''}
     ${s.description ? `<div class="d-desc ${ui.descOpen ? '' : 'clamp'}" id="dDesc" title="${ui.descOpen ? '' : 'Show more'}">${esc(s.description)}</div>` : ''}
     <div class="d-status">${s.attended ? `<span class="tag t-done">${I.check} Attended</span>` : ''}${isLive(s) && !s.attended ? `<span class="tag t-live"><i></i> Happening now</span>` : ''}</div>
+    <div id="upNext">${upNextHTML(s)}</div>
     ${busy ? `<div class="sec-h"><h3>Brief</h3></div><div class="brief-pending"><span class="spin"></span>Reading your notes and writing the brief…</div>` : s.brief ? renderBrief(s) : ''}</div>
     <div class="sec-h notes-head"><h3>Notes</h3><small>${notes.length || ''}</small></div>
     <div class="notes">${notes.length ? notes.map(renderNote).join('') : `
@@ -1357,6 +1468,7 @@ function renderDetail() {
   $$('[data-way]', det).forEach(w => w.onclick = () => ({ photo: () => $('#photoBtn').click(), video: () => $('#videoBtn').click(), file: () => $('#attachBtn').click(), rec: () => $('#micBtn').click() })[w.dataset.way]());
   $$('[data-kind]', det).forEach(b => b.onclick = () => setKind(s, b.dataset.kind));
   $('#dLoc', det)?.addEventListener('click', () => openMaps({ sessionId: s.id }));
+  bindNowNext($('#upNext', det));
   $('#suggestTitle', det)?.addEventListener('click', () => suggestTitle(s));
   bindNotes(det, s);
   hydrateMedia(det);
@@ -4586,7 +4698,7 @@ function bindStatic() {
   // Keep the composer above the on-screen keyboard on iOS
   if (window.visualViewport && isTouch) visualViewport.addEventListener('resize', () => { $('#app').style.height = visualViewport.height + 'px'; window.scrollTo(0, 0); if (document.body.classList.contains('writing')) scrollNotesEnd(false); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && drive.connected && tokenValid()) syncNow(false); });
-  setInterval(() => { if (!sheetStack.length && !menuEl && document.visibilityState === 'visible') { renderList(); renderSync(); } }, 60000);
+  setInterval(() => { if (!sheetStack.length && !menuEl && document.visibilityState === 'visible') { renderList(); renderSync(); paintUpNext(); } }, 60000);
   addEventListener('beforeunload', (e) => { if (rec.active) { e.preventDefault(); e.returnValue = ''; } });
   addEventListener('resize', () => { closeMenu(); });
 }
