@@ -41,7 +41,7 @@ Conference Copilot turns the attendee's agenda into one notebook per session. Du
 - All Briefings lists every session brief, day wrap-up and the conference takeaways, flags ones with newer notes, and deletes any or all of them across devices (notes are never deleted with them).
 - Nothing is sent to Claude without the user asking and confirming: briefs, wrap-ups, takeaways, one-tap brief changes and title suggestions each show what will be sent first.
 - No server. Local storage is IndexedDB; sync is Google Drive.
-- Live transcription depends on the browser's Web Speech API; recorded audio cannot be transcribed afterwards.
+- Transcription: with the user's Deepgram key (stored only on the device), the microphone is streamed to Deepgram (nova-3) for a live transcript with speaker labels and key terms from the vocabulary and agenda; any saved recording can be transcribed again from its audio. Without a key, the browser's Web Speech API is used, which is made for close dictation and misses most of a talk on iPhone. Claude cannot take audio.
 
 ## Brand Commitments
 
