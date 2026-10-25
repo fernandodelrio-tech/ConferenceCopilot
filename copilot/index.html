@@ -767,6 +767,16 @@ button.rec-at:hover{filter:brightness(.96)}
 .nn-sec{margin-bottom:8px}
 .nn-sec .nn-lab{padding-top:14px}
 .fl-card{border:1px solid var(--sep);border-radius:14px;background:var(--surface);padding:12px 14px 10px;margin:0 0 12px}
+.nn-labrow{display:flex;align-items:center;justify-content:space-between}
+.nn-labrow .nn-more{text-transform:none;letter-spacing:0}
+.nn-flight-line{display:flex;align-items:center;gap:10px;width:calc(100% - 8px);margin:4px 4px 6px;padding:8px 10px;border-radius:12px;background:var(--fill);text-align:left;color:var(--text)}
+.nn-flight-line:hover{filter:brightness(.98)}
+.nn-flight-line span:nth-child(2){flex:1;min-width:0;display:flex;flex-direction:column}
+.nn-flight-line small{font-size:.72rem;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.nn-flight-line b{font-weight:600;font-size:.9rem}
+.nn-flight-line.add b{font-weight:500;color:var(--text-2)}
+.nn-flight-line em{font-style:normal;color:var(--text-3);font-size:1.1rem}
+.nn-panel .nn-flights{margin-top:6px}
 .nn-flights .fl-card{margin:4px 4px 8px;padding:10px 12px 8px}
 .fl-card.stale .fl-body,.fl-card.stale .fl-leave{opacity:.55}
 .fl-top{display:flex;align-items:center;gap:10px}
@@ -1339,7 +1349,7 @@ function renderNowPanel(list) {
   const { now, choices, later, nextDayAll, cur } = nowNext(from), ref = from || now[0];
   const sec = (t, body) => `<div class="nn-sec"><div class="nn-lab">${t}</div>${body}</div>`;
   list.innerHTML = `<div class="nn-panel">
-    ${nnFlightsHTML()}
+    ${nnFlightsHTML(true)}
     ${sec('Now', now.length ? now.map(x => nnItem(x, null, cur, { ends: true })).join('') : '<p class="nn-sub">Nothing on right now.</p>')}
     ${choices.length ? sec(`Up next${from ? ` after ${esc(from.title.length > 40 ? from.title.slice(0, 38) + '…' : from.title)}` : ''}${choices.length > 1 ? ' · pick one' : ''}`, choices.map(x => nnItem(x, ref, cur)).join('')) : ''}
     ${later.length ? sec('Later today', later.map(x => nnItem(x, null, cur)).join('')) : ''}
@@ -4218,6 +4228,7 @@ function flightCardHTML(fl, { compact = false } = {}) {
 const flightsSoon = () => flightsArr().filter(fl => { const d = Date.parse(fl.date + 'T00:00:00'); const t = Date.parse(todayISO() + 'T00:00:00'); return d >= t && d - t <= 86400e3; });
 function bindFlights(root) {
   if (!root) return;
+  $$('[data-flopen]', root).forEach(b => b.onclick = (e) => { e.stopPropagation(); openFlights(); });
   $$('[data-flup]', root).forEach(b => b.onclick = (e) => { e.stopPropagation(); updateFlight(b.dataset.flup); });
   $$('[data-leg]', root).forEach(b => b.onclick = () => { const fl = state.flights[b.closest('[data-fl]').dataset.fl]; fl.leg = b.dataset.leg; fl.fetchedAt = 0; fl.updatedAt = now(); touch(); updateFlight(fl.id); });
   $$('[data-flmore]', root).forEach(b => b.onclick = () => {
@@ -4233,11 +4244,19 @@ function bindFlights(root) {
 let flightsSheet = null;
 function paintFlights() {
   if (flightsSheet && flightsSheet.el.isConnected) flightsSheet.paint();
-  const nn = $('.nn-flights'); if (nn) { nn.outerHTML = nnFlightsHTML(); bindFlights($('.nn-flights')); }
+  $$('.nn-flights').forEach(nn => { const panel = !!nn.dataset.panel; nn.outerHTML = nnFlightsHTML(panel); });
+  $$('.nn-flights').forEach(bindFlights);
 }
-function nnFlightsHTML() {
-  const fs = flightsSoon(); if (!fs.length) return '<div class="nn-flights" hidden></div>';
-  return `<div class="nn-flights"><div class="nn-lab">${fs.length > 1 ? 'Flights' : 'Flight'} · ${fs.every(f => f.date === todayISO()) ? 'today' : fs.some(f => f.date === todayISO()) ? 'today and tomorrow' : 'tomorrow'}</div>${fs.map(fl => flightCardHTML(fl, { compact: true })).join('')}</div>`;
+// Flights in Now & Next: cards on travel days; otherwise the next flight in one line, or (in the full view) a way to add them
+function nnFlightsHTML(panel = false) {
+  const fs = flightsSoon(), attr = `class="nn-flights" data-panel="${panel ? 1 : ''}"`;
+  if (fs.length) return `<div ${attr}><div class="nn-lab nn-labrow"><span>${fs.length > 1 ? 'Flights' : 'Flight'} · ${fs.every(f => f.date === todayISO()) ? 'today' : fs.some(f => f.date === todayISO()) ? 'today and tomorrow' : 'tomorrow'}</span><button class="nn-more" data-flopen>All flights ›</button></div>${fs.map(fl => flightCardHTML(fl, { compact: true })).join('')}</div>`;
+  const next = flightsArr().find(f => f.date >= todayISO());
+  if (next) {
+    const dep = next.data?.dep, t = dep?.revised?.hm || dep?.scheduled?.hm;
+    return `<div ${attr}><button class="nn-flight-line" data-flopen><span class="fl-ic">${I.plane}</span><span><small>Next flight</small><b>${esc(next.number)} · ${esc(fmtDate(next.date, { weekday: 'short', month: 'short', day: 'numeric' }))}${t ? ` · ${esc(fmtTime(t))}` : ''}${next.from || next.to ? ` · ${esc(next.from || '?')} → ${esc(next.to || '?')}` : ''}</b></span><em>›</em></button></div>`;
+  }
+  return panel ? `<div ${attr}><button class="nn-flight-line add" data-flopen><span class="fl-ic">${I.plane}</span><span><small>Flights</small><b>Add your flights to see status, gate and when to leave</b></span><em>›</em></button></div>` : `<div ${attr} hidden></div>`;
 }
 function openFlights() {
   const sh = openSheet({ title: 'Flights', left: 'Close', right: 'Add Flight', cls: 'wide', body: `<div id="flBody"></div>`, onRight: () => flightForm(), onClose: () => { flightsSheet = null; render(); } });
