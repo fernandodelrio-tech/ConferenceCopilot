@@ -4221,6 +4221,7 @@ function flightCardHTML(fl, { compact = false } = {}) {
     ${fl.error ? `<p class="fl-err">${esc(fl.error)}</p>` : ''}
     ${!compact && fl.legs?.length > 1 ? `<div class="fl-legs">This flight number has ${fl.legs.length} legs: ${fl.legs.map(l => `<button data-leg="${esc(l.dep)}" class="${l.dep === fl.leg ? 'on' : ''}">${esc(l.dep)} → ${esc(l.arr)}</button>`).join('')}</div>` : ''}
     <div class="fl-foot"><span class="fl-age">${busy ? '<span class="spin"></span> Updating…' : fl.fetchedAt ? `Updated ${esc(ago(fl.fetchedAt))}${fresh === 'stale' ? ' · may be out of date' : ''}` : 'Not updated yet'}</span>
+      <button class="btn btn-sm btn-gray" data-fledit="${fl.id}">Edit</button>
       <button class="btn btn-sm ${fresh === 'fresh' ? 'btn-gray' : 'btn-tinted'}" data-flup="${fl.id}" ${busy ? 'disabled' : ''}>${I.sync || ''} Update</button>
       ${compact ? '' : `<button class="tb-btn" data-flmore="${fl.id}" aria-label="Flight options">${I.more}</button>`}</div></div>`;
 }
@@ -4229,6 +4230,7 @@ const flightsSoon = () => flightsArr().filter(fl => { const d = Date.parse(fl.da
 function bindFlights(root) {
   if (!root) return;
   $$('[data-flopen]', root).forEach(b => b.onclick = (e) => { e.stopPropagation(); openFlights(); });
+  $$('[data-fledit]', root).forEach(b => b.onclick = (e) => { e.stopPropagation(); const fl = state.flights?.[b.dataset.fledit]; if (fl) flightForm(fl); });
   $$('[data-flup]', root).forEach(b => b.onclick = (e) => { e.stopPropagation(); updateFlight(b.dataset.flup); });
   $$('[data-leg]', root).forEach(b => b.onclick = () => { const fl = state.flights[b.closest('[data-fl]').dataset.fl]; fl.leg = b.dataset.leg; fl.fetchedAt = 0; fl.updatedAt = now(); touch(); updateFlight(fl.id); });
   $$('[data-flmore]', root).forEach(b => b.onclick = () => {
@@ -4237,9 +4239,14 @@ function bindFlights(root) {
       { label: 'Edit Flight…', icon: I.pencil, run: () => flightForm(fl) },
       { label: 'Open on FlightAware', icon: I.share, run: () => window.open(`https://www.flightaware.com/live/flight/${encodeURIComponent(normFlight(fl.number))}`, '_blank', 'noopener') },
       { sep: true },
-      { label: 'Remove Flight…', icon: I.trash, danger: true, run: async () => { if (await confirmSheet('Remove this flight?', `${fl.number} on ${fmtDate(fl.date, { month: 'short', day: 'numeric' })} is removed from all your devices.`, 'Remove')) { state.deleted[fl.id] = now(); delete state.flights[fl.id]; touch(); paintFlights(); render(); } } },
+      { label: 'Remove Flight…', icon: I.trash, danger: true, run: () => removeFlight(fl) },
     ]);
   });
+}
+async function removeFlight(fl) {
+  if (!await confirmSheet('Remove this flight?', `${fl.number} on ${fmtDate(fl.date, { month: 'short', day: 'numeric' })} is removed from all your devices.`, 'Remove')) return false;
+  state.deleted[fl.id] = now(); delete state.flights[fl.id]; touch(); paintFlights(); render(); toast(`Removed ${fl.number}`);
+  return true;
 }
 let flightsSheet = null;
 function paintFlights() {
@@ -4285,8 +4292,12 @@ function flightForm(fl) {
     body: `<div class="grp"><div class="f-row"><label for="ffNum">Flight</label><input type="text" id="ffNum" placeholder="AA 1234" value="${esc(fl?.number || '')}" autocapitalize="characters" autocomplete="off" spellcheck="false"></div>
       <div class="f-row"><label for="ffDate">Date</label><input type="date" id="ffDate" value="${esc(fl?.date || todayISO())}"></div>
       <div class="f-row"><label for="ffLabel">Label</label><input type="text" id="ffLabel" placeholder="Optional, e.g. To Orlando" value="${esc(fl?.label || '')}"></div></div>
-      <p class="f-cap">The date is the local departure date shown on your ticket.</p>`,
-    onMount: (sh) => setTimeout(() => $('#ffNum', sh.el).focus(), 150),
+      <p class="f-cap">The date is the local departure date shown on your ticket.</p>
+      ${fl ? `<div class="grp" style="margin-top:18px"><button class="r-btn danger" id="ffDel">${I.trash}Remove Flight…</button></div>` : ''}`,
+    onMount: (sh) => {
+      if (!fl) setTimeout(() => $('#ffNum', sh.el).focus(), 150);
+      $('#ffDel', sh.el)?.addEventListener('click', async () => { if (await removeFlight(fl)) sh.close(); });
+    },
     onRight: (sh) => {
       const m = $('#ffNum', sh.el).value.trim().toUpperCase().replace(/\s+/g, '').match(/^([A-Z0-9]{2})(\d{1,4}[A-Z]?)$/), date = $('#ffDate', sh.el).value, label = $('#ffLabel', sh.el).value.trim();
       if (!m) return toast('Use the airline code and number, e.g. AA 1234 or B6 15');
