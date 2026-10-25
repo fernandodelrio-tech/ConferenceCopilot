@@ -226,7 +226,7 @@ svg{display:block;flex:none}
 .sb-item .ct.ok svg{width:15px;height:15px}
 @media (min-width:760px){#syncBtn2 span{display:none}}
 .sb-item .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ic-today{background:#F56300} .ic-all{background:#6E6E73} .ic-todo{background:#0071E3} .ic-done{background:#1E9E47} .ic-note{background:#8E44C9} .ic-wrap{background:#0071E3} .ic-conf{background:#1D1D1F} .ic-map{background:#0A84A0} .ic-now{background:#E0245E}
+.ic-today{background:#F56300} .ic-all{background:#6E6E73} .ic-todo{background:#0071E3} .ic-done{background:#1E9E47} .ic-note{background:#8E44C9} .ic-wrap{background:#0071E3} .ic-conf{background:#1D1D1F} .ic-map{background:#0A84A0} .ic-now{background:#E0245E} .ic-flight{background:#5856D6}
 /* Day icon: a tiny calendar page */
 .sb-item .ic.cal-ic{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--sep-2);display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden;padding:0}
 .cal-ic small{display:block;width:100%;background:#F2363A;color:#fff;font-size:.5rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:9px;text-align:center}
@@ -766,6 +766,47 @@ button.rec-at:hover{filter:brightness(.96)}
 .nn-panel{padding:4px 4px 16px}
 .nn-sec{margin-bottom:8px}
 .nn-sec .nn-lab{padding-top:14px}
+.fl-card{border:1px solid var(--sep);border-radius:14px;background:var(--surface);padding:12px 14px 10px;margin:0 0 12px}
+.nn-flights .fl-card{margin:4px 4px 8px;padding:10px 12px 8px}
+.fl-card.stale .fl-body,.fl-card.stale .fl-leave{opacity:.55}
+.fl-top{display:flex;align-items:center;gap:10px}
+.fl-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#5856D6;color:#fff;flex:none}
+.fl-ic svg{width:17px;height:17px}
+.fl-id{flex:1;min-width:0;display:flex;flex-direction:column}
+.fl-id b{font-weight:600;font-size:.9667rem}
+.fl-id small{color:var(--text-2);font-size:.8rem}
+.fl-st{flex:none;font-size:.75rem;font-weight:600;border-radius:999px;padding:3px 10px;background:var(--fill);color:var(--text-2)}
+.fl-st.ok{background:var(--green-soft);color:var(--green)}
+.fl-st.go{background:var(--accent-soft);color:var(--accent-ink)}
+.fl-st.warn{background:var(--orange-soft);color:var(--orange)}
+.fl-st.bad{background:var(--red-soft);color:var(--red)}
+.fl-body{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.nn-flights .fl-body{grid-template-columns:1fr}
+@media (max-width:520px){.fl-body{grid-template-columns:1fr}}
+.fl-lab{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3)}
+.fl-lab span{text-transform:none;letter-spacing:0;font-weight:500}
+.fl-times{display:flex;gap:18px;margin-top:4px}
+.fl-times span{display:flex;flex-direction:column}
+.fl-times small{font-size:.72rem;color:var(--text-3)}
+.fl-times b{font-size:1.1rem;font-weight:600;font-variant-numeric:tabular-nums}
+.fl-times b.late{color:var(--orange)}.fl-times b.early{color:var(--green)}
+.fl-times em{font-style:normal;font-size:.75rem;font-weight:600;color:var(--orange)}
+.fl-times em.early{color:var(--green)}
+.fl-place{font-size:.85rem;margin-top:4px;font-weight:500}
+.fl-leave{display:flex;flex-direction:column;gap:2px;margin-top:10px;padding:8px 10px;border-radius:10px;background:var(--accent-soft);color:var(--accent-ink);font-weight:600;font-size:.9rem}
+.fl-leave svg{width:14px;height:14px;vertical-align:-2px}
+.fl-leave small{font-weight:400;font-size:.75rem;opacity:.8}
+.fl-leave.soon{background:var(--orange-soft);color:var(--orange)}
+.fl-leave.now{background:var(--red-soft);color:var(--red)}
+.fl-none,.fl-err{margin:10px 0 0;font-size:.85rem;color:var(--text-2)}
+.fl-err{color:var(--red)}
+.fl-legs{margin-top:8px;font-size:.8rem;color:var(--text-2);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fl-legs button{border-radius:999px;padding:2px 10px;background:var(--fill);font-weight:600}
+.fl-legs button.on{background:var(--accent);color:var(--on-accent)}
+.fl-foot{display:flex;align-items:center;gap:8px;margin-top:10px}
+.fl-age{flex:1;font-size:.78rem;color:var(--text-3);display:inline-flex;align-items:center;gap:6px}
+.fl-age .spin{width:12px;height:12px}
+.fl-foot .btn svg{width:13px;height:13px}
 .bl-row{display:flex;align-items:center;position:relative}
 .bl-row+.bl-row::before{content:"";position:absolute;top:0;left:50px;right:0;height:1px;background:var(--sep)}
 .bl-open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:9px 4px 9px 12px;text-align:left;color:var(--text)}
@@ -935,6 +976,8 @@ const P = (d, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="curre
 const I = {
   plus: P('<path d="M12 5v14M5 12h14"/>'),
   gear: P('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+  plane: P('<path d="M10.5 21l1.5-1.5V15l7.5 3v-2l-7.5-5V5.5a1.5 1.5 0 0 0-3 0V11L1.5 16v2L9 15v4.5L10.5 21z" transform="translate(1.5 -1)"/>'),
+  sync: P('<path d="M20 11a8 8 0 0 0-14.5-4.5M4 13a8 8 0 0 0 14.5 4.5"/><path d="M5 3v4h4M19 21v-4h-4"/>'),
   cloud: P('<path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.5 4.5 0 0 0 7 18z"/>'),
   cloudOk: P('<path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.5 4.5 0 0 0 7 18z"/><path d="m9.5 13 2 2 3.5-3.5"/>'),
   cloudOff: P('<path d="M3 3l18 18"/><path d="M8.5 8.4A4.5 4.5 0 0 0 7 18h10.5M20.6 15.9A4 4 0 0 0 18.1 10 6 6 0 0 0 10 5.3"/>'),
@@ -998,11 +1041,11 @@ const LS = {
 };
 
 /* ---------- App state ---------- */
-const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, maps: {}, updatedAt: 0 });
+const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, maps: {}, flights: {}, travel: null, updatedAt: 0 });
 let state = emptyState();
-let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, autoClean: false, dgKey: '', micBoost: 'high', clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
+let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, autoClean: false, dgKey: '', micBoost: 'high', adbKey: '', clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
-const ui = { transcribing: new Set(), cleaning: new Set(), showRaw: new Set(), editingBrief: null, busyRevise: null, view: LS.get('cc.view', 'today'), mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
+const ui = { flightBusy: new Set(), transcribing: new Set(), cleaning: new Set(), showRaw: new Set(), editingBrief: null, busyRevise: null, view: LS.get('cc.view', 'today'), mode: LS.get('cc.mode', 'list'), sort: LS.get('cc.sort', 'time'), sortRev: LS.get('cc.sortRev', false), calDay: null, descOpen: false, q: '', selected: null, composeStar: false, editing: null, busyBrief: null, sync: 'off', syncMsg: '' };
 const saveSettings = () => LS.set('cc.settings', settings);
 const saveDrive = () => LS.set('cc.drive', drive);
 
@@ -1204,6 +1247,7 @@ function renderSidebar() {
   html += item('all', VIEWS.all, all.length) + item('todo', VIEWS.todo, count(VIEWS.todo.test)) + item('attended', VIEWS.attended, count(VIEWS.attended.test));
   const nInf = count(VIEWS.informal.test);
   if (nInf) html += item('informal', VIEWS.informal, nInf);
+  html += `<button class="sb-item" data-flights><span class="ic ic-flight">${I.plane}</span><span class="tx">Flights</span><span class="ct">${flightsArr().length || ''}</span></button>`;
   if (all.some(x => x.room)) html += `<button class="sb-item" data-maps><span class="ic ic-map">${I.pin}</span><span class="tx">Venue Maps</span><span class="ct">${mapsArr().length || ''}</span></button>`;
   const ds = days();
   if (ds.length) {
@@ -1226,6 +1270,7 @@ function renderSidebar() {
   $$('[data-wrap]', $('#sbNav')).forEach(b => b.onclick = () => { const w = b.dataset.wrap; w === 'conf' ? openWrap('conf') : openWrap('day', w.slice(4)); });
   $('[data-lib]', $('#sbNav'))?.addEventListener('click', openLibrary);
   $('[data-maps]', $('#sbNav'))?.addEventListener('click', () => openMaps());
+  $('[data-flights]', $('#sbNav'))?.addEventListener('click', () => openFlights());
 }
 
 /* ---------- Now & Next: what's on, when it ends, and where to go after ---------- */
@@ -1281,9 +1326,10 @@ function nnCompactHTML() {
   const ref = from || nowNext().now[0];
   const { now, choices, nextDay, cur } = nowNext(ref);
   // Before the conference, or once today is done: the next day's first sessions
-  if (!now.length && !choices.length) return nextDay.length ? `<div class="nn-compact"><div class="nn-h"><span>${I.clock} Now & Next</span><button class="nn-more" data-now>Open ›</button></div>
-    <div class="nn-lab">First up · ${esc(fmtDate(nextDay[0].date, { weekday: 'short', month: 'short', day: 'numeric' }))}${nextDay.length > 1 ? ` · ${nextDay.length} choices` : ''}</div>${nnItem(nextDay[0], null, cur)}</div>` : '';
+  if (!now.length && !choices.length) return nextDay.length || flightsSoon().length ? `<div class="nn-compact"><div class="nn-h"><span>${I.clock} Now & Next</span><button class="nn-more" data-now>Open ›</button></div>
+    ${nnFlightsHTML()}${!nextDay.length ? '</div>' : ''}${nextDay.length ? `<div class="nn-lab">First up · ${esc(fmtDate(nextDay[0].date, { weekday: 'short', month: 'short', day: 'numeric' }))}${nextDay.length > 1 ? ` · ${nextDay.length} choices` : ''}</div>${nnItem(nextDay[0], null, cur)}</div>` : ''}` : '';
   return `<div class="nn-compact"><div class="nn-h"><span>${I.clock} Now & Next</span><button class="nn-more" data-now>Open ›</button></div>
+    ${nnFlightsHTML()}
     ${now.slice(0, 2).map(x => nnItem(x, null, cur, { ends: true })).join('')}
     ${choices.length ? `<div class="nn-lab">Next${choices.length > 1 ? ` · ${choices.length} choices` : ''}</div>${nnItem(choices[0], ref, cur)}` : ''}</div>`;
 }
@@ -1293,6 +1339,7 @@ function renderNowPanel(list) {
   const { now, choices, later, nextDayAll, cur } = nowNext(from), ref = from || now[0];
   const sec = (t, body) => `<div class="nn-sec"><div class="nn-lab">${t}</div>${body}</div>`;
   list.innerHTML = `<div class="nn-panel">
+    ${nnFlightsHTML()}
     ${sec('Now', now.length ? now.map(x => nnItem(x, null, cur, { ends: true })).join('') : '<p class="nn-sub">Nothing on right now.</p>')}
     ${choices.length ? sec(`Up next${from ? ` after ${esc(from.title.length > 40 ? from.title.slice(0, 38) + '…' : from.title)}` : ''}${choices.length > 1 ? ' · pick one' : ''}`, choices.map(x => nnItem(x, ref, cur)).join('')) : ''}
     ${later.length ? sec('Later today', later.map(x => nnItem(x, null, cur)).join('')) : ''}
@@ -1301,6 +1348,7 @@ function renderNowPanel(list) {
   bindNowNext(list);
 }
 function bindNowNext(root) {
+  bindFlights(root);
   $$('[data-open]', root).forEach(b => b.onclick = () => select(b.dataset.open));
   $$('[data-map]', root).forEach(b => b.onclick = (e) => { e.stopPropagation(); openMaps({ sessionId: b.dataset.map }); });
   $$('[data-now]', root).forEach(b => b.onclick = () => setView('now'));
@@ -3293,6 +3341,14 @@ function mergeStates(a, b) {
   for (const [d, r] of Object.entries(b.dayBriefs || {})) out.dayBriefs[d] = newer(out.dayBriefs[d], r);
   out.confBrief = newer(a.confBrief, b.confBrief);
   // Floor plans: newest edit wins per plan; a deleted plan stays deleted
+  // Flights: newest edit (or update) wins per flight; a removed flight stays removed; leave-by settings newest wins
+  out.flights = {};
+  for (const id of new Set([...Object.keys(a.flights || {}), ...Object.keys(b.flights || {})])) {
+    const x = a.flights?.[id], y = b.flights?.[id], f = !x ? y : !y ? x : (y.updatedAt || 0) > (x.updatedAt || 0) ? y : x;
+    if (out.deleted[id] && out.deleted[id] >= (f.updatedAt || 0)) continue;
+    out.flights[id] = f;
+  }
+  out.travel = (b.travel?.updatedAt || 0) > (a.travel?.updatedAt || 0) ? b.travel : a.travel;
   out.maps = {};
   for (const id of new Set([...Object.keys(a.maps || {}), ...Object.keys(b.maps || {})])) {
     const x = a.maps?.[id], y = b.maps?.[id], m = !x ? y : !y ? x : (y.updatedAt || 0) > (x.updatedAt || 0) ? y : x;
@@ -4048,6 +4104,215 @@ function promptSheet(title, placeholder, value) {
   });
 }
 
+/* =========================================================
+   Flights: status, times, terminal and gate from AeroDataBox, fetched only when the user taps Update
+   ========================================================= */
+const ADB_HOST = 'aerodatabox.p.rapidapi.com';
+const flightsArr = () => Object.values(state.flights || {}).sort((a, b) => `${a.date}|${a.number}` < `${b.date}|${b.number}` ? -1 : 1);
+const normFlight = (t) => (t || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const travel = () => ({ toAirport: 30, early: 90, ...(state.travel || {}) });
+// "2026-10-28 17:45-04:00" (airport local) → { hm: '17:45', date: '2026-10-28', ms } ; also accepts the older flat fields
+function adbTime(obj, legacyLocal, legacyUtc) {
+  const local = obj?.local ?? legacyLocal, utc = obj?.utc ?? legacyUtc;
+  if (!local && !utc) return null;
+  const m = (local || '').match(/(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/);
+  const ms = utc ? Date.parse(utc.replace(' ', 'T').replace(/Z?$/, 'Z')) : local ? Date.parse(local.replace(' ', 'T')) : NaN;
+  return { hm: m?.[2] || '', date: m?.[1] || '', ms: isNaN(ms) ? null : ms };
+}
+function adbSide(x) {
+  if (!x) return null;
+  return {
+    iata: x.airport?.iata || '', icao: x.airport?.icao || '', airport: x.airport?.shortName || x.airport?.name || '', city: x.airport?.municipalityName || '',
+    scheduled: adbTime(x.scheduledTime, x.scheduledTimeLocal, x.scheduledTimeUtc),
+    revised: adbTime(x.revisedTime, x.actualTimeLocal, x.actualTimeUtc) || adbTime(x.predictedTime),
+    runway: adbTime(x.runwayTime, x.runwayTimeLocal, x.runwayTimeUtc),
+    terminal: x.terminal || '', gate: x.gate || '', checkIn: x.checkInDesk || '', belt: x.baggageBelt || '',
+  };
+}
+function adbFlight(f) {
+  return { number: f.number || '', status: f.status || 'Unknown', airline: f.airline?.name || '', aircraft: f.aircraft?.model || '',
+    codeshare: f.codeshareStatus || '', dep: adbSide(f.departure), arr: adbSide(f.arrival), lastUpdated: f.lastUpdatedUtc || '' };
+}
+const STATUS = {
+  Expected: ['Scheduled', 'ok'], CheckIn: ['Check-in open', 'ok'], Boarding: ['Boarding', 'go'], GateClosed: ['Gate closed', 'go'], Departed: ['Departed', 'go'],
+  EnRoute: ['In the air', 'go'], Approaching: ['Approaching', 'go'], Arrived: ['Arrived', 'done'], Delayed: ['Delayed', 'warn'], Canceled: ['Cancelled', 'bad'],
+  CanceledUncertain: ['May be cancelled', 'bad'], Diverted: ['Diverted', 'bad'], Unknown: ['Status not known yet', 'idle'],
+};
+async function fetchFlight(fl) {
+  if (!settings.adbKey) throw Object.assign(new Error('Add your AeroDataBox key in Settings → Flights.'), { code: 'ADB_KEY' });
+  let r;
+  try {
+    r = await fetch(`https://${ADB_HOST}/flights/number/${encodeURIComponent(normFlight(fl.number))}/${fl.date}?withAircraftImage=false&withLocation=false`,
+      { headers: { 'X-RapidAPI-Key': settings.adbKey, 'X-RapidAPI-Host': ADB_HOST } });
+  } catch { throw new Error('Couldn’t reach AeroDataBox. Check the connection and try again.'); }
+  if (r.status === 401 || r.status === 403) throw Object.assign(new Error('AeroDataBox rejected the key, or your plan doesn’t include this. Check it in Settings → Flights.'), { code: 'ADB_KEY' });
+  if (r.status === 429) throw new Error('AeroDataBox’s monthly or per-second limit was reached. Try again in a minute, or check your plan.');
+  if (r.status === 204 || r.status === 404) throw new Error(`No flight ${fl.number} found on ${fmtDate(fl.date, { month: 'short', day: 'numeric' })}. Check the number and date.`);
+  if (!r.ok) throw new Error(`AeroDataBox couldn’t answer (${r.status}). Try again shortly.`);
+  const list = (await r.json() || []).map(adbFlight).filter(x => x.dep || x.arr);
+  if (!list.length) throw new Error(`No flight ${fl.number} found on that date.`);
+  return list;
+}
+// On demand only, and never more than once a minute per flight (it shows what it has instead)
+async function updateFlight(id, { quiet = false } = {}) {
+  const fl = state.flights?.[id]; if (!fl) return;
+  if (fl.fetchedAt && now() - fl.fetchedAt < 60000) { if (!quiet) toast('Just updated. Showing the latest.'); return; }
+  ui.flightBusy.add(id); paintFlights();
+  try {
+    const legs = await fetchFlight(fl);
+    const fresh = state.flights?.[id]; if (!fresh) return;
+    // A flight number can fly several legs a day: keep the one the user chose, else the one from the conference's airports if known
+    const pick = legs.find(x => fresh.leg && x.dep?.iata === fresh.leg) || legs.find(x => !/codeshare/i.test(x.codeshare || '')) || legs[0];
+    Object.assign(fresh, { data: pick, legs: legs.length > 1 ? legs.map(x => ({ dep: x.dep?.iata, arr: x.arr?.iata })) : null, leg: pick.dep?.iata || fresh.leg || '', fetchedAt: now(), error: '', updatedAt: now() });
+    // The route shown follows the leg actually fetched
+    if (pick.dep?.iata) fresh.from = pick.dep.iata;
+    if (pick.arr?.iata) fresh.to = pick.arr.iata;
+    touch();
+  } catch (e) {
+    const fresh = state.flights?.[id]; if (fresh) { fresh.error = e.message; fresh.updatedAt = now(); touch(); }
+    if (!quiet) toast(e.message, false, 5000);
+    if (e.code === 'ADB_KEY' && !quiet) openSettings();
+  } finally { ui.flightBusy.delete(id); paintFlights(); render(); }
+}
+// When the latest known departure (revised if posted, else scheduled), less how early to be there and the trip to the airport
+function leaveBy(fl) {
+  const d = fl.data?.dep; if (!d) return null;
+  const t = d.revised?.ms || d.scheduled?.ms; if (!t || d.runway?.ms) return null;
+  const { toAirport, early } = travel();
+  return t - (early + toAirport) * 60000;
+}
+const fmtLocalHM = (hm) => hm ? fmtTime(hm) : '';
+const fmtAt = (ms) => ms ? new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+function delayMin(side) { const a = side?.revised?.ms, s = side?.scheduled?.ms; return a && s ? Math.round((a - s) / 60000) : 0; }
+function staleness(fl) {
+  if (!fl.fetchedAt) return 'never';
+  const age = now() - fl.fetchedAt, dep = fl.data?.dep?.revised?.ms || fl.data?.dep?.scheduled?.ms;
+  const soon = dep && dep - now() < 3 * 3600e3 && dep - now() > -3600e3;
+  return age > (soon ? 10 : 30) * 60000 ? 'stale' : 'fresh';
+}
+function sideHTML(label, x, isArr) {
+  if (!x) return '';
+  const dl = delayMin(x), sched = fmtLocalHM(x.scheduled?.hm), rev = x.revised?.hm && x.revised.hm !== x.scheduled?.hm ? fmtLocalHM(x.revised.hm) : '', act = fmtLocalHM(x.runway?.hm);
+  const place = [x.terminal && `Terminal ${x.terminal}`, x.gate && `Gate ${x.gate}`, isArr && x.belt && `Bags: belt ${x.belt}`, !isArr && x.checkIn && `Check-in ${x.checkIn}`].filter(Boolean);
+  return `<div class="fl-side"><div class="fl-lab">${label} · ${esc(x.iata || '')}${x.city || x.airport ? ` <span>${esc(x.city || x.airport)}</span>` : ''}</div>
+    <div class="fl-times"><span><small>Scheduled</small><b>${esc(sched || '—')}</b></span>
+      ${act ? `<span><small>${isArr ? 'Landed' : 'Took off'}</small><b class="${dl > 5 ? 'late' : ''}">${esc(act)}</b></span>` : `<span><small>Expected</small><b class="${dl > 5 ? 'late' : dl < -5 ? 'early' : ''}">${esc(rev || sched || '—')}</b>${dl > 5 ? `<em>+${dl} min</em>` : dl < -5 ? `<em class="early">${dl} min</em>` : ''}</span>`}</div>
+    <div class="fl-place">${place.length ? place.map(esc).join(' · ') : `<span class="muted">${isArr ? 'Arrival gate' : 'Gate'} not posted yet</span>`}</div></div>`;
+}
+function flightCardHTML(fl, { compact = false } = {}) {
+  const d = fl.data, busy = ui.flightBusy.has(fl.id), st = d ? STATUS[d.status] || [d.status, 'idle'] : null, fresh = staleness(fl);
+  const lb = leaveBy(fl), lbIn = lb ? Math.round((lb - now()) / 60000) : null;
+  const leave = lb && lbIn > -120 ? `<div class="fl-leave ${lbIn <= 0 ? 'now' : lbIn <= 30 ? 'soon' : ''}">${I.clock} ${lbIn <= 0 ? `Leave now for ${esc(d.dep.iata || 'the airport')}` : `Leave for ${esc(d.dep.iata || 'the airport')} by ${esc(fmtAt(lb))} · ${esc(inMin(lbIn))}`}<small>${travel().toAirport} min to the airport, there ${travel().early} min before departure</small></div>` : '';
+  return `<div class="fl-card ${fresh === 'stale' ? 'stale' : ''}" data-fl="${fl.id}">
+    <div class="fl-top"><span class="fl-ic">${I.plane}</span><div class="fl-id"><b>${esc(fl.number)}${d?.airline ? ` · ${esc(d.airline)}` : ''}</b>
+      <small>${esc(fmtDate(fl.date, { weekday: 'short', month: 'short', day: 'numeric' }))}${fl.from || fl.to ? ` · ${esc(fl.from || '?')} → ${esc(fl.to || '?')}` : ''}${fl.label ? ` · ${esc(fl.label)}` : ''}</small></div>
+      ${st ? `<span class="fl-st ${st[1]}">${esc(st[0])}</span>` : ''}</div>
+    ${d ? `<div class="fl-body">${sideHTML('Departs', d.dep, false)}${compact ? '' : sideHTML('Arrives', d.arr, true)}</div>${leave}` : fl.error ? '' : `<p class="fl-none">Tap Update to get the times, terminal and gate.</p>`}
+    ${fl.error ? `<p class="fl-err">${esc(fl.error)}</p>` : ''}
+    ${!compact && fl.legs?.length > 1 ? `<div class="fl-legs">This flight number has ${fl.legs.length} legs: ${fl.legs.map(l => `<button data-leg="${esc(l.dep)}" class="${l.dep === fl.leg ? 'on' : ''}">${esc(l.dep)} → ${esc(l.arr)}</button>`).join('')}</div>` : ''}
+    <div class="fl-foot"><span class="fl-age">${busy ? '<span class="spin"></span> Updating…' : fl.fetchedAt ? `Updated ${esc(ago(fl.fetchedAt))}${fresh === 'stale' ? ' · may be out of date' : ''}` : 'Not updated yet'}</span>
+      <button class="btn btn-sm ${fresh === 'fresh' ? 'btn-gray' : 'btn-tinted'}" data-flup="${fl.id}" ${busy ? 'disabled' : ''}>${I.sync || ''} Update</button>
+      ${compact ? '' : `<button class="tb-btn" data-flmore="${fl.id}" aria-label="Flight options">${I.more}</button>`}</div></div>`;
+}
+// Flights on the move today or tomorrow, for Now & Next
+const flightsSoon = () => flightsArr().filter(fl => { const d = Date.parse(fl.date + 'T00:00:00'); const t = Date.parse(todayISO() + 'T00:00:00'); return d >= t && d - t <= 86400e3; });
+function bindFlights(root) {
+  if (!root) return;
+  $$('[data-flup]', root).forEach(b => b.onclick = (e) => { e.stopPropagation(); updateFlight(b.dataset.flup); });
+  $$('[data-leg]', root).forEach(b => b.onclick = () => { const fl = state.flights[b.closest('[data-fl]').dataset.fl]; fl.leg = b.dataset.leg; fl.fetchedAt = 0; fl.updatedAt = now(); touch(); updateFlight(fl.id); });
+  $$('[data-flmore]', root).forEach(b => b.onclick = () => {
+    const fl = state.flights[b.dataset.flmore]; if (!fl) return;
+    openMenu(b, [
+      { label: 'Edit Flight…', icon: I.pencil, run: () => flightForm(fl) },
+      { label: 'Open on FlightAware', icon: I.share, run: () => window.open(`https://www.flightaware.com/live/flight/${encodeURIComponent(normFlight(fl.number))}`, '_blank', 'noopener') },
+      { sep: true },
+      { label: 'Remove Flight…', icon: I.trash, danger: true, run: async () => { if (await confirmSheet('Remove this flight?', `${fl.number} on ${fmtDate(fl.date, { month: 'short', day: 'numeric' })} is removed from all your devices.`, 'Remove')) { state.deleted[fl.id] = now(); delete state.flights[fl.id]; touch(); paintFlights(); render(); } } },
+    ]);
+  });
+}
+let flightsSheet = null;
+function paintFlights() {
+  if (flightsSheet && flightsSheet.el.isConnected) flightsSheet.paint();
+  const nn = $('.nn-flights'); if (nn) { nn.outerHTML = nnFlightsHTML(); bindFlights($('.nn-flights')); }
+}
+function nnFlightsHTML() {
+  const fs = flightsSoon(); if (!fs.length) return '<div class="nn-flights" hidden></div>';
+  return `<div class="nn-flights"><div class="nn-lab">${fs.length > 1 ? 'Flights' : 'Flight'} · ${fs.every(f => f.date === todayISO()) ? 'today' : fs.some(f => f.date === todayISO()) ? 'today and tomorrow' : 'tomorrow'}</div>${fs.map(fl => flightCardHTML(fl, { compact: true })).join('')}</div>`;
+}
+function openFlights() {
+  const sh = openSheet({ title: 'Flights', left: 'Close', right: 'Add Flight', cls: 'wide', body: `<div id="flBody"></div>`, onRight: () => flightForm(), onClose: () => { flightsSheet = null; render(); } });
+  const body = $('#flBody', sh.el);
+  sh.paint = () => {
+    const fs = flightsArr(), t = travel();
+    body.innerHTML = `${!settings.adbKey ? `<div class="mp-reading idle">Add your AeroDataBox key so Copilot can look up flights. <button class="btn btn-sm btn-primary" id="flKey">Add Key</button></div>` : ''}
+      ${fs.length ? fs.map(fl => flightCardHTML(fl)).join('') : `<div class="wr-ready"><div class="empty-art">${I.plane}</div><h2>Your flights</h2><p class="muted">Add the flights to and from the conference. Tap Update any time for the status, expected and actual times, terminal and gate. Nothing is checked in the background.</p>
+        <button class="btn btn-primary" id="flAdd">${I.plus} Add Flight</button>${settings.apiKey ? ` <button class="btn btn-tinted" id="flPaste">${I.sparkles} From a Confirmation…</button>` : ''}</div>`}
+      ${fs.length && settings.apiKey ? `<p style="text-align:center;margin:4px 0 0"><button class="btn btn-plain" id="flPaste">${I.sparkles} Add from a confirmation…</button></p>` : ''}
+      <div class="grp-t">Leave by</div>
+      <div class="grp"><div class="f-row"><label for="flTo">Time to the airport</label><input type="number" id="flTo" min="0" max="300" step="5" value="${t.toAirport}" style="max-width:80px"> <span class="val">min</span></div>
+        <div class="f-row"><label for="flEarly">Be there before departure</label><input type="number" id="flEarly" min="0" max="300" step="5" value="${t.early}" style="max-width:80px"> <span class="val">min</span></div></div>
+      <p class="f-cap">Leave by = the latest departure time − how early you want to be there − the trip to the airport. It moves when you update a delayed flight.</p>`;
+    bindFlights(body);
+    $('#flKey', body)?.addEventListener('click', () => openSettings());
+    $('#flAdd', body)?.addEventListener('click', () => flightForm());
+    $('#flPaste', body)?.addEventListener('click', () => flightsFromConfirmation());
+    const save = () => { state.travel = { toAirport: Math.max(0, +$('#flTo', body).value || 0), early: Math.max(0, +$('#flEarly', body).value || 0), updatedAt: now() }; touch(); };
+    $('#flTo', body).onchange = () => { save(); paintFlights(); }; $('#flEarly', body).onchange = () => { save(); paintFlights(); };
+  };
+  flightsSheet = sh; sh.paint();
+}
+function flightForm(fl) {
+  openSheet({ title: fl ? 'Edit Flight' : 'Add Flight', left: 'Cancel', right: fl ? 'Save' : 'Add',
+    body: `<div class="grp"><div class="f-row"><label for="ffNum">Flight</label><input type="text" id="ffNum" placeholder="AA 1234" value="${esc(fl?.number || '')}" autocapitalize="characters" autocomplete="off" spellcheck="false"></div>
+      <div class="f-row"><label for="ffDate">Date</label><input type="date" id="ffDate" value="${esc(fl?.date || todayISO())}"></div>
+      <div class="f-row"><label for="ffLabel">Label</label><input type="text" id="ffLabel" placeholder="Optional, e.g. To Orlando" value="${esc(fl?.label || '')}"></div></div>
+      <p class="f-cap">The date is the local departure date shown on your ticket.</p>`,
+    onMount: (sh) => setTimeout(() => $('#ffNum', sh.el).focus(), 150),
+    onRight: (sh) => {
+      const m = $('#ffNum', sh.el).value.trim().toUpperCase().replace(/\s+/g, '').match(/^([A-Z0-9]{2})(\d{1,4}[A-Z]?)$/), date = $('#ffDate', sh.el).value, label = $('#ffLabel', sh.el).value.trim();
+      if (!m) return toast('Use the airline code and number, e.g. AA 1234 or B6 15');
+      const number = `${m[1]} ${m[2]}`;
+      if (!date) return toast('Choose the date');
+      state.flights = state.flights || {};
+      if (fl) { const changed = normFlight(fl.number) !== normFlight(number) || fl.date !== date; Object.assign(fl, { number, date, label, updatedAt: now() }); if (changed) Object.assign(fl, { data: null, fetchedAt: 0, legs: null, leg: '', from: '', to: '', error: '' }); }
+      else { const id = uid(); state.flights[id] = { id, number, date, label, createdAt: now(), updatedAt: now() }; }
+      touch(); sh.close(); paintFlights(); render();
+    } });
+}
+// A pasted confirmation (or a photo of one), read by Claude after a confirmation, becomes flights
+async function flightsFromConfirmation() {
+  let file = null;
+  const sh = openSheet({ title: 'Flights from a Confirmation', left: 'Cancel', right: 'Read', cls: 'wide',
+    body: `<textarea class="big-text" id="fcText" placeholder="Paste the airline’s confirmation email or itinerary"></textarea>
+      <p class="f-cap"><button class="btn btn-sm btn-gray" id="fcPhoto">${I.camera} Or choose a screenshot or photo</button> <span id="fcFile"></span></p>`,
+    onMount: (s) => {
+      const inp = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*', hidden: true }); s.el.appendChild(inp);
+      $('#fcPhoto', s.el).onclick = () => inp.click(); inp.onchange = () => { file = inp.files[0] || null; $('#fcFile', s.el).textContent = file ? file.name : ''; };
+    },
+    onRight: async (s) => {
+      const text = $('#fcText', s.el).value.trim(); if (!text && !file) return toast('Paste the confirmation or choose a photo');
+      if (!await confirmSheet('Read the flights with Claude?', `This sends the ${file ? 'image' : 'text'} to Claude using your API key to find the flight numbers and dates. Nothing is booked or changed.`, 'Read', false)) return;
+      const b = $('[data-act=right]', s.el); b.disabled = true; b.textContent = 'Reading…';
+      try {
+        const content = [];
+        if (file) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: await blobToB64(await resizeImage(file, 1568, 0.85)) } });
+        content.push({ type: 'text', text: `${text ? `The confirmation:\n${text.slice(0, 20000)}\n\n` : ''}List every flight in it: number (airline code and number, e.g. "AA 1234"), date (local departure date, YYYY-MM-DD), from and to (airport codes, or "" if not shown). Today is ${todayISO()}; resolve dates without a year to the next occurrence.` });
+        const r = await claude({ system: 'You read airline confirmations and itineraries. Report only flights that are in the text or image; never guess a number or date.', content, maxTokens: 2000, effort: 'low',
+          schema: { type: 'object', additionalProperties: false, required: ['flights'], properties: { flights: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['number', 'date', 'from', 'to'], properties: { number: { type: 'string' }, date: { type: 'string' }, from: { type: 'string' }, to: { type: 'string' } } } } } } });
+        const got = (r.flights || []).filter(f => /^[A-Z0-9]{2}\s?\d{1,4}[A-Z]?$/i.test(f.number.trim()) && /^\d{4}-\d{2}-\d{2}$/.test(f.date));
+        if (!got.length) { toast('Claude didn’t find a flight in that.'); b.disabled = false; b.textContent = 'Read'; return; }
+        state.flights = state.flights || {};
+        let n = 0;
+        for (const f of got) {
+          if (flightsArr().some(x => normFlight(x.number) === normFlight(f.number) && x.date === f.date)) continue;
+          const id = uid(); state.flights[id] = { id, number: f.number.trim().toUpperCase(), date: f.date, from: (f.from || '').toUpperCase(), to: (f.to || '').toUpperCase(), createdAt: now(), updatedAt: now() }; n++;
+        }
+        touch(); s.close(); paintFlights(); render();
+        toast(n ? `Added ${n} flight${n === 1 ? '' : 's'}. Tap Update for times and gates.` : 'Those flights are already here.');
+      } catch (e) { toast(e.message || 'Couldn’t read the confirmation', false, 5000); b.disabled = false; b.textContent = 'Read'; if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings(); }
+    } });
+}
+
 /* ---------- All briefings: one list of everything Copilot has written, to open or delete ---------- */
 function newerNotes(items, since) { return items.reduce((n, s) => n + liveNotes(s).filter(x => (x.ts || 0) > since).length, 0); }
 function briefingsAll() {
@@ -4121,6 +4386,7 @@ function addMenu(anchor) {
     { label: 'Add Sessions…', icon: I.calendar, run: () => openImport() },
     { sep: true },
     { label: 'Venue Maps…', icon: I.pin, run: () => openMaps() },
+    { label: 'Flights…', icon: I.plane, run: () => openFlights() },
   ]);
 }
 function exportMenu(anchor, rp) {
@@ -4492,6 +4758,13 @@ function openSettings() {
       <p class="f-cap">Create a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It stays on this device and is sent only to Anthropic. Without a key, Copilot writes a simpler brief on this device.</p>
       <p class="f-cap">If Claude says the key “is not scoped to a workspace”, it’s an organization-wide key: paste the ID of the workspace to bill (it starts with <code>wrkspc_</code>, under Settings → Workspaces in the Console), or create a key inside a workspace and leave this blank.</p>
 
+      <div class="grp-t">Flights</div>
+      <div class="grp">
+        <div class="f-row col"><label for="sAdb">AeroDataBox API key (from RapidAPI)</label><input type="password" id="sAdb" placeholder="Paste your RapidAPI key" value="${esc(settings.adbKey)}" autocomplete="off" spellcheck="false"></div>
+        <button class="r-btn" id="sFlights">${I.plane}Your Flights…</button>
+      </div>
+      <p class="f-cap">Flight status, expected and actual times, terminal and gate come from AeroDataBox, only when you tap Update. Subscribe to AeroDataBox at <a href="https://rapidapi.com/aedbx-aedbx/api/aerodatabox" target="_blank" rel="noopener">rapidapi.com</a> (the free Basic plan is enough for a trip) and paste the RapidAPI key. It stays on this device and is sent only to RapidAPI.</p>
+
       <div class="grp-t">Recording</div>
       <div class="grp">
         <div class="f-row col"><label for="sDg">Deepgram API key (transcription)</label><input type="password" id="sDg" placeholder="Paste your Deepgram key" value="${esc(settings.dgKey)}" autocomplete="off" spellcheck="false"></div>
@@ -4520,6 +4793,8 @@ function openSettings() {
       $('#sKey', el).onchange = (e) => { settings.apiKey = e.target.value.trim(); saveSettings(); };
       $('#sDg', el).onchange = (e) => { settings.dgKey = e.target.value.trim(); saveSettings(); };
       $('#sBoost', el).onchange = (e) => { settings.micBoost = e.target.value; saveSettings(); };
+      $('#sAdb', el).onchange = (e) => { settings.adbKey = e.target.value.trim(); saveSettings(); };
+      $('#sFlights', el).onclick = () => { settings.adbKey = $('#sAdb', el).value.trim(); saveSettings(); openFlights(); };
       const sendCap = () => { $('#sSendCap', el).textContent = `${sendHint()}. This is saved on this device.`; $('#sSend', el).value = sendMode(); };
       $('#sSend', el).onchange = (e) => { if (e.target.value === 'custom' && !settings.sendCombo) { e.target.value = sendMode(); return recordCombo(sendCap); } setSendMode(e.target.value); sendCap(); };
       $('#sCombo', el).onclick = () => recordCombo(() => { sendCap(); const o = $('#sSend option[value=custom]', el); if (o && settings.sendCombo) o.textContent = `My combination: ${comboLabel(settings.sendCombo)}`; $('#sCombo', el).lastChild.textContent = settings.sendCombo ? `Change My Combination (${comboLabel(settings.sendCombo)})…` : 'Record My Own Combination…'; });
