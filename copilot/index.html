@@ -1064,7 +1064,7 @@ const LS = {
 };
 
 /* ---------- App state ---------- */
-const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, maps: {}, flights: {}, travel: null, updatedAt: 0 });
+const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, maps: {}, flights: {}, travel: null, wrapPicks: {}, updatedAt: 0 });
 let state = emptyState();
 let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, autoClean: false, dgKey: '', micBoost: 'high', room: 'normal', adbKey: '', clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
@@ -3430,6 +3430,9 @@ function mergeStates(a, b) {
   out.dayBriefs = { ...(a.dayBriefs || {}) };
   for (const [d, r] of Object.entries(b.dayBriefs || {})) out.dayBriefs[d] = newer(out.dayBriefs[d], r);
   out.confBrief = newer(a.confBrief, b.confBrief);
+  // What each wrap-up leaves out: the newest choice wins per item
+  out.wrapPicks = { ...(a.wrapPicks || {}) };
+  for (const [k, v] of Object.entries(b.wrapPicks || {})) if ((v?.t || 0) > (out.wrapPicks[k]?.t || 0)) out.wrapPicks[k] = v;
   // Floor plans: newest edit wins per plan; a deleted plan stays deleted
   // Flights: newest edit (or update) wins per flight; a removed flight stays removed; leave-by settings newest wins
   out.flights = {};
@@ -3618,10 +3621,16 @@ function sessionMaterial(s, cap = 8000) {
   return notes ? `${head}\nRaw notes (no brief yet):\n${notes}` : '';
 }
 const dayHasContent = (d) => sessionsArr().some(s => s.date === d && (s.brief || liveNotes(s).length));
+// Everything a wrap-up could draw on, and the user's choice of what goes in: keys are `day:<session>`, `conf:<session>`
+// and `conf:day:<date>` for a day's wrap-up inside the conference takeaways. New sessions are in until left out.
+const wrapItems = (kind, key) => sessionsArr().filter(s => (kind === 'conf' || s.date === key) && (s.brief || liveNotes(s).length)).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+const wrapDays = () => Object.keys(state.dayBriefs || {}).sort();
+const picked = (k) => !state.wrapPicks?.[k]?.skip;
+function setPicked(k, on) { state.wrapPicks = state.wrapPicks || {}; state.wrapPicks[k] = { skip: !on, t: now() }; touch(); }
 async function generateDayBrief(date) {
-  const items = sessionsArr().filter(s => s.date === date).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+  const all = wrapItems('day', date), items = all.filter(s => picked(`day:${s.id}`));
   const mats = items.map(s => sessionMaterial(s)).filter(Boolean);
-  if (!mats.length) throw new Error('Nothing to wrap up yet: add notes or finish a session on this day.');
+  if (!mats.length) throw new Error(all.length ? 'Nothing is selected: tick at least one session to include.' : 'Nothing to wrap up yet: add notes or finish a session on this day.');
   let r;
   if (settings.apiKey) {
     r = await claude({ system: WRAP_SYSTEM, schema: DAY_SCHEMA,
@@ -3633,17 +3642,18 @@ async function generateDayBrief(date) {
       highlights: b.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), themes: [], peopleAndCompanies: items.filter(s => s.informal && s.speaker).map(s => `${s.speaker} (${s.title})`),
       actionItems: b.flatMap(s => s.brief.actionItems), openQuestions: b.flatMap(s => s.brief.openQuestions).slice(0, 4), source: 'offline' };
   }
-  r.generatedAt = now(); r.sessions = mats.length;
+  r.generatedAt = now(); r.sessions = mats.length; r.left = all.length - items.length;
   state.dayBriefs = state.dayBriefs || {}; state.dayBriefs[date] = r; touch();
   return r;
 }
 async function generateConfBrief() {
-  const items = sessionsArr().sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+  const all = wrapItems('conf'), items = all.filter(s => picked(`conf:${s.id}`));
   const mats = items.map(s => sessionMaterial(s, 3000)).filter(Boolean);
-  if (!mats.length) throw new Error('Nothing to summarise yet: take notes or finish a session first.');
+  const days = wrapDays().filter(d => picked(`conf:day:${d}`));
+  if (!mats.length && !days.length) throw new Error(all.length || wrapDays().length ? 'Nothing is selected: tick at least one session or day to include.' : 'Nothing to summarise yet: take notes or finish a session first.');
   let r;
   if (settings.apiKey) {
-    const dayWraps = Object.entries(state.dayBriefs || {}).sort().map(([d, b]) => `Day wrap-up, ${fmtDate(d)}: ${b.headline}. ${b.summary}`).join('\n');
+    const dayWraps = days.map(d => { const b = state.dayBriefs[d]; return `Day wrap-up, ${fmtDate(d)}: ${b.headline}. ${b.summary}`; }).join('\n');
     r = await claude({ system: WRAP_SYSTEM, schema: CONF_SCHEMA,
       content: [{ type: 'text', text: `Conference: ${state.conference.name || 'Untitled'}\n\n${dayWraps ? dayWraps + '\n\n' : ''}${mats.join('\n\n---\n\n').slice(0, 400000)}\n\nWrite the conference takeaways: headline (one line), summary (5 to 7 sentences for someone who wasn't there), themes (3 to 5 cross-cutting themes), topTakeaways (6 to 10), learnings (3 to 6 things the attendee can apply at work), actionItems (concrete follow-ups), peopleAndCompanies (people and vendors worth following up with; empty if none), slides (a presentation of 6 to 10 slides for sharing with colleagues: each has a short title and 3 to 5 concise bullets; start with the big picture, then one slide per theme, then what to do next).` }] });
     r.source = 'ai';
@@ -3654,7 +3664,7 @@ async function generateConfBrief() {
       themes: [], topTakeaways: take, learnings: b.flatMap(s => s.brief.learnings).slice(0, 6), actionItems: b.flatMap(s => s.brief.actionItems),
       peopleAndCompanies: items.filter(s => s.informal && s.speaker).map(s => `${s.speaker} (${s.title})`), slides: [], source: 'offline' };
   }
-  r.generatedAt = now(); r.sessions = mats.length;
+  r.generatedAt = now(); r.sessions = mats.length; r.days = days.length; r.left = all.length - items.length + wrapDays().length - days.length;
   state.confBrief = r; touch();
   return r;
 }
@@ -3675,46 +3685,62 @@ const SEC_STYLE = { Highlights: ['b-take', 'target'], 'Top takeaways': ['b-take'
 function openWrap(kind, key) {
   const label = kind === 'day' ? `${fmtDate(key, { weekday: 'long' })} Wrap-up` : 'Conference Takeaways';
   const sh = openSheet({ title: label, left: 'Close', right: 'Export', cls: 'wide', body: `<div id="wrapBody"></div>`,
-    onRight: (api) => { const rp = reportOf(kind, key); rp && exportMenu($('[data-act=right]', api.el), rp); } });
+    onRight: (api) => { if (picking) return run(); const rp = reportOf(kind, key); rp && exportMenu($('[data-act=right]', api.el), rp); } });
   const body = $('#wrapBody', sh.el);
   const what = kind === 'day' ? 'Wrap-up' : 'Takeaways';
-  let busy = false;
-  // Nothing is generated until the user asks: an AI briefing sends every note of the day or conference to Claude.
-  const ready = () => {
-    sh.setRight('Export', false);
-    const items = sessionsArr().filter(s => (kind === 'conf' || s.date === key) && (s.brief || liveNotes(s).length));
-    if (!items.length) { body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">${kind === 'day' ? 'Nothing to wrap up yet: add notes or finish a session on this day.' : 'Nothing to summarise yet: take notes or finish a session first.'}</p>`; return; }
-    const briefed = items.filter(s => s.brief && !s.informal).length, quick = items.filter(s => s.informal).length, raw = items.length - briefed - quick;
-    const parts = [briefed && `${briefed} session brief${briefed === 1 ? '' : 's'}`, raw && `${raw} session${raw === 1 ? '' : 's'} with notes only`, quick && `${quick} quick note${quick === 1 ? '' : 's'}`].filter(Boolean);
-    body.innerHTML = `<div class="wr-ready"><div class="empty-art">${I.sparkles}</div>
-      <h2>${kind === 'day' ? `Wrap up ${fmtDate(key, { weekday: 'long' })}` : 'Pull the conference together'}</h2>
-      <p class="muted">Copilot will combine ${esc(parts.join(', ').replace(/, ([^,]*)$/, ' and $1'))} into ${kind === 'day' ? 'one end-of-day briefing' : 'one set of takeaways and a slide deck'}.</p>
-      <p class="f-cap">${settings.apiKey ? 'This sends those notes and briefs to Claude using your API key.' : 'No Claude key is set, so this is written on this device from your session briefs.'}</p>
-      <button class="btn btn-primary" id="wrGo">${I.sparkles} Create ${what}</button></div>`;
+  let busy = false, picking = false;
+  // Nothing is generated until the user asks: an AI briefing sends the chosen notes and briefs to Claude.
+  // This screen is that question, and where the user picks what goes in (for a refresh too).
+  const ready = (refresh) => {
+    picking = true;
+    const items = wrapItems(kind, key), dayList = kind === 'conf' ? wrapDays() : [];
+    if (!items.length && !dayList.length) { picking = false; sh.setRight('Export', false); body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">${kind === 'day' ? 'Nothing to wrap up yet: add notes or finish a session on this day.' : 'Nothing to summarise yet: take notes or finish a session first.'}</p>`; return; }
+    const pk = (s) => `${kind}:${s.id}`;
+    const meta = (s) => [s.start ? fmtTime(s.start) : '', s.informal ? `Quick note${KINDS[s.kind] ? ` · ${KINDS[s.kind]}` : ''}` : s.brief ? 'Brief' : `Notes only (${liveNotes(s).length})`, s.speaker].filter(Boolean).join(' · ');
+    const box = (k, title, sub) => `<label class="pv-item"><input type="checkbox" data-pk="${esc(k)}" ${picked(k) ? 'checked' : ''}><div><b>${esc(title)}</b><span>${esc(sub)}</span></div></label>`;
+    const byDay = kind === 'conf' ? [...new Set(items.map(s => s.date || ''))] : [key];
+    body.innerHTML = `<div class="wr-ready" style="padding-bottom:8px"><h2>${refresh ? `Refresh the ${what.toLowerCase()}` : kind === 'day' ? `Wrap up ${fmtDate(key, { weekday: 'long' })}` : 'Pull the conference together'}</h2>
+        <p class="muted" id="wrSum"></p>
+        <p class="f-cap">${settings.apiKey ? `Only what’s ticked is sent to Claude using your API key${refresh ? ', and it replaces the current one' : ''}.` : 'No Claude key is set, so this is written on this device from the ticked session briefs.'}</p></div>
+      ${dayList.length ? `<div class="grp-t">Day wrap-ups</div><div class="preview" style="margin-top:0">${dayList.map(d => box(`conf:day:${d}`, `${fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' })} wrap-up`, state.dayBriefs[d].headline || '')).join('')}</div>` : ''}
+      ${byDay.map(d => { const ss = items.filter(s => kind === 'day' || (s.date || '') === d); return ss.length ? `<div class="grp-t" style="display:flex;align-items:baseline;gap:8px"><span>${kind === 'day' ? 'Sessions and notes' : d ? fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' }) : 'No date'}</span><span class="spacer"></span><button class="btn btn-plain btn-sm" data-pall="${esc(d)}">All</button><button class="btn btn-plain btn-sm" data-pnone="${esc(d)}">None</button></div>
+        <div class="preview" style="margin-top:0">${ss.map(s => box(pk(s), s.title || 'Untitled', meta(s))).join('')}</div>` : ''; }).join('')}
+      <div class="wr-ready" style="padding-top:14px">${refresh ? `<button class="btn btn-gray" id="wrBack">Keep the Current One</button> ` : ''}<button class="btn btn-primary" id="wrGo">${I.sparkles} ${refresh ? 'Refresh' : 'Create'} ${what}</button></div>`;
+    const sum = () => {
+      const on = items.filter(s => picked(pk(s))), dOn = dayList.filter(d => picked(`conf:day:${d}`)).length;
+      const briefed = on.filter(s => s.brief && !s.informal).length, quick = on.filter(s => s.informal).length, raw = on.length - briefed - quick;
+      const parts = [dOn && `${dOn} day wrap-up${dOn === 1 ? '' : 's'}`, briefed && `${briefed} session brief${briefed === 1 ? '' : 's'}`, raw && `${raw} session${raw === 1 ? '' : 's'} with notes only`, quick && `${quick} quick note${quick === 1 ? '' : 's'}`].filter(Boolean);
+      const left = items.length - on.length + dayList.length - dOn, any = parts.length > 0;
+      $('#wrSum', body).textContent = any ? `Copilot will combine ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')} into ${kind === 'day' ? 'one end-of-day briefing' : 'one set of takeaways and a slide deck'}${left ? `, leaving out ${left}` : ''}.` : 'Tick what to include.';
+      $('#wrGo', body).disabled = !any; sh.setRight(refresh ? 'Refresh' : 'Create', any);
+    };
+    $$('[data-pk]', body).forEach(c => c.onchange = () => { setPicked(c.dataset.pk, c.checked); sum(); });
+    const setDay = (d, on) => { for (const s of items) if (kind === 'day' || (s.date || '') === d) setPicked(pk(s), on); $$('[data-pk]', body).forEach(c => c.checked = picked(c.dataset.pk)); sum(); };
+    $$('[data-pall]', body).forEach(b => b.onclick = () => setDay(b.dataset.pall, true));
+    $$('[data-pnone]', body).forEach(b => b.onclick = () => setDay(b.dataset.pnone, false));
     $('#wrGo', body).onclick = () => run();
+    $('#wrBack', body)?.addEventListener('click', () => { picking = false; paint(); });
+    sum();
   };
   const paint = () => {
     const rp = reportOf(kind, key);
-    sh.setRight('Export', !!rp && !busy);
+    picking = false; sh.setRight('Export', !!rp && !busy);
     if (busy) { body.innerHTML = `<div class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:40px"><span class="spin"></span>${kind === 'day' ? 'Pulling the day together…' : 'Pulling the whole conference together…'}</div>`; return; }
     if (!rp) return ready();
     const r = rp.data;
-    body.innerHTML = `<article class="brief"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${esc(rp.subtitle)} · from ${r.sessions || 0} session${r.sessions === 1 ? '' : 's'} and notes · ${r.source === 'ai' ? 'written by Claude' : 'written on this device'} ${esc(ago(r.generatedAt))}</p>
+    body.innerHTML = `<article class="brief"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${esc(rp.subtitle)} · from ${r.days ? `${r.days} day wrap-up${r.days === 1 ? '' : 's'} and ` : ''}${r.sessions || 0} session${r.sessions === 1 ? '' : 's'} and notes${r.left ? ` (${r.left} left out)` : ''} · ${r.source === 'ai' ? 'written by Claude' : 'written on this device'} ${esc(ago(r.generatedAt))}</p>
       <h2 class="brief-head">${esc(rp.headline)}</h2><p class="brief-sum">${esc(rp.summary)}</p>
       ${rp.sections.map(s => { const [cls, ic] = SEC_STYLE[s.heading] || ['b-take', 'target']; return `<div class="brief-blk ${cls}"><h4>${I[ic]}${esc(s.heading)}</h4><ul>${s.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`; }).join('')}
       ${kind === 'conf' && rp.slides?.length ? `<p class="f-cap" style="margin:16px 0 0">${rp.slides.length}-slide deck ready for PowerPoint export.</p>` : ''}
       <div class="brief-foot">
         <button class="btn btn-sm btn-primary" id="wrExport">${I.download} Export</button>
         <button class="btn btn-sm btn-gray" id="wrCopy">${I.copy} Copy</button>
-        <button class="btn btn-sm btn-gray" id="wrRedo">${I.sparkles} Refresh</button>
+        <button class="btn btn-sm btn-gray" id="wrRedo">${I.sparkles} Choose &amp; Refresh…</button>
         <button class="btn btn-sm btn-plain danger-ink" id="wrDel">${I.trash} Delete</button>
         ${r.source === 'ai' ? '' : '<small>Add a Claude key in Settings for a fuller briefing</small>'}
       </div></article>`;
     $('#wrCopy', body).onclick = async () => { try { await navigator.clipboard.writeText(reportText(rp)); toast('Copied'); } catch { toast('Copy failed'); } };
-    $('#wrRedo', body).onclick = async () => {
-      if (settings.apiKey && !await confirmSheet(`Refresh ${what}?`, `This sends your notes and briefs to Claude again and replaces the current ${what.toLowerCase()}.`, 'Refresh', false)) return;
-      run();
-    };
+    $('#wrRedo', body).onclick = () => { ready(true); body.closest('.sheet-b')?.scrollTo?.(0, 0); };
     $('#wrExport', body).onclick = (e) => exportMenu(e.currentTarget, rp);
     $('#wrDel', body).onclick = async () => { if (await confirmDeleteBriefing({ kind, key })) paint(); };
   };
