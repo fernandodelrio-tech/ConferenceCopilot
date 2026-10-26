@@ -1025,19 +1025,28 @@ const I = {
 
 /* ---------- Storage: IndexedDB ---------- */
 const DB = (() => {
+  // Safari (iPad and iPhone especially) closes the connection when the page is backgrounded or suspended,
+  // so never trust a cached handle: drop it when it closes and reopen on demand.
   let opening;
+  const reset = (d) => { try { d?.close(); } catch {} opening = null; };
   const open = () => opening ||= new Promise((res, rej) => {
     const r = indexedDB.open('conference-copilot', 1);
     r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('kv'); d.createObjectStore('media'); };
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
+    r.onsuccess = () => { const d = r.result; d.onclose = () => reset(); d.onversionchange = () => reset(d); res(d); };
+    r.onerror = () => { opening = null; rej(r.error); };
+    r.onblocked = () => { opening = null; rej(new Error('Storage is busy in another tab. Close other Conference Copilot tabs and try again.')); };
   });
-  const run = async (store, mode, fn) => {
+  const once = async (store, mode, fn) => {
     const d = await open();
     return new Promise((res, rej) => {
       const t = d.transaction(store, mode); const req = fn(t.objectStore(store));
-      t.oncomplete = () => res(req?.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+      t.oncomplete = () => res(req?.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || Object.assign(new Error('The database connection is closing.'), { name: 'InvalidStateError' }));
     });
+  };
+  const closing = (e) => e?.name === 'InvalidStateError' || /connection is clos|database.*clos/i.test(e?.message || '');
+  const run = async (store, mode, fn) => {
+    try { return await once(store, mode, fn); }
+    catch (e) { if (!closing(e)) throw e; reset(); return once(store, mode, fn); }
   };
   return {
     get: (s, k) => run(s, 'readonly', st => st.get(k)),
