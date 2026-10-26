@@ -885,6 +885,18 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translate(-50%,12px);z-index:80;background:color-mix(in srgb,var(--surface) 92%,transparent);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:var(--text);border:1px solid var(--sep-2);box-shadow:var(--shadow-2);padding:9px 16px;border-radius:999px;font-size:.8667rem;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s var(--ease),transform .35s var(--ease);max-width:calc(100% - 32px);text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 #toast a{color:var(--accent);font-weight:600}
+.pf-wrap{text-align:center}
+.pf-stage{position:relative;display:inline-block;max-width:100%;line-height:0;user-select:none;-webkit-user-select:none}
+.pf-stage img{max-width:100%;max-height:52vh;display:block;border-radius:6px;-webkit-touch-callout:none}
+.pf-stage svg{position:absolute;left:0;top:0;touch-action:none;cursor:crosshair}
+.pf-h{fill:#fff;stroke:var(--accent);stroke-width:3;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+.pf-loupe{position:absolute;display:none;width:128px;height:128px;border-radius:50%;box-shadow:0 0 0 3px #fff,0 4px 16px rgba(0,0,0,.4);pointer-events:none}
+.pf-tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:6px 0 14px}
+.pf-prev{background:var(--fill);border-radius:10px;padding:10px;text-align:center;line-height:0}
+.pf-prev canvas,.pf-prev img{max-width:100%;max-height:44vh;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.fix-chip{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:.8rem;color:var(--text-2)}
+.fix-chip svg{width:14px;height:14px;flex:none}
+.fix-chip button{color:var(--accent);font-weight:500}
 .viewer{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.92);display:grid;place-items:center;animation:fade .2s}
 .viewer img{max-width:100%;max-height:100%;object-fit:contain}
 .viewer button{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:14px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center}
@@ -1064,7 +1076,7 @@ const LS = {
 };
 
 /* ---------- App state ---------- */
-const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, maps: {}, flights: {}, travel: null, updatedAt: 0 });
+const emptyState = () => ({ v: 1, conference: { name: '', updatedAt: 0 }, sessions: {}, deleted: {}, dayBriefs: {}, confBrief: null, briefDeleted: {}, maps: {}, flights: {}, travel: null, wrapPicks: {}, updatedAt: 0 });
 let state = emptyState();
 let settings = Object.assign({ theme: 'auto', apiKey: '', model: 'claude-opus-5-5', lang: navigator.language || 'en-US', keepAudio: true, autoClean: false, dgKey: '', micBoost: 'high', room: 'normal', adbKey: '', clientId: '', workspaceId: '' }, LS.get('cc.settings', {}));
 let drive = Object.assign({ connected: false, token: '', exp: 0, folderId: '', stateFileId: '', lastSync: 0, email: '' }, LS.get('cc.drive', {}));
@@ -1608,7 +1620,7 @@ function noteAsText(n) {
   if (n.type === 'text') return `${head} Typed note: ${n.text}`;
   if (n.type === 'audio') return n.text ? `${head} Transcript of the speaker:\n${n.text}` : '';
   if (n.type === 'doc') return `${head} ${n.kind || 'File'} attached: ${n.fileName}${n.text ? ` (attendee's note: ${n.text})` : ''}${n.docText ? `\n<document>\n${n.docText.slice(0, 20000)}\n</document>` : ''}`;
-  return `${head} ${n.type === 'photo' ? 'Photo' : 'Video'}${n.text ? ` with caption: ${n.text}` : ''} (the image itself isn't included here; the current brief already reflects it)`;
+  return `${head} ${n.type === 'photo' ? 'Photo' : 'Video'}${n.text ? ` with caption: ${n.text}` : ''}${n.slideText ? `\nText on the slide: ${n.slideText}` : ''} (the image itself isn't included here; the current brief already reflects it)`;
 }
 async function reviseBrief(s, request) {
   request = request.trim(); if (!request || !s.brief) return;
@@ -1698,12 +1710,15 @@ function renderNote(n) {
         <div class="note-cap ph" data-n="edit">Add a summary…</div>`;
   }
   else text = n.text ? `<div class="note-cap">${esc(n.text)}</div>` : `<div class="note-cap ph" data-n="edit">Add a caption…</div>`;
+  if (n.type === 'photo' && n.origMediaId) text = `<div class="fix-chip">${I.crop}<span>${n.fix === 'recreated' ? 'Recreated by Claude: check it against the original' : 'Straightened'}</span><button data-n="orig">Original</button><button data-n="unfix">Undo</button></div>` + text;
+  if (n.type === 'photo' && n.recreatedFrom) text = `<div class="fix-chip">${I.sparkles}<span>Recreated by Claude from a photo: check it against the original</span><button data-n="src">Original</button></div>` + text;
   const dur = n.duration ? `${Math.floor(n.duration / 60)}:${pad(Math.round(n.duration % 60))}` : '';
   return `<div class="note" data-note="${n.id}">
     <div class="note-when"><span>${esc(fmtClock(n.ts))}</span>${dur ? `<span>${dur}</span>` : ''}${n.star ? `<span class="kp">${I.starFill}Key</span>` : ''}${recChip(n)}</div>
     <div class="note-body">${media}${text}</div>
     ${editing ? '' : `<div class="note-acts">
       <button data-n="star" class="${n.star ? 'on' : ''}" aria-label="${n.star ? 'Unmark key point' : 'Mark as key point'}" title="${n.star ? 'Unmark key point' : 'Key point'}">${n.star ? I.starFill : I.star}</button>
+      ${n.type === 'photo' && !n.recreatedFrom ? `<button data-n="fix" aria-label="Straighten or recreate" title="Straighten or recreate">${I.crop}</button>` : ''}
       <button data-n="edit" aria-label="Edit" title="Edit">${I.pencil}</button>
       <button data-n="del" aria-label="Delete" title="Delete">${I.trash}</button>
     </div>`}</div>`;
@@ -1725,6 +1740,10 @@ function bindNotes(root, s) {
       if (a === 'clean') return confirmClean(s, [n]);
       if (a === 'redo') return retranscribe(s, n.id);
       if (a === 'miccheck') return openMicCheck();
+      if (a === 'fix') return openPhotoFix(s, n);
+      if (a === 'orig') return viewOriginal(n);
+      if (a === 'unfix') return undoPhotoFix(s, n);
+      if (a === 'src') { const o = s.notes.find(x => x.id === n.recreatedFrom && !x.deleted); return o ? viewOriginal(o) : toast('The original photo was deleted.'); }
       if (a === 'raw') { ui.showRaw.has(n.id) ? ui.showRaw.delete(n.id) : ui.showRaw.add(n.id); return renderDetail(); }
       if (a === 'unclean') { if (await confirmSheet('Go back to the original transcript?', 'The cleaned-up text is replaced by the raw transcript on all your devices. You can clean it up again later.', 'Revert', false)) { n.text = n.rawText; delete n.rawText; delete n.clean; ui.showRaw.delete(n.id); n.updatedAt = now(); touch(s); renderDetail(); } return; }
       if (a === 'star') { n.star = !n.star; n.updatedAt = now(); touch(s); renderDetail(); }
@@ -1752,7 +1771,375 @@ function openViewer(src) {
   v.onclick = () => v.remove(); document.body.appendChild(v);
 }
 
+/* =========================================================
+   Photo fix: a slide or screen shot at an angle, straightened on the device, or redrawn square by Claude
+   ========================================================= */
+// Corners are in the photo's own pixels, in the order top-left, top-right, bottom-right, bottom-left
+function orderQuad(q) {
+  const c = q.reduce((a, p) => [a[0] + p[0] / 4, a[1] + p[1] / 4], [0, 0]);
+  const s = [...q].sort((a, b) => Math.atan2(a[1] - c[1], a[0] - c[0]) - Math.atan2(b[1] - c[1], b[0] - c[0]));
+  const i = s.reduce((bi, p, k) => p[0] + p[1] < s[bi][0] + s[bi][1] ? k : bi, 0);
+  return [...s.slice(i), ...s.slice(0, i)];
+}
+// The 3×3 perspective transform taking each `from` point to its `to` point
+function homography(from, to) {
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = from[i], [u, v] = to[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+    A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+  }
+  for (let c = 0; c < 8; c++) {
+    let p = c; for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]]; [b[c], b[p]] = [b[p], b[c]];
+    if (Math.abs(A[c][c]) < 1e-12) return null;
+    for (let r = 0; r < 8; r++) if (r !== c) { const f = A[r][c] / A[c][c]; if (!f) continue; for (let k = c; k < 8; k++) A[r][k] -= f * A[c][k]; b[r] -= f * b[c]; }
+  }
+  return [...b.map((v, i) => v / A[i][i]), 1];
+}
+// The quad's contents as a W×H rectangle, each pixel read between the photo's pixels
+function warpQuad(src, q, W, H) {
+  const h = homography([[0, 0], [W, 0], [W, H], [0, H]], q), out = new ImageData(W, H);
+  if (!h) return out;
+  const s = src.data, d = out.data, sw = src.width, sh = src.height;
+  for (let y = 0, o = 0; y < H; y++) {
+    const Y = y + 0.5;
+    for (let x = 0; x < W; x++, o += 4) {
+      const X = x + 0.5, w = h[6] * X + h[7] * Y + h[8];
+      let u = (h[0] * X + h[1] * Y + h[2]) / w - 0.5, v = (h[3] * X + h[4] * Y + h[5]) / w - 0.5;
+      u = u < 0 ? 0 : u > sw - 1 ? sw - 1 : u; v = v < 0 ? 0 : v > sh - 1 ? sh - 1 : v;
+      const x0 = u | 0, y0 = v | 0, x1 = x0 + 1 < sw ? x0 + 1 : x0, y1 = y0 + 1 < sh ? y0 + 1 : y0, fx = u - x0, fy = v - y0;
+      const a = (y0 * sw + x0) * 4, b2 = (y0 * sw + x1) * 4, c = (y1 * sw + x0) * 4, e = (y1 * sw + x1) * 4;
+      for (let k = 0; k < 3; k++) { const top = s[a + k] + (s[b2 + k] - s[a + k]) * fx, bot = s[c + k] + (s[e + k] - s[c + k]) * fx; d[o + k] = top + (bot - top) * fy; }
+      d[o + 3] = 255;
+    }
+  }
+  return out;
+}
+// The real width-to-height of the rectangle photographed as this quad, undoing the perspective
+// (Zhang and He's whiteboard method, assuming the camera looks through the photo's centre)
+function quadAspect(q, w, h) {
+  const [tl, tr, br, bl] = q, u0 = w / 2, v0 = h / 2;
+  const side = () => { const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]); return (d(tl, tr) + d(bl, br)) / Math.max(1, d(tl, bl) + d(tr, br)); };
+  const m1 = [...tl, 1], m2 = [...tr, 1], m3 = [...bl, 1], m4 = [...br, 1];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const k2 = dot(cross(m1, m4), m3) / dot(cross(m2, m4), m3), k3 = dot(cross(m1, m4), m2) / dot(cross(m3, m4), m2);
+  const n2 = m2.map((v, i) => k2 * v - m1[i]), n3 = m3.map((v, i) => k3 * v - m1[i]);
+  let f2 = -((n2[0] * n3[0] - (n2[0] * n3[2] + n2[2] * n3[0]) * u0 + n2[2] * n3[2] * u0 * u0) + (n2[1] * n3[1] - (n2[1] * n3[2] + n2[2] * n3[1]) * v0 + n2[2] * n3[2] * v0 * v0)) / (n2[2] * n3[2]);
+  // Seen almost straight on, the focal length can't be told, and doesn't matter
+  if (!(f2 > 0)) { if (Math.abs(k2 - 1) < 0.03 && Math.abs(k3 - 1) < 0.03) f2 = Math.max(w, h) ** 2; else return side(); }
+  const f = Math.sqrt(f2), g = (n) => { const a = (n[0] - u0 * n[2]) / f, b = (n[1] - v0 * n[2]) / f; return a * a + b * b + n[2] * n[2]; };
+  const r = Math.sqrt(g(n2) / g(n3));
+  return isFinite(r) && r > 0.2 && r < 5 ? r : side();
+}
+// The room around a slide or screen looks like the photo's edges: grow that region inward from the border, and what it can't
+// reach is the slide, dark title bars and text included. If the slide fills the photo, fall back to its largest bright area.
+// The outline's extreme points are the corners.
+function detectQuad(img) {
+  const { width: w, height: h, data } = img, n = w * h;
+  const quadOf = (inMask) => {
+    const seen = new Uint8Array(n), stack = new Int32Array(n); let found = null;
+    for (let start = 0; start < n; start++) {
+      if (seen[start] || !inMask(start)) continue;
+      let top = 0, count = 0; stack[top++] = start; seen[start] = 1;
+      let tl = [0, 0, Infinity], tr = [0, 0, -Infinity], br = [0, 0, -Infinity], bl = [0, 0, -Infinity];
+      while (top) {
+        const p = stack[--top], x = p % w, y = (p - x) / w; count++;
+        if (x + y < tl[2]) tl = [x, y, x + y]; if (x - y > tr[2]) tr = [x, y, x - y]; if (x + y > br[2]) br = [x, y, x + y]; if (y - x > bl[2]) bl = [x, y, y - x];
+        for (const q of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, y > 0 ? p - w : -1, y < h - 1 ? p + w : -1]) if (q >= 0 && !seen[q] && inMask(q)) { seen[q] = 1; stack[top++] = q; }
+      }
+      if (count < n * 0.08) continue;
+      const q = [tl, tr, br, bl].map(c => [c[0] + 0.5, c[1] + 0.5]);
+      const area = Math.abs(q.reduce((a, p, i) => { const r = q[(i + 1) % 4]; return a + p[0] * r[1] - r[0] * p[1]; }, 0)) / 2;
+      // A four-sided shape fills most of its outline
+      if (area < n * 0.1 || count / area < 0.6) continue;
+      if (!found || area > found.area) found = { q, area };
+    }
+    return found?.q || null;
+  };
+  // The room: colours like the border's, reachable from it
+  const band = Math.max(2, Math.round(Math.min(w, h) * 0.03)), border = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (x < band || y < band || x >= w - band || y >= h - band) border.push(y * w + x);
+  const mu = [0, 1, 2].map(k => border.reduce((a, p) => a + data[p * 4 + k], 0) / border.length);
+  const dist = (p) => Math.hypot(data[p * 4] - mu[0], data[p * 4 + 1] - mu[1], data[p * 4 + 2] - mu[2]);
+  const bd = border.map(dist).sort((a, b) => a - b), tau = bd[Math.floor(bd.length * 0.95)] + 24;
+  const room = new Uint8Array(n), stack = new Int32Array(n); let top = 0;
+  for (const p of border) if (dist(p) < tau && !room[p]) { room[p] = 1; stack[top++] = p; }
+  while (top) {
+    const p = stack[--top], x = p % w, y = (p - x) / w;
+    for (const q of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, y > 0 ? p - w : -1, y < h - 1 ? p + w : -1]) if (q >= 0 && !room[q] && dist(q) < tau) { room[q] = 1; stack[top++] = q; }
+  }
+  let q = quadOf((p) => !room[p]);
+  if (q) return q;
+  // Otsu's threshold between the two brightness groups, then the largest bright (or dark) area
+  const L = new Uint8Array(n), hist = new Array(256).fill(0);
+  for (let i = 0; i < n; i++) { const v = (data[i * 4] * 77 + data[i * 4 + 1] * 150 + data[i * 4 + 2] * 29) >> 8; L[i] = v; hist[v]++; }
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let wB = 0, sB = 0, best = 0, t = 128;
+  for (let i = 0; i < 256; i++) { wB += hist[i]; if (!wB) continue; const wF = n - wB; if (!wF) break; sB += i * hist[i]; const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) ** 2; if (v > best) { best = v; t = i; } }
+  return quadOf((p) => L[p] > t) || quadOf((p) => L[p] <= t);
+}
+// Brighter and more even: each colour stretched to the full range, which also takes out a lamp's yellow or a screen's blue
+function enhanceImage(im) {
+  const d = im.data, lo = [], hi = [];
+  for (let k = 0; k < 3; k++) {
+    const hist = new Uint32Array(256); for (let i = k; i < d.length; i += 4) hist[d[i]]++;
+    const n = d.length / 4; let acc = 0, a = 0, b = 255;
+    for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc > n * 0.005) { a = v; break; } }
+    acc = 0; for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc > n * 0.005) { b = v; break; } }
+    lo[k] = a; hi[k] = Math.max(a + 40, b);
+  }
+  for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) d[i + k] = Math.max(0, Math.min(255, (d[i + k] - lo[k]) * 255 / (hi[k] - lo[k])));
+  return im;
+}
+const SHAPES = [['auto', 'Auto'], ['16:9', '16:9 (wide slide)'], ['4:3', '4:3 (classic slide)'], ['1:1', 'Square'], ['3:4', '3:4 (tall)'], ['9:16', '9:16 (phone screen)']];
+const ratioOf = (shape, q, w, h) => {
+  if (shape !== 'auto') { const [a, b] = shape.split(':').map(Number); return a / b; }
+  const r = quadAspect(q, w, h);
+  // Most slides are one of the two standard shapes: snap when the estimate is close
+  for (const s of [16 / 9, 4 / 3, 9 / 16, 3 / 4]) if (Math.abs(r / s - 1) < 0.06) return s;
+  return r;
+};
+const ratioLabel = (r) => [[16 / 9, '16:9'], [4 / 3, '4:3'], [1, '1:1'], [3 / 4, '3:4'], [9 / 16, '9:16']].find(([v]) => Math.abs(r / v - 1) < 0.01)?.[1] || `${r.toFixed(2)}:1`;
+
+/* ---------- Recreate: Claude redraws the slide as a clean SVG ---------- */
+const RECREATE_SYSTEM = `You redraw a photo of a presentation slide, screen, whiteboard or poster as a clean, flat image seen square-on, faithful to the original. The attendee will keep it in their conference notes in place of a crooked photo.
+
+Draw it as one SVG document. Rules:
+1. Reproduce every piece of text exactly as written: same words, spelling, numbers, capitalisation and line breaks. Never paraphrase, summarise, translate or complete text. Text you can't read becomes [illegible].
+2. Keep the layout: where each element sits, its relative size, alignment, colours and the background. Text in SVG doesn't wrap, so break long lines yourself with <tspan x=… dy=…>, matching the original's line breaks.
+3. Redraw shapes, lines, arrows, icons (simplified), tables (with every cell) and diagrams. Redraw charts with the values you can read from them; if values can't be read, keep the chart's shape and say so in "omitted".
+4. Photos, illustrations, logos and screenshots inside the slide become a light grey rectangle of the same size with a short centred label in square brackets, for example [Photo: a nurse with a tablet] or [Logo: Workday].
+5. Leave out what isn't part of the slide: the room, people's heads, the projector's edge, glare, reflections, the presenter's pointer.
+6. Use only these elements: svg, g, defs, rect, circle, ellipse, line, polyline, polygon, path, text, tspan, linearGradient, radialGradient, stop, clipPath, marker. No images, scripts, styles sheets, foreignObject, links or external resources. Fonts: font-family="Helvetica, Arial, sans-serif" (or a monospace or serif stack when the original clearly uses one).
+7. Never add anything that isn't in the photo.
+
+Also return all the text on the slide as plain text in reading order (headings on their own line, list items starting with "- ", table rows with cells separated by " | "), and in "omitted" briefly say what couldn't be reproduced faithfully (empty if nothing).`;
+const RECREATE_SCHEMA = { type: 'object', additionalProperties: false, required: ['svg', 'text', 'omitted'], properties: { svg: { type: 'string' }, text: { type: 'string' }, omitted: { type: 'string' } } };
+// Only drawing survives: anything that could run, load from elsewhere or link out is removed
+function cleanSvg(src, W, H) {
+  const doc = new DOMParser().parseFromString(String(src || '').replace(/^[^<]*/, ''), 'image/svg+xml'), root = doc.documentElement;
+  if (!root || root.localName !== 'svg' || doc.getElementsByTagName('parsererror').length) return null;
+  const OK = new Set(['svg', 'g', 'defs', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path', 'text', 'tspan', 'linearGradient', 'radialGradient', 'stop', 'clipPath', 'marker', 'title', 'desc']);
+  for (const el of [...root.getElementsByTagName('*')]) {
+    if (!OK.has(el.localName)) { el.remove(); continue; }
+    for (const a of [...el.attributes]) {
+      const v = a.value.toLowerCase();
+      if (/^on/i.test(a.name) || /href$/i.test(a.name) || v.includes('javascript:') || (/url\(/.test(v) && !/^\s*url\(\s*['"]?#/.test(v)) || /@import/.test(v)) el.removeAttribute(a.name);
+    }
+  }
+  for (const a of [...root.attributes]) if (/^on/i.test(a.name) || /href$/i.test(a.name)) root.removeAttribute(a.name);
+  root.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  if (!root.getAttribute('viewBox')) root.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  root.setAttribute('width', W); root.setAttribute('height', H);
+  return new XMLSerializer().serializeToString(root);
+}
+async function svgToPng(svg, W, H, scale = 1.5) {
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Claude’s drawing couldn’t be shown. Try again.')); i.src = url; });
+    const c = document.createElement('canvas'); c.width = Math.round(W * scale); c.height = Math.round(H * scale);
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+    return await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('Couldn’t save the drawing.')), 'image/png'));
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* ---------- Saving: the original is always kept, and can be brought back ---------- */
+async function replacePhoto(s, n, blob, fix, extra = {}) {
+  const fresh = S(s.id)?.notes.find(x => x.id === n.id); if (!fresh) return;
+  const mediaId = uid(); await DB.put('media', mediaId, blob);
+  if (!fresh.origMediaId) Object.assign(fresh, { origMediaId: fresh.mediaId, origDriveId: fresh.driveId || '', origMime: fresh.mime || 'image/jpeg' });
+  else dropFixedMedia(fresh);
+  Object.assign(fresh, { mediaId, mime: blob.type, fix, slideText: extra.slideText || '', updatedAt: now() }); delete fresh.driveId;
+  touch(S(s.id)); renderDetail();
+}
+// A fixed version that is replaced or undone is removed here and from Drive; the original never is
+function dropFixedMedia(n) {
+  if (!n.mediaId || n.mediaId === n.origMediaId) return;
+  DB.del('media', n.mediaId).catch(() => {}); urlCache.delete(n.mediaId);
+  if (n.driveId) { pendingTrash.push(n.driveId); LS.set('cc.trash', pendingTrash); }
+}
+async function undoPhotoFix(s, n) {
+  if (!n.origMediaId) return;
+  if (!await confirmSheet('Go back to the original photo?', `The ${n.fix === 'recreated' ? 'recreated' : 'straightened'} version is removed from all your devices and the original photo is shown again. You can fix it again later.`, 'Use Original', false)) return;
+  dropFixedMedia(n);
+  n.mediaId = n.origMediaId; n.mime = n.origMime; if (n.origDriveId) n.driveId = n.origDriveId; else delete n.driveId;
+  for (const k of ['origMediaId', 'origDriveId', 'origMime', 'fix', 'slideText']) delete n[k];
+  n.updatedAt = now(); touch(s); renderDetail(); toast('Original photo restored');
+}
+const origPhoto = (n) => n.origMediaId ? { mediaId: n.origMediaId, driveId: n.origDriveId, mime: n.origMime } : n;
+async function viewOriginal(n) {
+  const b = await getMediaBlob(origPhoto(n));
+  if (!b) return toast('The original isn’t on this device. Connect Google Drive in Settings to load it.');
+  openViewer(URL.createObjectURL(b));
+}
+
+function openPhotoFix(s, n) {
+  const st = { tab: 'straight', q: null, auto: null, rot: 0, shape: 'auto', enhance: false, busy: false, made: null, saveAs: 'new' };
+  let url = '', prevT;
+  const sh = openSheet({ title: 'Fix Photo', left: 'Cancel', right: 'Save', cls: 'wide', body: `<div id="pfBody"><div class="muted" style="display:flex;gap:10px;justify-content:center;padding:40px"><span class="spin"></span>Opening the photo…</div></div>`,
+    onRight: () => save(), onClose: () => { url && URL.revokeObjectURL(url); window.removeEventListener('resize', onResize); } });
+  const body = $('#pfBody', sh.el);
+  sh.setRight('Save', false);
+  const onResize = () => st.tab === 'straight' && drawQuad();
+  window.addEventListener('resize', onResize);
+  // Always start from the original, so fixing twice doesn't lose sharpness
+  (async () => {
+    const blob = await getMediaBlob(origPhoto(n));
+    if (!blob) { body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">The photo isn’t on this device yet. Connect Google Drive in Settings to load it here.</p>`; return; }
+    let img; try { img = await loadImage(blob); } catch { body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">This photo couldn’t be opened.</p>`; return; }
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0);
+    Object.assign(st, { w: img.width, h: img.height, canvas: c, src: x.getImageData(0, 0, img.width, img.height) });
+    url = URL.createObjectURL(blob);
+    st.auto = findCorners(); st.q = st.auto || inset();
+    paint();
+  })();
+  const inset = () => { const m = 0.06; return [[st.w * m, st.h * m], [st.w * (1 - m), st.h * m], [st.w * (1 - m), st.h * (1 - m)], [st.w * m, st.h * (1 - m)]]; };
+  const findCorners = () => {
+    const k = Math.min(1, 320 / Math.max(st.w, st.h)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(st.w * k)); c.height = Math.max(1, Math.round(st.h * k));
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(st.canvas, 0, 0, c.width, c.height);
+    const q = detectQuad(x.getImageData(0, 0, c.width, c.height));
+    return q && q.map(([a, b]) => [Math.min(st.w, a / k), Math.min(st.h, b / k)]);
+  };
+  // The corners in drawing order, turned a quarter for each Rotate
+  const effQuad = () => { const q = orderQuad(st.q); return [...q.slice(st.rot), ...q.slice(0, st.rot)]; };
+  const isFull = () => { const q = orderQuad(st.q), e = Math.max(st.w, st.h) * 0.01; return [[0, 0], [st.w, 0], [st.w, st.h], [0, st.h]].every((p, i) => Math.hypot(p[0] - q[i][0], p[1] - q[i][1]) < e) && !st.rot; };
+  const outSize = (max) => {
+    const q = effQuad(), r = ratioOf(st.shape, q, st.w, st.h), d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+    let W = Math.max(d(q[0], q[1]), d(q[3], q[2])), H = W / r;
+    const k = Math.min(1, max / Math.max(W, H)); W = Math.max(1, Math.round(W * k)); H = Math.max(1, Math.round(H * k));
+    return { W, H, r };
+  };
+  const warpOut = (max) => { const { W, H } = outSize(max), im = warpQuad(st.src, effQuad(), W, H); if (st.enhance) enhanceImage(im); const c = document.createElement('canvas'); c.width = W; c.height = H; c.getContext('2d').putImageData(im, 0, 0); return c; };
+  const paint = () => {
+    const tabs = `<div class="seg" style="margin:0 0 14px"><button data-tab="straight" class="${st.tab === 'straight' ? 'on' : ''}">Straighten</button><button data-tab="recreate" class="${st.tab === 'recreate' ? 'on' : ''}">Recreate with Claude</button></div>`;
+    if (st.tab === 'straight') {
+      const { r } = outSize(64);
+      body.innerHTML = `${tabs}
+        <div class="pf-wrap"><div class="pf-stage" id="pfStage"><img id="pfImg" src="${url}" alt="" draggable="false"><svg id="pfSvg"></svg><canvas id="pfLoupe" class="pf-loupe" width="128" height="128"></canvas></div></div>
+        <p class="f-cap" style="text-align:center">${st.auto ? 'Copilot found the edges. Drag any corner to adjust it.' : 'Drag the four corners onto the corners of the slide or screen.'}</p>
+        <div class="pf-tools"><button class="btn btn-sm btn-gray" id="pfAuto">${I.sparkles} Find Edges</button><button class="btn btn-sm btn-gray" id="pfRot">${I.sync || ''} Rotate</button><button class="btn btn-sm btn-gray" id="pfAll">Whole Photo</button></div>
+        <div class="grp">
+          <div class="f-row"><label for="pfShape">Shape</label><select id="pfShape">${SHAPES.map(([v, l]) => `<option value="${v}" ${st.shape === v ? 'selected' : ''}>${v === 'auto' ? `Auto (${ratioLabel(r)})` : l}</option>`).join('')}</select></div>
+          <div class="f-row"><label for="pfEnh" style="flex:1">Enhance (brighter, even colour)</label><span class="switch"><input type="checkbox" id="pfEnh" ${st.enhance ? 'checked' : ''}><span></span></span></div>
+        </div>
+        <div class="grp-t">Result</div><div class="pf-prev"><canvas id="pfPrev"></canvas></div>
+        <p class="f-cap">Save replaces the photo with the straightened one on all your devices. The original is kept: Undo brings it back.</p>`;
+      sh.setRight('Save', true);
+      bindStage();
+      $('#pfAuto', body).onclick = () => { const q = findCorners(); if (q) { st.q = q; st.auto = q; st.rot = 0; drawQuad(); preview(); toast('Edges found'); } else toast('Couldn’t find the edges: drag the corners instead.'); };
+      $('#pfRot', body).onclick = () => { st.rot = (st.rot + 1) % 4; preview(true); };
+      $('#pfAll', body).onclick = () => { st.q = [[0, 0], [st.w, 0], [st.w, st.h], [0, st.h]]; drawQuad(); preview(true); };
+      $('#pfShape', body).onchange = (e) => { st.shape = e.target.value; preview(); };
+      $('#pfEnh', body).onchange = (e) => { st.enhance = e.target.checked; preview(); };
+      preview();
+    } else {
+      const sent = isFull() ? 'the photo' : 'the straightened photo';
+      body.innerHTML = `${tabs}${st.busy ? `<div class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:50px 10px"><span class="spin"></span>Claude is redrawing the slide…</div>`
+        : st.made ? `<div class="pf-prev"><img src="${st.made.url}" alt="Recreated slide"></div>
+          ${st.made.omitted ? `<p class="tx-thin" style="max-width:none">${esc(st.made.omitted)}</p>` : ''}
+          <p class="f-cap">A re-creation, not the original: check names and numbers against the photo before you share it.</p>
+          <div class="grp"><div class="f-row"><label for="pfAs">Save as</label><select id="pfAs"><option value="new" ${st.saveAs === 'new' ? 'selected' : ''}>A new photo</option><option value="replace" ${st.saveAs === 'replace' ? 'selected' : ''}>This photo (original kept)</option></select></div></div>
+          <div class="pf-tools"><button class="btn btn-sm btn-gray" id="pfAgain">${I.sparkles} Try Again…</button><button class="btn btn-sm btn-gray" id="pfOrig">Compare with the Photo</button></div>`
+        : `<div class="wr-ready"><div class="empty-art">${I.sparkles}</div><h2>Redraw it straight</h2>
+          <p class="muted">Claude reads the slide and redraws it as a clean, square image: the same text, layout, colours, tables and simple charts. Pictures and logos inside it become labelled boxes.</p>
+          <p class="f-cap">${settings.apiKey ? `This sends ${sent} to Claude using your API key. ${isFull() ? 'Straighten it first for the best result.' : 'It uses your corners from Straighten.'}` : 'Add a Claude key in Settings to use this.'}</p>
+          <button class="btn btn-primary" id="pfGo" ${settings.apiKey ? '' : 'disabled'}>${I.sparkles} Recreate with Claude…</button></div>`}`;
+      sh.setRight('Save', !!st.made && !st.busy);
+      $('#pfGo', body)?.addEventListener('click', recreate);
+      $('#pfAgain', body)?.addEventListener('click', recreate);
+      $('#pfOrig', body)?.addEventListener('click', () => openViewer(url));
+      $('#pfAs', body)?.addEventListener('change', (e) => { st.saveAs = e.target.value; });
+    }
+    $$('[data-tab]', body).forEach(b => b.onclick = () => { if (st.tab !== b.dataset.tab) { st.tab = b.dataset.tab; paint(); } });
+  };
+  const preview = (immediate) => {
+    clearTimeout(prevT);
+    prevT = setTimeout(() => {
+      const c = $('#pfPrev', body); if (!c) return;
+      const out = warpOut(isTouch ? 640 : 900); c.width = out.width; c.height = out.height; c.getContext('2d').drawImage(out, 0, 0);
+      const o = $('#pfShape option[value=auto]', body); if (o) o.textContent = `Auto (${ratioLabel(outSize(64).r)})`;
+    }, immediate ? 0 : 120);
+  };
+  const scale = () => ($('#pfImg', body)?.clientWidth || 1) / st.w;
+  const drawQuad = () => {
+    const img = $('#pfImg', body), svg = $('#pfSvg', body); if (!img || !svg || !img.clientWidth) return;
+    const k = scale(), W = img.clientWidth, H = img.clientHeight, p = st.q.map(([x, y]) => [x * k, y * k]), o = orderQuad(p);
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', W); svg.setAttribute('height', H);
+    const pts = o.map(q => q.map(v => v.toFixed(1)).join(',')).join(' ');
+    svg.innerHTML = `<path d="M0 0H${W}V${H}H0Z M${o.map(q => q.map(v => v.toFixed(1)).join(' ')).join(' L')}Z" fill="rgba(0,0,0,.45)" fill-rule="evenodd"/>
+      <polygon points="${pts}" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><polygon points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M${o[st.rot][0].toFixed(1)} ${o[st.rot][1].toFixed(1)} L${((o[st.rot][0] + o[(st.rot + 1) % 4][0]) / 2).toFixed(1)} ${((o[st.rot][1] + o[(st.rot + 1) % 4][1]) / 2).toFixed(1)}" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/>
+      ${p.map((q, i) => `<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="11" class="pf-h" data-i="${i}"/>`).join('')}`;
+  };
+  const bindStage = () => {
+    const img = $('#pfImg', body), svg = $('#pfSvg', body), loupe = $('#pfLoupe', body);
+    if (img.complete) drawQuad(); img.onload = drawQuad;
+    let drag = -1;
+    const at = (e) => { const r = img.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const showLoupe = (i) => {
+      const k = scale(), [x, y] = st.q[i], z = 3, sz = 128 / (k * z), lx = x * k, ly = y * k, ctx = loupe.getContext('2d');
+      ctx.clearRect(0, 0, 128, 128); ctx.save(); ctx.beginPath(); ctx.arc(64, 64, 63, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 128, 128); ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(st.canvas, x - sz / 2, y - sz / 2, sz, sz, 0, 0, 128, 128);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(64, 50); ctx.lineTo(64, 78); ctx.moveTo(50, 64); ctx.lineTo(78, 64); ctx.stroke(); ctx.restore();
+      // Above the finger, or below it near the top edge
+      const above = ly > 150; loupe.style.left = `${Math.max(0, Math.min(img.clientWidth - 128, lx - 64))}px`; loupe.style.top = `${above ? ly - 150 : ly + 30}px`; loupe.style.display = 'block';
+    };
+    svg.onpointerdown = (e) => {
+      const [x, y] = at(e), k = scale();
+      let best = -1, bd = isTouch ? 48 : 30;
+      st.q.forEach(([qx, qy], i) => { const d = Math.hypot(qx * k - x, qy * k - y); if (d < bd) { bd = d; best = i; } });
+      if (best < 0) return;
+      e.preventDefault(); drag = best; svg.setPointerCapture(e.pointerId); showLoupe(best);
+    };
+    svg.onpointermove = (e) => {
+      if (drag < 0) return; const [x, y] = at(e), k = scale();
+      st.q[drag] = [Math.max(0, Math.min(st.w, x / k)), Math.max(0, Math.min(st.h, y / k))]; drawQuad(); showLoupe(drag);
+    };
+    svg.onpointerup = svg.onpointercancel = () => { if (drag < 0) return; drag = -1; loupe.style.display = 'none'; preview(); };
+  };
+  const recreate = async () => {
+    if (st.busy) return;
+    if (!settings.apiKey) { toast('Add a Claude key in Settings to recreate slides'); return openSettings(); }
+    if (!await confirmSheet('Recreate this slide with Claude?', `This sends ${isFull() ? 'the photo' : 'the straightened photo'} to Claude using your API key. Claude redraws it square-on with the same text and layout; your photo isn’t changed until you save.`, 'Recreate', false)) return;
+    const { r } = outSize(64), W = 1600, H = Math.round(1600 / r);
+    st.busy = true; paint();
+    try {
+      const shot = isFull() ? st.canvas : warpOut(1568);
+      const sc = Math.min(1, 1568 / Math.max(shot.width, shot.height)), c = document.createElement('canvas'); c.width = Math.round(shot.width * sc); c.height = Math.round(shot.height * sc); c.getContext('2d').drawImage(shot, 0, 0, c.width, c.height);
+      const jpg = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.88));
+      const res = await claude({ system: RECREATE_SYSTEM, schema: RECREATE_SCHEMA, maxTokens: 24000, effort: 'high',
+        content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: await blobToB64(jpg) } },
+          { type: 'text', text: `Session: ${s.title}${n.text ? `\nThe attendee's caption: ${n.text}` : ''}\n\nRedraw this as an SVG with viewBox="0 0 ${W} ${H}" (the slide's shape, ${ratioLabel(r)}).` }] });
+      const svg = cleanSvg(res.svg, W, H); if (!svg) throw new Error('Claude’s drawing couldn’t be read. Try again.');
+      const png = await svgToPng(svg, W, H);
+      if (st.made?.url) URL.revokeObjectURL(st.made.url);
+      st.made = { png, url: URL.createObjectURL(png), text: (res.text || '').trim(), omitted: (res.omitted || '').trim() };
+    } catch (e) { toast(e.message || 'Couldn’t recreate the slide', false, 5000); if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings(); }
+    finally { st.busy = false; if (body.isConnected) paint(); }
+  };
+  const save = async () => {
+    if (st.tab === 'straight') {
+      sh.setRight('Saving…', false);
+      const c = warpOut(2048), blob = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.9));
+      await replacePhoto(s, n, blob, 'straight');
+      sh.close(); toast('Photo straightened. Undo is under the photo.');
+    } else if (st.made) {
+      if (st.saveAs === 'replace') { await replacePhoto(s, n, st.made.png, 'recreated', { slideText: st.made.text }); toast('Photo replaced with the re-creation. Undo is under the photo.'); }
+      else {
+        const mediaId = uid(); await DB.put('media', mediaId, st.made.png);
+        const cur = S(s.id); if (!cur) return sh.close();
+        addNote(cur, { type: 'photo', mediaId, mime: 'image/png', ts: n.ts + 1, recreatedFrom: n.id, slideText: st.made.text });
+        renderDetail(); renderList(); toast('Recreated slide added next to the photo');
+      }
+      sh.close();
+    }
+  };
+}
+
 Object.assign(I, {
+  crop: P('<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>'),
   clip: P('<path d="M20 11.5 12.4 19a5 5 0 0 1-7.1-7.1l8.1-8.1a3.3 3.3 0 0 1 4.7 4.7l-8 8a1.7 1.7 0 0 1-2.4-2.4l7.3-7.3"/>'),
   sort: P('<path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5"/>'),
 });
@@ -2882,6 +3269,10 @@ async function generateBrief(s) {
             content.push({ type: 'text', text: `${head} ${n.kind} document the attendee attached: ${n.fileName}${cap}\n<document>\n${t}\n</document>` });
           } else content.push({ type: 'text', text: `${head} The attendee attached a file that couldn't be read: ${n.fileName}${cap}` });
         }
+        else if (n.type === 'photo' && n.recreatedFrom) {
+          // A redrawing of a photo already sent: its text is enough
+          if (n.slideText) content.push({ type: 'text', text: `${head} Text of the slide in the photo above, read by Claude:\n${n.slideText}` });
+        }
         else if (n.type === 'photo' || n.type === 'video') {
           let img = null;
           if (images < 20) {
@@ -3430,6 +3821,9 @@ function mergeStates(a, b) {
   out.dayBriefs = { ...(a.dayBriefs || {}) };
   for (const [d, r] of Object.entries(b.dayBriefs || {})) out.dayBriefs[d] = newer(out.dayBriefs[d], r);
   out.confBrief = newer(a.confBrief, b.confBrief);
+  // What each wrap-up leaves out: the newest choice wins per item
+  out.wrapPicks = { ...(a.wrapPicks || {}) };
+  for (const [k, v] of Object.entries(b.wrapPicks || {})) if ((v?.t || 0) > (out.wrapPicks[k]?.t || 0)) out.wrapPicks[k] = v;
   // Floor plans: newest edit wins per plan; a deleted plan stays deleted
   // Flights: newest edit (or update) wins per flight; a removed flight stays removed; leave-by settings newest wins
   out.flights = {};
@@ -3618,10 +4012,16 @@ function sessionMaterial(s, cap = 8000) {
   return notes ? `${head}\nRaw notes (no brief yet):\n${notes}` : '';
 }
 const dayHasContent = (d) => sessionsArr().some(s => s.date === d && (s.brief || liveNotes(s).length));
+// Everything a wrap-up could draw on, and the user's choice of what goes in: keys are `day:<session>`, `conf:<session>`
+// and `conf:day:<date>` for a day's wrap-up inside the conference takeaways. New sessions are in until left out.
+const wrapItems = (kind, key) => sessionsArr().filter(s => (kind === 'conf' || s.date === key) && (s.brief || liveNotes(s).length)).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+const wrapDays = () => Object.keys(state.dayBriefs || {}).sort();
+const picked = (k) => !state.wrapPicks?.[k]?.skip;
+function setPicked(k, on) { state.wrapPicks = state.wrapPicks || {}; state.wrapPicks[k] = { skip: !on, t: now() }; touch(); }
 async function generateDayBrief(date) {
-  const items = sessionsArr().filter(s => s.date === date).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+  const all = wrapItems('day', date), items = all.filter(s => picked(`day:${s.id}`));
   const mats = items.map(s => sessionMaterial(s)).filter(Boolean);
-  if (!mats.length) throw new Error('Nothing to wrap up yet: add notes or finish a session on this day.');
+  if (!mats.length) throw new Error(all.length ? 'Nothing is selected: tick at least one session to include.' : 'Nothing to wrap up yet: add notes or finish a session on this day.');
   let r;
   if (settings.apiKey) {
     r = await claude({ system: WRAP_SYSTEM, schema: DAY_SCHEMA,
@@ -3633,17 +4033,18 @@ async function generateDayBrief(date) {
       highlights: b.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), themes: [], peopleAndCompanies: items.filter(s => s.informal && s.speaker).map(s => `${s.speaker} (${s.title})`),
       actionItems: b.flatMap(s => s.brief.actionItems), openQuestions: b.flatMap(s => s.brief.openQuestions).slice(0, 4), source: 'offline' };
   }
-  r.generatedAt = now(); r.sessions = mats.length;
+  r.generatedAt = now(); r.sessions = mats.length; r.left = all.length - items.length;
   state.dayBriefs = state.dayBriefs || {}; state.dayBriefs[date] = r; touch();
   return r;
 }
 async function generateConfBrief() {
-  const items = sessionsArr().sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+  const all = wrapItems('conf'), items = all.filter(s => picked(`conf:${s.id}`));
   const mats = items.map(s => sessionMaterial(s, 3000)).filter(Boolean);
-  if (!mats.length) throw new Error('Nothing to summarise yet: take notes or finish a session first.');
+  const days = wrapDays().filter(d => picked(`conf:day:${d}`));
+  if (!mats.length && !days.length) throw new Error(all.length || wrapDays().length ? 'Nothing is selected: tick at least one session or day to include.' : 'Nothing to summarise yet: take notes or finish a session first.');
   let r;
   if (settings.apiKey) {
-    const dayWraps = Object.entries(state.dayBriefs || {}).sort().map(([d, b]) => `Day wrap-up, ${fmtDate(d)}: ${b.headline}. ${b.summary}`).join('\n');
+    const dayWraps = days.map(d => { const b = state.dayBriefs[d]; return `Day wrap-up, ${fmtDate(d)}: ${b.headline}. ${b.summary}`; }).join('\n');
     r = await claude({ system: WRAP_SYSTEM, schema: CONF_SCHEMA,
       content: [{ type: 'text', text: `Conference: ${state.conference.name || 'Untitled'}\n\n${dayWraps ? dayWraps + '\n\n' : ''}${mats.join('\n\n---\n\n').slice(0, 400000)}\n\nWrite the conference takeaways: headline (one line), summary (5 to 7 sentences for someone who wasn't there), themes (3 to 5 cross-cutting themes), topTakeaways (6 to 10), learnings (3 to 6 things the attendee can apply at work), actionItems (concrete follow-ups), peopleAndCompanies (people and vendors worth following up with; empty if none), slides (a presentation of 6 to 10 slides for sharing with colleagues: each has a short title and 3 to 5 concise bullets; start with the big picture, then one slide per theme, then what to do next).` }] });
     r.source = 'ai';
@@ -3654,7 +4055,7 @@ async function generateConfBrief() {
       themes: [], topTakeaways: take, learnings: b.flatMap(s => s.brief.learnings).slice(0, 6), actionItems: b.flatMap(s => s.brief.actionItems),
       peopleAndCompanies: items.filter(s => s.informal && s.speaker).map(s => `${s.speaker} (${s.title})`), slides: [], source: 'offline' };
   }
-  r.generatedAt = now(); r.sessions = mats.length;
+  r.generatedAt = now(); r.sessions = mats.length; r.days = days.length; r.left = all.length - items.length + wrapDays().length - days.length;
   state.confBrief = r; touch();
   return r;
 }
@@ -3675,46 +4076,62 @@ const SEC_STYLE = { Highlights: ['b-take', 'target'], 'Top takeaways': ['b-take'
 function openWrap(kind, key) {
   const label = kind === 'day' ? `${fmtDate(key, { weekday: 'long' })} Wrap-up` : 'Conference Takeaways';
   const sh = openSheet({ title: label, left: 'Close', right: 'Export', cls: 'wide', body: `<div id="wrapBody"></div>`,
-    onRight: (api) => { const rp = reportOf(kind, key); rp && exportMenu($('[data-act=right]', api.el), rp); } });
+    onRight: (api) => { if (picking) return run(); const rp = reportOf(kind, key); rp && exportMenu($('[data-act=right]', api.el), rp); } });
   const body = $('#wrapBody', sh.el);
   const what = kind === 'day' ? 'Wrap-up' : 'Takeaways';
-  let busy = false;
-  // Nothing is generated until the user asks: an AI briefing sends every note of the day or conference to Claude.
-  const ready = () => {
-    sh.setRight('Export', false);
-    const items = sessionsArr().filter(s => (kind === 'conf' || s.date === key) && (s.brief || liveNotes(s).length));
-    if (!items.length) { body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">${kind === 'day' ? 'Nothing to wrap up yet: add notes or finish a session on this day.' : 'Nothing to summarise yet: take notes or finish a session first.'}</p>`; return; }
-    const briefed = items.filter(s => s.brief && !s.informal).length, quick = items.filter(s => s.informal).length, raw = items.length - briefed - quick;
-    const parts = [briefed && `${briefed} session brief${briefed === 1 ? '' : 's'}`, raw && `${raw} session${raw === 1 ? '' : 's'} with notes only`, quick && `${quick} quick note${quick === 1 ? '' : 's'}`].filter(Boolean);
-    body.innerHTML = `<div class="wr-ready"><div class="empty-art">${I.sparkles}</div>
-      <h2>${kind === 'day' ? `Wrap up ${fmtDate(key, { weekday: 'long' })}` : 'Pull the conference together'}</h2>
-      <p class="muted">Copilot will combine ${esc(parts.join(', ').replace(/, ([^,]*)$/, ' and $1'))} into ${kind === 'day' ? 'one end-of-day briefing' : 'one set of takeaways and a slide deck'}.</p>
-      <p class="f-cap">${settings.apiKey ? 'This sends those notes and briefs to Claude using your API key.' : 'No Claude key is set, so this is written on this device from your session briefs.'}</p>
-      <button class="btn btn-primary" id="wrGo">${I.sparkles} Create ${what}</button></div>`;
+  let busy = false, picking = false;
+  // Nothing is generated until the user asks: an AI briefing sends the chosen notes and briefs to Claude.
+  // This screen is that question, and where the user picks what goes in (for a refresh too).
+  const ready = (refresh) => {
+    picking = true;
+    const items = wrapItems(kind, key), dayList = kind === 'conf' ? wrapDays() : [];
+    if (!items.length && !dayList.length) { picking = false; sh.setRight('Export', false); body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">${kind === 'day' ? 'Nothing to wrap up yet: add notes or finish a session on this day.' : 'Nothing to summarise yet: take notes or finish a session first.'}</p>`; return; }
+    const pk = (s) => `${kind}:${s.id}`;
+    const meta = (s) => [s.start ? fmtTime(s.start) : '', s.informal ? `Quick note${KINDS[s.kind] ? ` · ${KINDS[s.kind]}` : ''}` : s.brief ? 'Brief' : `Notes only (${liveNotes(s).length})`, s.speaker].filter(Boolean).join(' · ');
+    const box = (k, title, sub) => `<label class="pv-item"><input type="checkbox" data-pk="${esc(k)}" ${picked(k) ? 'checked' : ''}><div><b>${esc(title)}</b><span>${esc(sub)}</span></div></label>`;
+    const byDay = kind === 'conf' ? [...new Set(items.map(s => s.date || ''))] : [key];
+    body.innerHTML = `<div class="wr-ready" style="padding-bottom:8px"><h2>${refresh ? `Refresh the ${what.toLowerCase()}` : kind === 'day' ? `Wrap up ${fmtDate(key, { weekday: 'long' })}` : 'Pull the conference together'}</h2>
+        <p class="muted" id="wrSum"></p>
+        <p class="f-cap">${settings.apiKey ? `Only what’s ticked is sent to Claude using your API key${refresh ? ', and it replaces the current one' : ''}.` : 'No Claude key is set, so this is written on this device from the ticked session briefs.'}</p></div>
+      ${dayList.length ? `<div class="grp-t">Day wrap-ups</div><div class="preview" style="margin-top:0">${dayList.map(d => box(`conf:day:${d}`, `${fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' })} wrap-up`, state.dayBriefs[d].headline || '')).join('')}</div>` : ''}
+      ${byDay.map(d => { const ss = items.filter(s => kind === 'day' || (s.date || '') === d); return ss.length ? `<div class="grp-t" style="display:flex;align-items:baseline;gap:8px"><span>${kind === 'day' ? 'Sessions and notes' : d ? fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' }) : 'No date'}</span><span class="spacer"></span><button class="btn btn-plain btn-sm" data-pall="${esc(d)}">All</button><button class="btn btn-plain btn-sm" data-pnone="${esc(d)}">None</button></div>
+        <div class="preview" style="margin-top:0">${ss.map(s => box(pk(s), s.title || 'Untitled', meta(s))).join('')}</div>` : ''; }).join('')}
+      <div class="wr-ready" style="padding-top:14px">${refresh ? `<button class="btn btn-gray" id="wrBack">Keep the Current One</button> ` : ''}<button class="btn btn-primary" id="wrGo">${I.sparkles} ${refresh ? 'Refresh' : 'Create'} ${what}</button></div>`;
+    const sum = () => {
+      const on = items.filter(s => picked(pk(s))), dOn = dayList.filter(d => picked(`conf:day:${d}`)).length;
+      const briefed = on.filter(s => s.brief && !s.informal).length, quick = on.filter(s => s.informal).length, raw = on.length - briefed - quick;
+      const parts = [dOn && `${dOn} day wrap-up${dOn === 1 ? '' : 's'}`, briefed && `${briefed} session brief${briefed === 1 ? '' : 's'}`, raw && `${raw} session${raw === 1 ? '' : 's'} with notes only`, quick && `${quick} quick note${quick === 1 ? '' : 's'}`].filter(Boolean);
+      const left = items.length - on.length + dayList.length - dOn, any = parts.length > 0;
+      $('#wrSum', body).textContent = any ? `Copilot will combine ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')} into ${kind === 'day' ? 'one end-of-day briefing' : 'one set of takeaways and a slide deck'}${left ? `, leaving out ${left}` : ''}.` : 'Tick what to include.';
+      $('#wrGo', body).disabled = !any; sh.setRight(refresh ? 'Refresh' : 'Create', any);
+    };
+    $$('[data-pk]', body).forEach(c => c.onchange = () => { setPicked(c.dataset.pk, c.checked); sum(); });
+    const setDay = (d, on) => { for (const s of items) if (kind === 'day' || (s.date || '') === d) setPicked(pk(s), on); $$('[data-pk]', body).forEach(c => c.checked = picked(c.dataset.pk)); sum(); };
+    $$('[data-pall]', body).forEach(b => b.onclick = () => setDay(b.dataset.pall, true));
+    $$('[data-pnone]', body).forEach(b => b.onclick = () => setDay(b.dataset.pnone, false));
     $('#wrGo', body).onclick = () => run();
+    $('#wrBack', body)?.addEventListener('click', () => { picking = false; paint(); });
+    sum();
   };
   const paint = () => {
     const rp = reportOf(kind, key);
-    sh.setRight('Export', !!rp && !busy);
+    picking = false; sh.setRight('Export', !!rp && !busy);
     if (busy) { body.innerHTML = `<div class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:40px"><span class="spin"></span>${kind === 'day' ? 'Pulling the day together…' : 'Pulling the whole conference together…'}</div>`; return; }
     if (!rp) return ready();
     const r = rp.data;
-    body.innerHTML = `<article class="brief"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${esc(rp.subtitle)} · from ${r.sessions || 0} session${r.sessions === 1 ? '' : 's'} and notes · ${r.source === 'ai' ? 'written by Claude' : 'written on this device'} ${esc(ago(r.generatedAt))}</p>
+    body.innerHTML = `<article class="brief"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${esc(rp.subtitle)} · from ${r.days ? `${r.days} day wrap-up${r.days === 1 ? '' : 's'} and ` : ''}${r.sessions || 0} session${r.sessions === 1 ? '' : 's'} and notes${r.left ? ` (${r.left} left out)` : ''} · ${r.source === 'ai' ? 'written by Claude' : 'written on this device'} ${esc(ago(r.generatedAt))}</p>
       <h2 class="brief-head">${esc(rp.headline)}</h2><p class="brief-sum">${esc(rp.summary)}</p>
       ${rp.sections.map(s => { const [cls, ic] = SEC_STYLE[s.heading] || ['b-take', 'target']; return `<div class="brief-blk ${cls}"><h4>${I[ic]}${esc(s.heading)}</h4><ul>${s.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`; }).join('')}
       ${kind === 'conf' && rp.slides?.length ? `<p class="f-cap" style="margin:16px 0 0">${rp.slides.length}-slide deck ready for PowerPoint export.</p>` : ''}
       <div class="brief-foot">
         <button class="btn btn-sm btn-primary" id="wrExport">${I.download} Export</button>
         <button class="btn btn-sm btn-gray" id="wrCopy">${I.copy} Copy</button>
-        <button class="btn btn-sm btn-gray" id="wrRedo">${I.sparkles} Refresh</button>
+        <button class="btn btn-sm btn-gray" id="wrRedo">${I.sparkles} Choose &amp; Refresh…</button>
         <button class="btn btn-sm btn-plain danger-ink" id="wrDel">${I.trash} Delete</button>
         ${r.source === 'ai' ? '' : '<small>Add a Claude key in Settings for a fuller briefing</small>'}
       </div></article>`;
     $('#wrCopy', body).onclick = async () => { try { await navigator.clipboard.writeText(reportText(rp)); toast('Copied'); } catch { toast('Copy failed'); } };
-    $('#wrRedo', body).onclick = async () => {
-      if (settings.apiKey && !await confirmSheet(`Refresh ${what}?`, `This sends your notes and briefs to Claude again and replaces the current ${what.toLowerCase()}.`, 'Refresh', false)) return;
-      run();
-    };
+    $('#wrRedo', body).onclick = () => { ready(true); body.closest('.sheet-b')?.scrollTo?.(0, 0); };
     $('#wrExport', body).onclick = (e) => exportMenu(e.currentTarget, rp);
     $('#wrDel', body).onclick = async () => { if (await confirmDeleteBriefing({ kind, key })) paint(); };
   };
