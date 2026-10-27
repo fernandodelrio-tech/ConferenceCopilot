@@ -226,7 +226,7 @@ svg{display:block;flex:none}
 .sb-item .ct.ok svg{width:15px;height:15px}
 @media (min-width:760px){#syncBtn2 span{display:none}}
 .sb-item .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ic-today{background:#F56300} .ic-all{background:#6E6E73} .ic-todo{background:#0071E3} .ic-done{background:#1E9E47} .ic-note{background:#8E44C9} .ic-wrap{background:#0071E3} .ic-conf{background:#1D1D1F} .ic-map{background:#0A84A0} .ic-now{background:#E0245E} .ic-flight{background:#5856D6}
+.ic-today{background:#F56300} .ic-all{background:#6E6E73} .ic-todo{background:#0071E3} .ic-done{background:#1E9E47} .ic-note{background:#8E44C9} .ic-wrap{background:#0071E3} .ic-conf{background:#1D1D1F} .ic-map{background:#0A84A0} .ic-now{background:#E0245E} .ic-flight{background:#5856D6} .ic-catch{background:#C2410C}
 /* Day icon: a tiny calendar page */
 .sb-item .ic.cal-ic{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--sep-2);display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden;padding:0}
 .cal-ic small{display:block;width:100%;background:#F2363A;color:#fff;font-size:.5rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:9px;text-align:center}
@@ -317,6 +317,25 @@ body.resizing iframe,body.resizing video{pointer-events:none}
 .t-brief{background:var(--purple-soft);color:var(--purple)}
 .t-notes{background:var(--fill);color:var(--text-2);font-weight:500}
 .t-done{background:var(--green-soft);color:var(--green)}
+.t-catch{background:var(--orange-soft);color:var(--orange)}
+.cu-ask{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;font-weight:600;color:var(--orange);background:var(--orange-soft);border-radius:999px;padding:5px 11px}
+.cu-ask svg{width:13px;height:13px}
+.cu-card{margin:14px 0 2px;border:1px solid color-mix(in srgb,var(--orange) 28%,var(--sep));border-radius:14px;background:color-mix(in srgb,var(--orange-soft) 55%,var(--surface));padding:12px 14px;max-width:720px}
+.cu-card.done{border-color:var(--sep);background:var(--surface)}
+.cu-h{display:flex;align-items:center;gap:8px;font-weight:650;font-size:.9333rem}
+.cu-h svg{width:17px;height:17px;color:var(--orange);flex:none}
+.cu-card.done .cu-h svg{color:var(--green)}
+.cu-h span{flex:1;min-width:0}
+.cu-h button{font-size:.8667rem;font-weight:500;color:var(--accent)}
+.cu-note{margin:6px 0 0;font-size:.9rem;color:var(--text-2);white-space:pre-wrap}
+.cu-link{display:block;max-width:100%;text-align:left;margin-top:6px;font-size:.8667rem;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cu-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cu-group{padding:14px 6px 4px;font-size:.8rem;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em}
+.cu-how{display:grid;gap:8px}
+.cu-how label{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--sep);border-radius:12px;cursor:pointer}
+.cu-how label:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.cu-how input{margin-top:3px}
+.cu-how small{display:block;color:var(--text-2);font-size:.8rem;margin-top:1px}
 .row.sel .tag,.row.sel .qn-tag{background:rgba(255,255,255,.2);color:var(--on-sel)}
 .row.done:not(.sel) .row-title{color:var(--text-2)}
 
@@ -943,7 +962,7 @@ details.help code{background:var(--surface);padding:2px 7px;border-radius:6px;fo
       <h2 class="large-title no-sidebar">Agenda</h2>
       <div class="list-sub no-sidebar" id="confName"></div>
       <div class="seg no-sidebar" id="filterSeg" role="tablist">
-        <button data-f="now" role="tab">Now</button><button data-f="all" role="tab">All</button><button data-f="todo" role="tab">To Attend</button><button data-f="attended" role="tab">Attended</button>
+        <button data-f="now" role="tab">Now</button><button data-f="all" role="tab">All</button><button data-f="todo" role="tab">To Attend</button><button data-f="attended" role="tab">Attended</button><button data-f="catchup" role="tab" hidden>Catch Up</button>
       </div>
       <label class="search"><span id="searchIcon"></span><input id="search" type="search" placeholder="Search" autocomplete="off" aria-label="Search sessions and notes"><kbd>⌘F</kbd></label>
     </div>
@@ -1045,6 +1064,7 @@ const I = {
   list: P('<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>', 'stroke-width="2.2"'),
   bolt: P('<path d="M13 3 5 14h6l-1 7 8-11h-6z"/>'),
   book: P('<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M19 19v2H6"/>'),
+  replay: P('<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/><path d="M10 8.8v6.4l5.2-3.2z"/>'),
 };
 
 /* ---------- Storage: IndexedDB ---------- */
@@ -1251,8 +1271,9 @@ const VIEWS = {
   now: { label: 'Now & Next', icon: I.clock, cls: 'ic-now', test: s => s.date === todayISO() },
   today: { label: 'Today', icon: I.clock, cls: 'ic-today', test: s => s.date === todayISO() },
   all: { label: 'All Sessions', icon: I.tray, cls: 'ic-all', test: () => true },
-  todo: { label: 'To Attend', icon: I.circle, cls: 'ic-todo', test: s => !s.attended && !s.informal },
+  todo: { label: 'To Attend', icon: I.circle, cls: 'ic-todo', test: s => !s.attended && !s.informal && !s.catchup },
   attended: { label: 'Attended', icon: I.check, cls: 'ic-done', test: s => s.attended },
+  catchup: { label: 'Catch Up', icon: I.replay, cls: 'ic-catch', test: s => !!s.catchup && !s.informal },
   informal: { label: 'Quick Notes', icon: I.chat, cls: 'ic-note', test: s => s.informal },
 };
 function viewDef(v = ui.view) {
@@ -1283,11 +1304,12 @@ function renderSidebar() {
   const att = formal.filter(x => x.attended).length, live = formal.filter(x => isLive(x) && !x.attended).length;
   let html = formal.length ? `<div class="sb-progress" aria-label="${att} of ${formal.length} sessions attended"><div class="pr-top"><b>${att}</b><span class="pr-of">of ${formal.length} attended</span></div>
     <div class="pr-bar"><i style="width:${Math.round(att / formal.length * 100)}%"></i></div>
-    <div class="pr-sub"><span>${live ? `${live} happening now` : ''}</span><span>${formal.length - att} to go</span></div></div>` : '';
+    <div class="pr-sub"><span>${live ? `${live} happening now` : ''}</span><span>${count(VIEWS.todo.test)} to go</span></div></div>` : '';
   const nToday = count(VIEWS.today.test);
   if (all.some(x => !x.informal && x.date >= todayISO())) html += item('now', VIEWS.now, all.filter(isLive).length);
   if (nToday) html += item('today', VIEWS.today, nToday);
   html += item('all', VIEWS.all, all.length) + item('todo', VIEWS.todo, count(VIEWS.todo.test)) + item('attended', VIEWS.attended, count(VIEWS.attended.test));
+  if (all.some(VIEWS.catchup.test) || ui.view === 'catchup') html += item('catchup', VIEWS.catchup, count(x => VIEWS.catchup.test(x) && !x.catchup.done));
   const nInf = count(VIEWS.informal.test);
   if (nInf) html += item('informal', VIEWS.informal, nInf);
   html += `<button class="sb-item" data-flights><span class="ic ic-flight">${I.plane}</span><span class="tx">Flights</span><span class="ct">${flightsArr().length || ''}</span></button>`;
@@ -1328,7 +1350,7 @@ function sameBuilding(a, b) { const x = normLoc(buildingOf(a)).trim(), y = normL
 // 15 minutes of it offered together as choices, then the rest of the day, or the next day's first sessions
 function nowNext(from) {
   const t = todayISO(), cur = curMin();
-  const formal = sessionsArr().filter(s => !s.informal && s.date && s.start).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
+  const formal = sessionsArr().filter(s => !s.informal && s.date && s.start && (!s.catchup || s === from)).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);
   const today = formal.filter(s => s.date === t), now = today.filter(isLive);
   const anchor = from && !from.informal && from.date === t && from.start ? from : null;
   const after = anchor ? Math.max(cur, endMin(anchor) - 10) : cur;
@@ -1399,7 +1421,8 @@ function bindNowNext(root) {
 function renderList() {
   renderSidebar();
   $('#confName').textContent = state.conference.name || '';
-  $$('#filterSeg button').forEach(b => b.classList.toggle('on', b.dataset.f === ui.view || (b.dataset.f === 'all' && !['todo', 'attended', 'now'].includes(ui.view))));
+  $$('#filterSeg button').forEach(b => b.classList.toggle('on', b.dataset.f === ui.view || (b.dataset.f === 'all' && !['todo', 'attended', 'now', 'catchup'].includes(ui.view))));
+  $('#filterSeg [data-f="catchup"]').hidden = !sessionsArr().some(VIEWS.catchup.test) && ui.view !== 'catchup';
   const vd = viewDef();
   const list = $('#list');
   const all = sessionsArr();
@@ -1424,9 +1447,10 @@ function renderList() {
     return;
   }
   if (!items.length) {
-    list.innerHTML = `<div class="empty"><p>${ui.q ? 'No matches.' : ui.view === 'attended' ? 'Sessions you wrap up appear here, with their briefs.' : ui.view === 'todo' ? 'You’ve attended everything.' : 'Nothing here.'}</p></div>`;
+    list.innerHTML = `<div class="empty"><p>${ui.q ? 'No matches.' : ui.view === 'attended' ? 'Sessions you wrap up appear here, with their briefs.' : ui.view === 'todo' ? 'You’ve attended everything.' : ui.view === 'catchup' ? 'Sessions you can’t attend: open one and tap Catch Up Later, and they wait here until you’ve watched the recording or read the summary.' : 'Nothing here.'}</p></div>`;
     return;
   }
+  if (ui.view === 'catchup') return renderCatchUpList(list, items);
   const byTime = ui.sort === 'time';
   const groups = new Map();
   if (byTime) for (const s of items) { const k = s.date || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); }
@@ -1456,17 +1480,20 @@ function renderList() {
   $$('[data-wrap]', list).forEach(b => b.onclick = () => openWrap('day', b.dataset.wrap));
   $('#sortReset', list)?.addEventListener('click', () => { ui.sort = 'time'; ui.sortRev = false; LS.set('cc.sort', 'time'); LS.set('cc.sortRev', false); renderList(); });
 }
-function rowHTML(s, withDay = false) {
-  const n = liveNotes(s).length, live = isLive(s) && !s.attended, recording = rec.active && rec.sessionId === s.id;
+// In the Catch Up list the checkbox means caught up rather than attended
+function rowHTML(s, withDay = false, catching = false) {
+  const n = liveNotes(s).length, live = isLive(s) && !s.attended && !catching, recording = rec.active && rec.sessionId === s.id;
+  const ok = catching ? !!s.catchup?.done : !!s.attended, okTitle = catching ? (ok ? 'Caught up — click to undo' : 'Mark as caught up') : (ok ? 'Attended — click to undo' : 'Mark as attended');
   const day = withDay && s.date ? fmtDate(s.date, s.start ? { weekday: 'short' } : { month: 'short', day: 'numeric' }) : '';
   const time = [day, s.start ? fmtTime(s.start) : ''].filter(Boolean).join(' ');
-  return `<div class="row ${s.id === ui.selected ? 'sel' : ''} ${s.attended ? 'done' : ''} ${live ? 'live' : ''}" data-id="${s.id}" role="button" tabindex="-1" aria-current="${s.id === ui.selected}">
-    <span class="chk ${s.attended ? 'done' : live ? 'live' : ''}" role="checkbox" aria-checked="${!!s.attended}" title="${s.attended ? 'Attended — click to undo' : 'Mark as attended'}">${s.attended ? I.circleCheck : live ? I.circleLive : I.circle}</span>
+  return `<div class="row ${s.id === ui.selected ? 'sel' : ''} ${ok ? 'done' : ''} ${live ? 'live' : ''}" data-id="${s.id}" role="button" tabindex="-1" aria-current="${s.id === ui.selected}">
+    <span class="chk ${ok ? 'done' : live ? 'live' : ''}" role="checkbox" aria-checked="${ok}" title="${okTitle}">${ok ? I.circleCheck : live ? I.circleLive : I.circle}</span>
     <div class="row-main">
       <div class="row-top"><div class="row-title">${esc(s.title || 'Untitled session')}</div>${time ? `<span class="row-time">${esc(time)}</span>` : ''}</div>
       ${s.speaker || s.room ? `<div class="row-meta">${esc([s.speaker, s.room].filter(Boolean).join(' · '))}</div>` : ''}
-      ${recording || live || s.brief || n || s.informal ? `<div class="tags">
+      ${recording || live || s.brief || n || s.informal || s.catchup ? `<div class="tags">
         ${s.informal ? `<span class="qn-tag">${I.chat}${esc(KINDS[s.kind] || 'Quick note')}</span>` : ''}
+        ${s.catchup ? (s.catchup.done ? `<span class="tag t-done">${I.check} Caught up</span>` : `<span class="tag t-catch">${I.replay} ${esc(CATCH_HOW[s.catchup.how]?.[2] || 'Catch up')}${s.catchup.url ? ' · link' : ''}</span>`) : ''}
         ${recording ? `<span class="tag t-live"><i></i> Recording</span>` : live ? `<span class="tag t-live"><i></i> Now</span>` : ''}
         ${s.brief ? `<span class="tag t-brief">${I.sparkles} Brief</span>` : ''}
         ${n ? `<span class="tag t-notes">${n} note${n > 1 ? 's' : ''}</span>` : ''}</div>` : ''}
@@ -1483,6 +1510,130 @@ function toggleAttended(s) {
   s.attended = !s.attended; s.attendedAt = s.attended ? now() : 0; touch(s);
   renderSidebar(); renderList(); if (ui.selected === s.id) renderDetail();
   toast(s.attended ? 'Marked as attended' : 'Marked as not attended');
+}
+
+/* ---------- Catch up: sessions missed live, to watch the recording or read the summary of later ---------- */
+// [title, explanation, short tag]
+const CATCH_HOW = {
+  recording: ['Watch the recording', 'When the organisers post it, or one a colleague made', 'Recording'],
+  summary: ['Read the summary', 'Post-session notes, slides or a write-up from the organisers or a colleague', 'Summary'],
+  either: ['Whichever comes first', 'The recording or the summary', 'Catch up'],
+};
+const catchFrom = (c) => ({ recording: 'the recording', summary: 'the post-session summary' })[c?.how] || 'the recording or the post-session summary';
+const catchUpContext = (s) => s.catchup.done ? `The attendee did not attend this session live; they caught up afterwards from ${catchFrom(s.catchup)}.` : `The attendee did not attend this session live and is catching up from ${catchFrom(s.catchup)}.`;
+const startedOrPast = (s) => !!s.date && (s.date < todayISO() || (s.date === todayISO() && (!s.start || hmMin(s.start) <= curMin())));
+// Only web addresses open from the card; "example.com/x" gets https:// added
+const cleanUrl = (u) => { u = (u || '').trim(); if (!u) return ''; if (!/^[a-z][\w+.-]*:/i.test(u)) u = 'https://' + u; return /^https?:\/\/[^\s]+$/i.test(u) ? u : ''; };
+function catchUpCardHTML(s) {
+  const c = s.catchup; if (!c || s.informal) return '';
+  if (c.done) return `<div class="cu-card done"><div class="cu-h">${I.circleCheck}<span>Caught up ${esc(new Date(c.done).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}${c.how !== 'either' ? ` · ${esc(CATCH_HOW[c.how][2].toLowerCase())}` : ''}</span><button data-cu="undo">Undo</button></div>
+    ${c.url ? `<button class="cu-link" data-cu="open">${esc(c.url)}</button>` : ''}</div>`;
+  const h = CATCH_HOW[c.how] || CATCH_HOW.either, rec = c.how !== 'summary', sum = c.how !== 'recording';
+  return `<div class="cu-card"><div class="cu-h">${I.replay}<span>To catch up · ${esc(h[0])}</span><button data-cu="edit">Edit</button></div>
+    ${c.note ? `<p class="cu-note">${esc(c.note)}</p>` : ''}
+    ${c.url ? `<button class="cu-link" data-cu="open" title="Open in a new tab">${esc(c.url)}</button>` : ''}
+    <div class="cu-acts">
+      ${c.url ? `<button class="btn btn-sm btn-tinted" data-cu="open">${I.play} Open ${c.how === 'summary' ? 'Summary' : c.how === 'recording' ? 'Recording' : 'Link'}</button>` : `<button class="btn btn-sm btn-gray" data-cu="edit">Add Link</button>`}
+      ${rec ? `<button class="btn btn-sm btn-gray" data-cu="file">${I.wave} Transcribe a Recording File</button>` : ''}
+      ${sum ? `<button class="btn btn-sm btn-gray" data-cu="sum">${I.doc} Add the Summary</button>` : ''}
+      <button class="btn btn-sm btn-primary" data-cu="done">${I.check} Mark Caught Up</button>
+    </div></div>`;
+}
+function bindCatchUp(root, s) {
+  $('#cuAsk', root)?.addEventListener('click', () => openCatchUp(s));
+  const acts = { edit: () => openCatchUp(s), undo: () => setCaughtUp(s, false), done: () => setCaughtUp(s, true), file: () => addRecordingFile(s), sum: () => openSummaryPaste(s),
+    open: () => { const u = cleanUrl(S(s.id)?.catchup?.url); if (u) window.open(u, '_blank', 'noopener'); } };
+  $$('[data-cu]', root).forEach(b => b.onclick = () => acts[b.dataset.cu]?.());
+}
+function openCatchUp(s) {
+  const c = s.catchup || {}, how = c.how || 'either';
+  openSheet({
+    title: s.catchup ? 'Catch Up' : 'Catch Up Later', left: 'Cancel', right: s.catchup ? 'Save' : 'Add',
+    body: `<p class="muted" style="margin:2px 4px 14px">${esc(s.title || 'Untitled session')}</p>
+      <div class="grp-t">How you’ll catch up</div>
+      <div class="cu-how" role="radiogroup" aria-label="How you’ll catch up">${Object.entries(CATCH_HOW).map(([k, [l, d]]) => `<label><input type="radio" name="cuHow" value="${k}" ${how === k ? 'checked' : ''}><span><b>${esc(l)}</b><small>${esc(d)}</small></span></label>`).join('')}</div>
+      <div class="grp-t">Where to find it</div>
+      <div class="grp"><div class="f-row"><input type="url" id="cuUrl" inputmode="url" autocapitalize="off" placeholder="Recording or summary link (optional)" aria-label="Link" value="${esc(c.url || '')}"></div></div>
+      <div class="grp-t">Note</div>
+      <div class="grp"><div class="f-row"><textarea id="cuNote" rows="2" placeholder="For example: recordings go up on the event app a week later; ask Priya for her notes" aria-label="Note">${esc(c.note || '')}</textarea></div></div>
+      <p class="f-cap">Notes you take while watching or reading, a recording file and the summary all go into this session’s brief.</p>
+      ${s.catchup ? `<div class="stack" style="max-width:none;margin-top:14px"><button class="btn btn-plain" id="cuStop" style="color:var(--red)">Remove from Catch Up</button></div>` : ''}`,
+    onMount: (sh) => {
+      $('#cuStop', sh.el)?.addEventListener('click', () => {
+        const cur = S(s.id); if (cur) { delete cur.catchup; touch(cur); }
+        sh.close(); render(); toast('Removed from Catch Up');
+      });
+    },
+    onRight: (sh) => {
+      const cur = S(s.id); if (!cur) return sh.close();
+      const raw = $('#cuUrl', sh.el).value.trim(), url = cleanUrl(raw);
+      if (raw && !url) { toast('That doesn’t look like a web address'); return $('#cuUrl', sh.el).focus(); }
+      const first = !cur.catchup;
+      cur.catchup = { ...(cur.catchup || {}), how: $('input[name=cuHow]:checked', sh.el)?.value || 'either', url, note: $('#cuNote', sh.el).value.trim(), at: cur.catchup?.at || now(), done: cur.catchup?.done || 0 };
+      touch(cur); sh.close(); render();
+      toast(first ? 'Added to Catch Up' : 'Saved');
+    },
+  });
+}
+function setCaughtUp(s, on) {
+  const cur = S(s.id); if (!cur?.catchup) return;
+  cur.catchup = { ...cur.catchup, done: on ? now() : 0 }; touch(cur);
+  renderSidebar(); renderList(); if (ui.selected === cur.id) renderDetail();
+  toast(!on ? 'Back on your catch-up list' : liveNotes(cur).length && !cur.brief ? 'Caught up. Tap Finish & Brief for the brief.' : 'Marked as caught up', false, 3500);
+}
+// The organisers' write-up, pasted in: kept as a text document of the session, so it syncs and goes into the brief
+function openSummaryPaste(s) {
+  openSheet({
+    title: 'Add the Summary', left: 'Cancel', right: 'Add',
+    body: `<div class="grp"><div class="f-row"><textarea id="cuSum" rows="10" placeholder="Paste the post-session summary, the write-up or a colleague’s notes" aria-label="Summary"></textarea></div>
+        <div class="f-row"><input type="text" id="cuSumFrom" placeholder="From (optional): event app, speaker’s blog, Priya…" aria-label="Where it came from"></div></div>
+      <p class="f-cap">Have it as a file? <button class="btn-plain" id="cuSumFile" style="color:var(--accent)">Attach a PDF, Word file or slides</button> instead.</p>`,
+    onMount: (sh) => {
+      const ta = $('#cuSum', sh.el); sh.setRight('Add', false);
+      ta.oninput = () => sh.setRight('Add', !!ta.value.trim());
+      $('#cuSumFile', sh.el).onclick = () => { sh.close(); $('#attachBtn').click(); };
+      setTimeout(() => ta.focus(), 300);
+    },
+    onRight: async (sh) => {
+      const cur = S(s.id), text = $('#cuSum', sh.el).value.replace(/\r/g, '').trim(); if (!cur || !text) return;
+      const from = $('#cuSumFrom', sh.el).value.trim(), mediaId = uid(), blob = new Blob([text], { type: 'text/plain' });
+      await DB.put('media', mediaId, blob);
+      addNote(cur, { type: 'doc', mediaId, mime: 'text/plain', fileName: `Post-session summary${from ? ` (${from.replace(/[\\/:*?"<>|]+/g, '').slice(0, 40)})` : ''}.txt`, size: blob.size, kind: 'Summary', ext: 'txt', meta: `${wordCount(text).toLocaleString()} words`, docText: text.slice(0, DOC_TEXT_MAX), truncated: text.length > DOC_TEXT_MAX, text: from ? `From ${from}` : '' });
+      sh.close(); renderDetail(); renderList(); scrollNotesEnd(); toast('Summary added');
+    },
+  });
+}
+const mediaDuration = (blob) => new Promise(res => {
+  const el = document.createElement(blob.type.startsWith('video/') ? 'video' : 'audio'), url = URL.createObjectURL(blob);
+  const done = (d) => { clearTimeout(t); URL.revokeObjectURL(url); res(Number.isFinite(d) ? Math.round(d) : 0); };
+  const t = setTimeout(() => done(0), 6000);
+  el.preload = 'metadata'; el.onloadedmetadata = () => done(el.duration); el.onerror = () => done(0); el.src = url;
+});
+// A recording someone downloaded or shared (audio or video), added as the session's recording and transcribed with Deepgram
+const BIG_RECORDING = 100 * 1048576;
+function addRecordingFile(s) {
+  pickFile('audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov,.webm', async (f) => {
+    const cur = S(s.id); if (!cur) return;
+    if (f.size > 2e9) return toast('That file is over 2 GB, more than Deepgram accepts. Save the audio only and try again.', false, 5000);
+    const mime = f.type || (/\.(mov|mp4)$/i.test(f.name) ? 'video/mp4' : 'audio/mp4'), mediaId = uid(), blob = new Blob([f], { type: mime });
+    try { await DB.put('media', mediaId, blob); } catch { return toast('There isn’t room on this device for that file.', false, 5000); }
+    const n = addNote(cur, { type: 'audio', mediaId, mime, size: f.size, duration: await mediaDuration(blob), fileName: f.name || 'Recording', imported: true, ...(f.size > BIG_RECORDING ? { localOnly: true } : {}) });
+    renderDetail(); renderList(); scrollNotesEnd();
+    if (useDeepgram()) retranscribe(S(cur.id), n.id);
+    else toast('Recording added. Add a Deepgram key in Settings to transcribe it.', false, 4500);
+  });
+}
+// The Catch Up list: still to do first, then what's done
+function renderCatchUpList(list, items) {
+  const open = items.filter(s => !s.catchup.done), done = items.filter(s => s.catchup.done);
+  let html = open.length ? `<div class="cu-group">To catch up · ${open.length}</div>${open.map(s => rowHTML(s, true, true)).join('')}` : `<div class="empty" style="padding:28px 16px 8px"><p>All caught up.</p></div>`;
+  if (done.length) html += `<div class="cu-group">Caught up · ${done.length}</div>${done.map(s => rowHTML(s, true, true)).join('')}`;
+  list.innerHTML = html;
+  $$('.row', list).forEach(r => {
+    r.onclick = (e) => { if (e.target.closest('.chk')) return; select(r.dataset.id); };
+    r.oncontextmenu = (e) => { e.preventDefault(); select(r.dataset.id, false); sessionMenu(null, { x: e.clientX, y: e.clientY }); };
+    $('.chk', r).onclick = (e) => { e.stopPropagation(); const x = S(r.dataset.id); setCaughtUp(x, !x.catchup.done); };
+  });
 }
 
 function select(id, push = true) {
@@ -1542,12 +1693,13 @@ function renderDetail() {
     ${s.speaker ? `<div class="d-speaker">${s.informal ? 'With ' : ''}${esc(s.speaker)}</div>` : ''}
     ${s.informal ? `<div class="kinds" role="group" aria-label="Kind of note">${Object.entries(KINDS).map(([k, v]) => `<button class="kind-chip" data-kind="${k}" aria-pressed="${s.kind === k}">${v}</button>`).join('')}${settings.apiKey && notes.length ? `<button class="kind-chip qn-suggest" id="suggestTitle" ${ui.busyTitle === s.id ? 'disabled' : ''}>${ui.busyTitle === s.id ? '<span class="spin"></span> Suggesting…' : `${I.sparkles} Suggest Title`}</button>` : ''}</div>` : ''}
     ${s.description ? `<div class="d-desc ${ui.descOpen ? '' : 'clamp'}" id="dDesc" title="${ui.descOpen ? '' : 'Show more'}">${esc(s.description)}</div>` : ''}
-    <div class="d-status">${s.attended ? `<span class="tag t-done">${I.check} Attended</span>` : ''}${isLive(s) && !s.attended ? `<span class="tag t-live"><i></i> Happening now</span>` : ''}</div>
-    <div id="upNext">${upNextHTML(s)}</div>
+    <div class="d-status">${s.attended ? `<span class="tag t-done">${I.check} Attended</span>` : ''}${isLive(s) && !s.attended ? `<span class="tag t-live"><i></i> Happening now</span>` : ''}${!s.informal && !s.attended && !s.catchup && startedOrPast(s) && !liveNotes(s).length ? `<button class="cu-ask" id="cuAsk">${I.replay} Can’t attend? Catch Up Later</button>` : ''}</div>
+    ${catchUpCardHTML(s)}
+    <div id="upNext">${s.catchup && !s.attended ? '' : upNextHTML(s)}</div>
     ${busy ? `<div class="sec-h"><h3>Brief</h3></div><div class="brief-pending"><span class="spin"></span>Reading your notes and writing the brief…</div>` : s.brief ? renderBrief(s) : ''}</div>
     <div class="sec-h notes-head"><h3>Notes</h3><small>${notes.length || ''}</small></div>
     <div class="notes">${notes.length ? notes.map(renderNote).join('') : `
-      <div class="notes-empty"><b>Capture the talk your way</b>Type below, add a photo of a slide, attach the deck or a handout, or record the speaker for a live transcript.${isTouch ? '' : ' You can also drag files here.'}
+      <div class="notes-empty">${s.catchup && !s.catchup.done && !s.attended ? '<b>Take notes as you catch up</b>Type while you watch or read, add photos of the slides, attach the deck, or record the replay as it plays.' : '<b>Capture the talk your way</b>Type below, add a photo of a slide, attach the deck or a handout, or record the speaker for a live transcript.'}${isTouch ? '' : ' You can also drag files here.'}
         <div class="ways">
           <span><i>${I.text}</i>Type</span>
           <span data-way="photo" style="cursor:pointer"><i>${I.camera}</i>Photo</span>
@@ -1558,6 +1710,7 @@ function renderDetail() {
     </div>
   </div>`;
   $('#dDesc', det)?.addEventListener('click', () => { ui.descOpen = !ui.descOpen; renderDetail(); });
+  bindCatchUp(det, s);
   $$('[data-way]', det).forEach(w => w.onclick = () => ({ photo: () => $('#photoBtn').click(), video: () => $('#videoBtn').click(), file: () => $('#attachBtn').click(), rec: () => $('#micBtn').click() })[w.dataset.way]());
   $$('[data-kind]', det).forEach(b => b.onclick = () => setKind(s, b.dataset.kind));
   $('#dLoc', det)?.addEventListener('click', () => openMaps({ sessionId: s.id }));
@@ -1694,7 +1847,7 @@ function renderNote(n) {
   let media = '';
   if (n.type === 'photo') media = `<div class="note-media"><img data-media="${n.mediaId}" alt="${esc(n.text || 'Photo')}"></div>`;
   if (n.type === 'video') media = `<div class="note-media"><video data-media="${n.mediaId}" controls playsinline preload="metadata" ${n.thumb ? `poster="${n.thumb}"` : ''}></video></div>`;
-  if (n.type === 'audio' && n.mediaId) media = `<div class="note-media audio"><audio data-media="${n.mediaId}" controls preload="metadata"></audio></div>`;
+  if (n.type === 'audio' && n.mediaId) media = `<div class="note-media audio"><audio data-media="${n.mediaId}" controls preload="metadata"></audio></div>${n.fileName ? `<div class="note-cap" style="color:var(--text-3)">${esc(n.fileName)}${n.localOnly ? ' · kept on this device only (large file); the transcript syncs' : ''}</div>` : ''}`;
   if (n.type === 'doc') media = `<div class="doc"><span class="doc-ic k-${esc(n.ext)}" aria-hidden="true">${esc((n.ext || 'file').slice(0, 4))}</span><div class="doc-info"><b title="${esc(n.fileName)}">${esc(n.fileName)}</b><span>${esc([n.kind, n.size ? fmtSize(n.size) : '', n.meta].filter(Boolean).join(' · '))}</span></div><button class="btn btn-sm btn-gray" data-n="open">Open</button></div>`;
   let text;
   if (editing) text = `<textarea class="edit-area" id="editArea" aria-label="Edit note">${esc(n.text || '')}</textarea>
@@ -2791,7 +2944,7 @@ async function retranscribe(s, noteId) {
   const n = s.notes.find(x => x.id === noteId); if (!n) return;
   if (!useDeepgram()) { toast('Add a Deepgram key in Settings to transcribe recordings'); return openSettings(); }
   const blob = await getMediaBlob(n); if (!blob) return toast(n.driveId ? 'Connect Google Drive in Settings to load this recording here.' : 'The audio of this recording isn’t on this device.');
-  if (!await confirmSheet('Transcribe this recording again?', `This sends the audio (${fmtDur(n.duration || 0)}) to Deepgram using your key and replaces the current transcript, transcribing it as ${langLabel(recLang(s))}. To change that for this session, use ⋯ → Speakers & Room first. About $0.0043 a minute.`, 'Transcribe', false)) return;
+  if (!await confirmSheet(n.text ? 'Transcribe this recording again?' : 'Transcribe this recording?', `This sends the audio (${n.duration ? fmtDur(n.duration) : fmtSize(n.size || blob.size)}) to Deepgram using your key${n.text ? ' and replaces the current transcript' : ''}, transcribing it as ${langLabel(recLang(s))}. To change that for this session, use ⋯ → Speakers & Room first. About $0.0043 a minute.`, 'Transcribe', false)) return;
   ui.transcribing.add(n.id); if (ui.selected === s.id) renderDetail();
   try {
     const text = await dgTranscribeBlob(s, blob);
@@ -3250,14 +3403,14 @@ async function generateBrief(s) {
     const parts = [[count('text'), 'typed note'], [count('photo'), 'photo'], [count('video'), 'video'], [count('audio'), 'recording'], [count('doc'), 'document']]
       .filter(([n]) => n).map(([n, w]) => `${n} ${w}${n === 1 ? '' : 's'}`);
     const list = parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts.at(-1) : parts[0];
-    if (!await confirmSheet(s.brief ? 'Update the brief?' : 'Create the brief?', `This sends ${list} to Claude using your API key${s.brief ? ' and replaces the current brief. You can undo this.' : s.attended ? '.' : ', then marks the session attended.'}`, s.brief ? 'Update Brief' : 'Create Brief', false)) return;
+    if (!await confirmSheet(s.brief ? 'Update the brief?' : 'Create the brief?', `This sends ${list} to Claude using your API key${s.brief ? ' and replaces the current brief. You can undo this.' : s.attended ? '.' : s.catchup ? (s.catchup.done ? '.' : ', then marks the session caught up.') : ', then marks the session attended.'}`, s.brief ? 'Update Brief' : 'Create Brief', false)) return;
   }
   ui.editingBrief = null;
   ui.busyBrief = s.id; if (ui.selected === s.id) renderDetail(); else updateComposer();
   try {
     let brief;
     if (settings.apiKey) {
-      const content = [{ type: 'text', text: `${s.informal ? `Context: an informal ${(KINDS[s.kind] || 'encounter').toLowerCase()} at the conference, not a scheduled talk. Brief it as such: what was discussed, who was involved, what to follow up on.\n` : ''}Session: ${s.title}\n${s.speaker ? (s.informal ? 'With: ' : 'Speaker: ') + s.speaker + '\n' : ''}${s.date ? 'Date: ' + s.date + (s.start ? ' ' + s.start : '') + '\n' : ''}${s.room ? 'Room: ' + s.room + '\n' : ''}${s.description ? 'Abstract: ' + s.description + '\n' : ''}\nThe attendee's notes, in order:` }];
+      const content = [{ type: 'text', text: `${s.informal ? `Context: an informal ${(KINDS[s.kind] || 'encounter').toLowerCase()} at the conference, not a scheduled talk. Brief it as such: what was discussed, who was involved, what to follow up on.\n` : ''}${s.catchup && !s.attended ? `Context: ${catchUpContext(s)} The notes were taken while catching up, and attached summaries may come from the organisers rather than the attendee.\n` : ''}Session: ${s.title}\n${s.speaker ? (s.informal ? 'With: ' : 'Speaker: ') + s.speaker + '\n' : ''}${s.date ? 'Date: ' + s.date + (s.start ? ' ' + s.start : '') + '\n' : ''}${s.room ? 'Room: ' + s.room + '\n' : ''}${s.description ? 'Abstract: ' + s.description + '\n' : ''}\nThe attendee's notes, in order:` }];
       let images = 0, pdfs = 0, docBudget = 150000;
       const woven = new Set(notes.filter(t => t.type === 'text' && t.recId && notes.some(a => a.id === t.recId && a.type === 'audio' && a.text)).map(t => t.id));
       for (const n of notes) {
@@ -3308,9 +3461,11 @@ async function generateBrief(s) {
     const fresh = S(s.id) || s;
     if (fresh.brief) { brief.prev = briefCore(fresh.brief); brief.undone = false; }
     fresh.brief = brief;
-    if (!fresh.attended) { fresh.attended = true; fresh.attendedAt = now(); }
+    const catching = fresh.catchup && !fresh.attended;
+    if (catching) { if (!fresh.catchup.done) fresh.catchup = { ...fresh.catchup, done: now() }; }
+    else if (!fresh.attended) { fresh.attended = true; fresh.attendedAt = now(); }
     touch(fresh);
-    toast(brief.source === 'ai' ? 'Brief ready · session marked attended' : 'On-device brief ready', false, 4200);
+    toast(brief.source === 'ai' ? (catching ? 'Brief ready · marked caught up' : 'Brief ready · session marked attended') : 'On-device brief ready', false, 4200);
   } catch (e) {
     console.error(e);
     toast(e.message || 'Could not create the brief', false, 5000);
@@ -3763,7 +3918,7 @@ async function resumableUpload(meta, blob) {
   return r.json();
 }
 async function uploadPendingMedia() {
-  const ext = (m) => ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'audio/mp4': 'm4a', 'audio/webm': 'webm', 'video/webm': 'webm' }[(m || '').split(';')[0]] || 'bin');
+  const ext = (m) => ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/webm': 'webm', 'video/webm': 'webm' }[(m || '').split(';')[0]] || 'bin');
   for (const s of sessionsArr()) {
     for (const n of s.notes || []) {
       if (n.deleted && n.driveId && !n.driveTrashed) {
@@ -3771,7 +3926,7 @@ async function uploadPendingMedia() {
         n.driveTrashed = true; n.updatedAt = now(); s.updatedAt = now();
         continue;
       }
-      if (n.deleted || !n.mediaId || n.driveId) continue;
+      if (n.deleted || !n.mediaId || n.driveId || n.localOnly) continue;
       const blob = await DB.get('media', n.mediaId).catch(() => null);
       if (!blob) continue;
       setSync('busy', `Uploading ${n.type}…`);
@@ -4080,7 +4235,7 @@ const LEGACY_KEYS = ['highlights', 'themes', 'peopleAndCompanies', 'actionItems'
 const withSections = (v, kind, patch) => { const o = { ...vCore(v), sections: vSections(v, kind), ...patch }; for (const k of LEGACY_KEYS) delete o[k]; return o; };
 
 function sessionMaterial(s, cap = 8000) {
-  const head = `${s.informal ? `Quick note (${KINDS[s.kind] || 'informal'})` : 'Session'}: ${s.title}${s.speaker ? ` · ${s.speaker}` : ''}${s.start ? ` · ${fmtTime(s.start)}` : ''}`;
+  const head = `${s.informal ? `Quick note (${KINDS[s.kind] || 'informal'})` : 'Session'}: ${s.title}${s.speaker ? ` · ${s.speaker}` : ''}${s.start ? ` · ${fmtTime(s.start)}` : ''}${s.catchup && !s.attended ? `\n(${catchUpContext(s)})` : ''}`;
   if (s.brief) return `${head}\n${briefText(s)}`;
   const notes = liveNotes(s).sort((a, b) => a.ts - b.ts).map(noteAsText).filter(Boolean).join('\n').slice(0, cap);
   return notes ? `${head}\nRaw notes (no brief yet):\n${notes}` : '';
@@ -5397,6 +5552,8 @@ function sessionMenu(anchor, at) {
   const hasNotes = liveNotes(s).length > 0;
   openMenu(anchor, [
     { label: s.attended ? 'Mark as Not Attended' : 'Mark as Attended', icon: I.checkCircle, run: () => toggleAttended(s) },
+    ...(s.informal ? [] : s.catchup ? [{ label: s.catchup.done ? 'Mark as Not Caught Up' : 'Mark as Caught Up', icon: I.replay, run: () => setCaughtUp(s, !s.catchup.done) }, { label: 'Catch-up Details…', icon: I.pencil, run: () => openCatchUp(s) }]
+      : [{ label: 'Catch Up Later…', icon: I.replay, run: () => openCatchUp(s) }]),
     ...(hasNotes ? [{ label: s.brief ? 'Update Brief' : 'Finish & Brief', icon: I.sparkles, kbd: '⌘↩', run: () => generateBrief(s) }] : []),
     ...(s.brief ? [{ label: 'Share Brief…', icon: I.share, run: () => shareBrief(s) }, { label: 'Save Brief to Google Docs', icon: I.doc, run: () => briefToDoc(s) }] : []),
     { sep: true },
