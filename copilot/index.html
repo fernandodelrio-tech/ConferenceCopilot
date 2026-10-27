@@ -379,6 +379,7 @@ body.resizing iframe,body.resizing video{pointer-events:none}
 @media (max-width:759px){.brief{padding:18px}}
 .brief-head{font-family:var(--font-d);font-size:1.3rem;line-height:1.28;font-weight:700;letter-spacing:-.015em;margin:0 0 8px;text-wrap:balance}
 .brief-sum{margin:0;font-size:1rem;line-height:1.55;max-width:68ch}
+.brief-sum+.brief-sum{margin-top:10px}
 .brief-blk{margin-top:20px}
 .brief-blk h4{margin:0 0 8px;font-size:.8rem;font-weight:700;letter-spacing:.02em;display:flex;align-items:center;gap:7px}
 .brief-blk h4 svg{width:15px;height:15px}
@@ -390,6 +391,13 @@ body.resizing iframe,body.resizing video{pointer-events:none}
 .b-quote{--dot:var(--purple)} .b-quote h4{color:var(--purple)} .b-quote li{font-style:italic;color:var(--text-2)}
 .b-act{--dot:var(--orange)} .b-act h4{color:var(--orange)}
 .b-q{--dot:var(--teal)} .b-q h4{color:var(--teal)}
+.wr-vers{display:flex;align-items:center;gap:10px;margin:0 0 14px;flex-wrap:wrap}
+.wr-vers .seg{margin:0;flex:1 1 260px}
+.wr-vers .seg button{padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wr-subj{margin:4px 0 10px;font-size:1.15rem;font-weight:600}
+.wr-subj span{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin-right:6px}
+.wr-esec{margin-top:10px;padding:10px;border-radius:10px;background:var(--fill)}
+.wr-esec .bf-in{font-weight:600;margin-bottom:6px}
 .wr-ready{text-align:center;max-width:440px;margin:0 auto;padding:28px 8px 20px}
 .wr-ready h2{margin:6px 0 8px;font-size:1.35rem;letter-spacing:-.01em}
 .wr-ready p{margin:0 0 10px}
@@ -3817,10 +3825,10 @@ function mergeStates(a, b) {
     sessions[id] = m;
   }
   out.sessions = sessions; out.updatedAt = Math.max(a.updatedAt || 0, b.updatedAt || 0);
-  const newer = (p, q) => ((q?.generatedAt || 0) > (p?.generatedAt || 0) ? q : p) || null;
+  // Wrap-ups: each version (for me, the team, executives, an email) merges on its own
   out.dayBriefs = { ...(a.dayBriefs || {}) };
-  for (const [d, r] of Object.entries(b.dayBriefs || {})) out.dayBriefs[d] = newer(out.dayBriefs[d], r);
-  out.confBrief = newer(a.confBrief, b.confBrief);
+  for (const [d, r] of Object.entries(b.dayBriefs || {})) { const m = mergeWrap(out.dayBriefs[d], r); if (m) out.dayBriefs[d] = m; else delete out.dayBriefs[d]; }
+  out.confBrief = mergeWrap(a.confBrief, b.confBrief);
   // What each wrap-up leaves out: the newest choice wins per item
   out.wrapPicks = { ...(a.wrapPicks || {}) };
   for (const [k, v] of Object.entries(b.wrapPicks || {})) if ((v?.t || 0) > (out.wrapPicks[k]?.t || 0)) out.wrapPicks[k] = v;
@@ -3999,12 +4007,78 @@ function setKind(s, k) { s.kind = k; s.kindSet = true; touch(s); renderDetail();
 /* =========================================================
    Day wrap-ups and conference takeaways
    ========================================================= */
-const DAY_SCHEMA = { type: 'object', additionalProperties: false, required: ['headline', 'summary', 'highlights', 'themes', 'peopleAndCompanies', 'actionItems', 'openQuestions'],
-  properties: { headline: { type: 'string' }, summary: { type: 'string' }, highlights: strArr, themes: strArr, peopleAndCompanies: strArr, actionItems: strArr, openQuestions: strArr } };
-const CONF_SCHEMA = { type: 'object', additionalProperties: false, required: ['headline', 'summary', 'themes', 'topTakeaways', 'learnings', 'actionItems', 'peopleAndCompanies', 'slides'],
-  properties: { headline: { type: 'string' }, summary: { type: 'string' }, themes: strArr, topTakeaways: strArr, learnings: strArr, actionItems: strArr, peopleAndCompanies: strArr,
-    slides: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['title', 'bullets'], properties: { title: { type: 'string' }, bullets: strArr } } } } };
-const WRAP_SYSTEM = `You consolidate one attendee's conference material into a briefing they will reread and share. The material is briefs of sessions they attended, raw notes from sessions without a brief, and quick notes from informal moments (booth visits, conversations, meetups). Connect ideas across sessions when the material supports it, say which session or encounter a point came from when that helps, and never add facts the material doesn't contain. Keep each list item to one or two sentences.`;
+// Each is written for a reader. A day or the conference can have one version per reader, side by side: notes for the
+// attendee that cite their sources, an update for a team that wasn't there, a brief for executives, a message ready to send.
+const AUDIENCES = {
+  notes: { label: 'For me', desc: 'Detailed notes for my own use, each point traced to the session it came from.', cite: true, length: 'standard',
+    guide: 'Reader: the attendee, rereading their own notes later. Be specific and complete. Use sections such as Highlights, Themes, People and companies, Follow-ups and Open questions for a day, or Themes, Top takeaways, What I can apply, Follow-ups and People and companies for the whole conference.' },
+  team: { label: 'For my team', desc: 'For colleagues who weren’t there: what was said, why it matters to us and what to try.', cite: false, length: 'standard',
+    guide: 'Reader: the attendee\'s own team, who did not attend. Give enough context that each point makes sense without having been there, and explain jargon and acronyms the first time. Lead with what matters most to them, say why it matters to a team like theirs, and suggest what to try or talk about. Write in the attendee\'s voice ("I", "we"), warm and practical. Use sections such as Key insights, What it means for us, Ideas to try, Worth a look (tools, vendors, resources) and Questions for us to discuss.' },
+  exec: { label: 'For executives', desc: 'Bottom line first: implications, recommendations and decisions needed. Brief.', cite: false, length: 'short',
+    guide: 'Reader: senior executives who did not attend and will give it two minutes. Bottom line up front: the headline is the single most important conclusion, and the summary (2 to 3 sentences) says what it means for the organisation. No session-by-session account and no conference logistics. Every point is about impact: strategy, risk, cost, talent, customers, competitors, timing. Use sections such as Strategic implications, Recommendations, Decisions or support needed and Risks to watch. Recommendations are the attendee\'s proposals drawn from the material: concrete and few.' },
+  email: { label: 'Email or Slack update', desc: 'A ready-to-send message in plain prose: a subject line and a few short paragraphs.', cite: false, length: 'short',
+    guide: 'Reader: colleagues getting a message from the attendee. The headline is the subject line. The summary is the message itself: 2 to 4 short paragraphs of plain, friendly prose in the attendee\'s voice, separated by blank lines, with no greeting or sign-off and no markdown, ending with what happens next. Sections are optional: at most a short Key points list (3 to 5 items) and a Next steps list.' },
+};
+const AUD_ORDER = ['notes', 'team', 'exec', 'email'];
+const LENGTHS = { short: ['Short', 'Keep it short: the fewest words that carry each point, and 3 or 4 items per section at most.'], standard: ['Standard', 'Complete but tight: 4 to 7 items per section.'], detailed: ['Detailed', 'Thorough: up to 10 items per section, with specifics, numbers and examples from the material.'] };
+const SEC_KINDS = ['highlights', 'insights', 'implications', 'themes', 'learnings', 'resources', 'recommendations', 'actions', 'people', 'questions', 'risks', 'other'];
+const SEC_KIND_STYLE = { highlights: ['b-take', 'target'], insights: ['b-take', 'target'], implications: ['b-take', 'target'], themes: ['b-learn', 'bulb'], learnings: ['b-learn', 'bulb'], resources: ['b-learn', 'bulb'], recommendations: ['b-act', 'flag'], actions: ['b-act', 'flag'], people: ['b-q', 'chat'], questions: ['b-q', 'help'], risks: ['b-q', 'help'], other: ['b-take', 'target'] };
+const wrapSchema = (kind) => ({ type: 'object', additionalProperties: false, required: ['headline', 'summary', 'sections', ...(kind === 'conf' ? ['slides'] : [])], properties: { headline: { type: 'string' }, summary: { type: 'string' },
+  sections: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['heading', 'kind', 'items'], properties: { heading: { type: 'string' }, kind: { type: 'string', enum: SEC_KINDS }, items: strArr } } },
+  ...(kind === 'conf' ? { slides: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['title', 'bullets'], properties: { title: { type: 'string' }, bullets: strArr } } } } : {}) } });
+const WRAP_SYSTEM = `You consolidate one attendee's conference material into a briefing. The material is briefs of sessions they attended, raw notes from sessions without a brief, quick notes from informal moments (booth visits, conversations, meetups) and, for the whole conference, their day wrap-ups. Connect ideas across sessions when the material supports it, and never add facts the material doesn't contain. Keep each list item to one or two sentences. Write the headline, summary and sections for the reader described below: choose section headings that suit that reader, give each section the kind that fits it best, and leave out any section the material doesn't support.`;
+function styleText(kind, st) {
+  const a = AUDIENCES[st.audience] || AUDIENCES.notes;
+  return [a.guide, `Length: ${(LENGTHS[st.length] || LENGTHS.standard)[1]}`,
+    st.cite ? 'Sources: end each point with the session, speaker or encounter it came from in brackets, for example (Opening Keynote) or (booth: Workday).' : 'Sources: don\'t cite sessions or speakers point by point; name a speaker or company only where it adds weight or the reader would want to follow up.',
+    st.focus ? `Tailor it to this, from the attendee: ${st.focus}` : '',
+    kind === 'conf' ? `Also write slides for this reader: ${st.audience === 'exec' ? '4 to 6' : '6 to 10'} slides, each with a short title and 3 to 5 concise bullets, starting with the big picture and ending with what to do next.` : ''].filter(Boolean).join('\n');
+}
+// The reader's last choices on this device, as the starting point next time
+const wrapPrefs = () => LS.get('cc.wrapStyle', {});
+function stylePref(aud) { const a = AUDIENCES[aud] || AUDIENCES.notes, p = wrapPrefs()[aud] || {}; return { audience: aud, length: p.length || a.length, cite: p.cite ?? a.cite, focus: p.focus || '' }; }
+function saveStylePref(st) { const p = wrapPrefs(); p[st.audience] = { length: st.length, cite: st.cite, focus: st.focus }; p.last = st.audience; LS.set('cc.wrapStyle', p); }
+
+// A wrap-up holds its versions by reader; one written before versions existed is itself the "For me" version
+const wrapRec = (kind, key) => kind === 'day' ? state.dayBriefs?.[key] : state.confBrief;
+function wrapVersions(r) { if (!r) return {}; if (r.versions) return r.versions; const { versions, active, droppedAt, ...v } = r; return { notes: { ...v, audience: 'notes' } }; }
+function wrapV(r, aud) { const vs = wrapVersions(r); return vs[aud || r?.active] || vs.notes || Object.values(vs)[0] || null; }
+const wrapInput = (r) => wrapVersions(r).notes || wrapV(r);
+const vTime = (v) => Math.max(v?.generatedAt || 0, v?.editedAt || 0, v?.revisedAt || 0);
+const vCore = (v) => { if (!v) return null; const { prev, undone, ...rest } = v; return rest; };
+function putVersion(kind, key, v) {
+  const r = wrapRec(kind, key), rec = { versions: { ...wrapVersions(r), [v.audience]: v }, active: v.audience, droppedAt: { ...(r?.droppedAt || {}) }, generatedAt: now() };
+  delete rec.droppedAt[v.audience];
+  if (kind === 'day') { state.dayBriefs = state.dayBriefs || {}; state.dayBriefs[key] = rec; } else state.confBrief = rec;
+  touch(); return rec;
+}
+function dropVersion(kind, key, aud) {
+  const r = wrapRec(kind, key), vs = { ...wrapVersions(r) }; delete vs[aud];
+  const rec = { versions: vs, active: Object.keys(vs)[0], droppedAt: { ...(r?.droppedAt || {}), [aud]: now() }, generatedAt: now() };
+  if (kind === 'day') state.dayBriefs[key] = rec; else state.confBrief = rec;
+  touch();
+}
+// Syncing: the newest of each version wins, and a version deleted on one device stays deleted
+function mergeWrap(p, q) {
+  if (!p || !q) return p || q || null;
+  const vs = { ...wrapVersions(p) }, dropped = { ...(p.droppedAt || {}) };
+  for (const [k, v] of Object.entries(wrapVersions(q))) if (vTime(v) > vTime(vs[k])) vs[k] = v;
+  for (const [k, t] of Object.entries(q.droppedAt || {})) dropped[k] = Math.max(dropped[k] || 0, t);
+  for (const k of Object.keys(vs)) if ((dropped[k] || 0) >= vTime(vs[k])) delete vs[k];
+  if (!Object.keys(vs).length) return null;
+  const top = (q.generatedAt || 0) > (p.generatedAt || 0) ? q : p;
+  return { versions: vs, active: vs[top.active] ? top.active : Object.keys(vs)[0], droppedAt: dropped, generatedAt: Math.max(p.generatedAt || 0, q.generatedAt || 0) };
+}
+// Versions written before sections were free-form kept fixed lists
+function vSections(v, kind) {
+  if (v.sections) return v.sections.filter(s => s.items?.length);
+  const L = kind === 'day' ? [['Highlights', 'highlights', v.highlights], ['Themes', 'themes', v.themes], ['People and companies', 'people', v.peopleAndCompanies], ['Follow-ups', 'actions', v.actionItems], ['Open questions', 'questions', v.openQuestions]]
+    : [['Themes', 'themes', v.themes], ['Top takeaways', 'highlights', v.topTakeaways], ['What I can apply', 'learnings', v.learnings], ['Follow-ups', 'actions', v.actionItems], ['People and companies', 'people', v.peopleAndCompanies]];
+  return L.filter(([, , a]) => a?.length).map(([heading, k, items]) => ({ heading, kind: k, items }));
+}
+const LEGACY_KEYS = ['highlights', 'themes', 'peopleAndCompanies', 'actionItems', 'openQuestions', 'topTakeaways', 'learnings'];
+const withSections = (v, kind, patch) => { const o = { ...vCore(v), sections: vSections(v, kind), ...patch }; for (const k of LEGACY_KEYS) delete o[k]; return o; };
+
 function sessionMaterial(s, cap = 8000) {
   const head = `${s.informal ? `Quick note (${KINDS[s.kind] || 'informal'})` : 'Session'}: ${s.title}${s.speaker ? ` · ${s.speaker}` : ''}${s.start ? ` · ${fmtTime(s.start)}` : ''}`;
   if (s.brief) return `${head}\n${briefText(s)}`;
@@ -4018,133 +4092,225 @@ const wrapItems = (kind, key) => sessionsArr().filter(s => (kind === 'conf' || s
 const wrapDays = () => Object.keys(state.dayBriefs || {}).sort();
 const picked = (k) => !state.wrapPicks?.[k]?.skip;
 function setPicked(k, on) { state.wrapPicks = state.wrapPicks || {}; state.wrapPicks[k] = { skip: !on, t: now() }; touch(); }
-async function generateDayBrief(date) {
-  const all = wrapItems('day', date), items = all.filter(s => picked(`day:${s.id}`));
-  const mats = items.map(s => sessionMaterial(s)).filter(Boolean);
-  if (!mats.length) throw new Error(all.length ? 'Nothing is selected: tick at least one session to include.' : 'Nothing to wrap up yet: add notes or finish a session on this day.');
-  let r;
-  if (settings.apiKey) {
-    r = await claude({ system: WRAP_SYSTEM, schema: DAY_SCHEMA,
-      content: [{ type: 'text', text: `Conference: ${state.conference.name || 'Untitled'}\nDay: ${fmtDate(date)}\n\n${mats.join('\n\n---\n\n').slice(0, 300000)}\n\nWrite the end-of-day briefing: headline (one line capturing the day), summary (4 to 6 sentences), highlights (the 5 to 8 most important points of the day), themes (2 to 4 threads that ran through the day), peopleAndCompanies (people met and vendors visited, with why they matter; empty if none), actionItems (concrete follow-ups), openQuestions (up to 4).` }] });
-    r.source = 'ai';
-  } else {
-    const b = items.filter(s => s.brief);
-    r = { headline: `${fmtDate(date, { weekday: 'long' })}: ${b.length} session${b.length === 1 ? '' : 's'} wrapped up`, summary: b.map(s => `${s.title}: ${s.brief.headline !== s.title ? s.brief.headline : (s.brief.keyTakeaways[0] || '')}`).join(' '),
-      highlights: b.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), themes: [], peopleAndCompanies: items.filter(s => s.informal && s.speaker).map(s => `${s.speaker} (${s.title})`),
-      actionItems: b.flatMap(s => s.brief.actionItems), openQuestions: b.flatMap(s => s.brief.openQuestions).slice(0, 4), source: 'offline' };
+function wrapMaterial(kind, key) {
+  const conf = `Conference: ${state.conference.name || 'Untitled'}`;
+  if (kind === 'day') {
+    const all = wrapItems('day', key), items = all.filter(s => picked(`day:${s.id}`)), mats = items.map(s => sessionMaterial(s)).filter(Boolean);
+    return { all, items, mats, days: [], left: all.length - items.length, text: `${conf}\nDay: ${fmtDate(key)}\n\n${mats.join('\n\n---\n\n').slice(0, 300000)}` };
   }
-  r.generatedAt = now(); r.sessions = mats.length; r.left = all.length - items.length;
-  state.dayBriefs = state.dayBriefs || {}; state.dayBriefs[date] = r; touch();
-  return r;
-}
-async function generateConfBrief() {
-  const all = wrapItems('conf'), items = all.filter(s => picked(`conf:${s.id}`));
-  const mats = items.map(s => sessionMaterial(s, 3000)).filter(Boolean);
+  const all = wrapItems('conf'), items = all.filter(s => picked(`conf:${s.id}`)), mats = items.map(s => sessionMaterial(s, 3000)).filter(Boolean);
   const days = wrapDays().filter(d => picked(`conf:day:${d}`));
-  if (!mats.length && !days.length) throw new Error(all.length || wrapDays().length ? 'Nothing is selected: tick at least one session or day to include.' : 'Nothing to summarise yet: take notes or finish a session first.');
-  let r;
+  const dayWraps = days.map(d => { const v = wrapInput(state.dayBriefs[d]); return v ? `Day wrap-up, ${fmtDate(d)}: ${v.headline}. ${v.summary}` : ''; }).filter(Boolean).join('\n');
+  return { all, items, mats, days, left: all.length - items.length + wrapDays().length - days.length, text: `${conf}\n\n${dayWraps ? dayWraps + '\n\n' : ''}${mats.join('\n\n---\n\n').slice(0, 400000)}` };
+}
+async function generateWrap(kind, key, st) {
+  const m = wrapMaterial(kind, key);
+  if (!m.mats.length && !m.days.length) throw new Error(m.all.length || (kind === 'conf' && wrapDays().length) ? 'Nothing is selected: tick at least one session to include.' : kind === 'day' ? 'Nothing to wrap up yet: add notes or finish a session on this day.' : 'Nothing to summarise yet: take notes or finish a session first.');
+  let v;
   if (settings.apiKey) {
-    const dayWraps = days.map(d => { const b = state.dayBriefs[d]; return `Day wrap-up, ${fmtDate(d)}: ${b.headline}. ${b.summary}`; }).join('\n');
-    r = await claude({ system: WRAP_SYSTEM, schema: CONF_SCHEMA,
-      content: [{ type: 'text', text: `Conference: ${state.conference.name || 'Untitled'}\n\n${dayWraps ? dayWraps + '\n\n' : ''}${mats.join('\n\n---\n\n').slice(0, 400000)}\n\nWrite the conference takeaways: headline (one line), summary (5 to 7 sentences for someone who wasn't there), themes (3 to 5 cross-cutting themes), topTakeaways (6 to 10), learnings (3 to 6 things the attendee can apply at work), actionItems (concrete follow-ups), peopleAndCompanies (people and vendors worth following up with; empty if none), slides (a presentation of 6 to 10 slides for sharing with colleagues: each has a short title and 3 to 5 concise bullets; start with the big picture, then one slide per theme, then what to do next).` }] });
-    r.source = 'ai';
+    const r = await claude({ system: `${WRAP_SYSTEM}\n\n${styleText(kind, st)}`, schema: wrapSchema(kind),
+      content: [{ type: 'text', text: `${m.text}\n\nWrite the ${kind === 'day' ? 'end-of-day briefing for this day' : 'takeaways for the whole conference'}.` }] });
+    v = { headline: r.headline || '', summary: r.summary || '', sections: (r.sections || []).filter(s => s.items?.length), ...(kind === 'conf' ? { slides: r.slides || [], slidesAt: now() } : {}), source: 'ai' };
   } else {
-    const b = items.filter(s => s.brief);
-    const take = b.flatMap(s => s.brief.keyTakeaways.slice(0, 2));
-    r = { headline: `${state.conference.name || 'Conference'}: ${b.length} sessions`, summary: b.slice(0, 8).map(s => `${s.title}: ${s.brief.headline !== s.title ? s.brief.headline : (s.brief.keyTakeaways[0] || '')}`).join(' '),
-      themes: [], topTakeaways: take, learnings: b.flatMap(s => s.brief.learnings).slice(0, 6), actionItems: b.flatMap(s => s.brief.actionItems),
-      peopleAndCompanies: items.filter(s => s.informal && s.speaker).map(s => `${s.speaker} (${s.title})`), slides: [], source: 'offline' };
+    if (st.audience !== 'notes') throw new Error('Add a Claude key in Settings to write versions for other readers.');
+    const b = m.items.filter(s => s.brief), people = m.items.filter(s => s.informal && s.speaker).map(s => `${s.speaker} (${s.title})`);
+    const line = (s) => `${s.title}: ${s.brief.headline !== s.title ? s.brief.headline : (s.brief.keyTakeaways[0] || '')}`;
+    const legacy = kind === 'day'
+      ? { headline: `${fmtDate(key, { weekday: 'long' })}: ${b.length} session${b.length === 1 ? '' : 's'} wrapped up`, summary: b.map(line).join(' '), highlights: b.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), peopleAndCompanies: people, actionItems: b.flatMap(s => s.brief.actionItems), openQuestions: b.flatMap(s => s.brief.openQuestions).slice(0, 4) }
+      : { headline: `${state.conference.name || 'Conference'}: ${b.length} sessions`, summary: b.slice(0, 8).map(line).join(' '), topTakeaways: b.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), learnings: b.flatMap(s => s.brief.learnings).slice(0, 6), actionItems: b.flatMap(s => s.brief.actionItems), peopleAndCompanies: people };
+    v = { headline: legacy.headline, summary: legacy.summary, sections: vSections(legacy, kind), ...(kind === 'conf' ? { slides: [] } : {}), source: 'offline' };
   }
-  r.generatedAt = now(); r.sessions = mats.length; r.days = days.length; r.left = all.length - items.length + wrapDays().length - days.length;
-  state.confBrief = r; touch();
-  return r;
+  Object.assign(v, { audience: st.audience, length: st.length, cite: !!st.cite, focus: st.focus || '', generatedAt: now(), sessions: m.mats.length, days: m.days.length, left: m.left });
+  putVersion(kind, key, v);
+  return v;
+}
+async function reviseWrap(kind, key, aud, request) {
+  const v = wrapV(wrapRec(kind, key), aud); if (!v || !request.trim()) return;
+  const a = AUDIENCES[v.audience] || AUDIENCES.notes, st = { audience: v.audience || 'notes', length: v.length || a.length, cite: v.cite ?? a.cite, focus: v.focus || '' };
+  const m = wrapMaterial(kind, key);
+  const cur = { headline: v.headline, summary: v.summary, sections: vSections(v, kind), ...(kind === 'conf' ? { slides: v.slides || [] } : {}) };
+  const r = await claude({ schema: wrapSchema(kind),
+    system: `${WRAP_SYSTEM}\n\n${styleText(kind, st)}\n\nYou are revising a briefing that already exists; the attendee may have edited parts of it by hand. Make the change they ask for and keep everything else as it is, including their wording. Return the complete briefing, every field.${kind === 'conf' ? ' Keep the slides consistent with the text.' : ''} Use the material to add or check facts; if the request needs something it doesn't support, leave it out rather than inventing it.`,
+    content: [{ type: 'text', text: `${m.text}\n\nThe current briefing:\n${JSON.stringify(cur, null, 1)}\n\nThe attendee's request: ${request.trim()}` }] });
+  const fresh = wrapV(wrapRec(kind, key), aud) || v;
+  putVersion(kind, key, withSections(fresh, kind, { headline: r.headline || '', summary: r.summary || '', sections: (r.sections || []).filter(s => s.items?.length), ...(kind === 'conf' ? { slides: r.slides || [], slidesAt: now() } : {}), revisedAt: now(), prev: vCore(fresh), undone: false }));
 }
 // A briefing as neutral sections, shared by the sheet and every export format
-function reportOf(kind, key) {
-  const conf = state.conference.name || 'Conference';
-  if (kind === 'day') {
-    const r = state.dayBriefs?.[key]; if (!r) return null;
-    return { kind, key, title: `${fmtDate(key, { weekday: 'long', month: 'long', day: 'numeric' })} wrap-up`, subtitle: conf, headline: r.headline, summary: r.summary, data: r,
-      sections: [['Highlights', r.highlights], ['Themes', r.themes], ['People and companies', r.peopleAndCompanies], ['Follow-ups', r.actionItems], ['Open questions', r.openQuestions]].filter(([, a]) => a?.length).map(([heading, items]) => ({ heading, items })) };
-  }
-  const r = state.confBrief; if (!r) return null;
-  return { kind, key: 'conf', title: `${conf}: key takeaways`, subtitle: [conf, days().length ? `${fmtDate(days()[0], { month: 'short', day: 'numeric' })}–${fmtDate(days().at(-1), { month: 'short', day: 'numeric' })}` : ''].filter(Boolean).join(' · '), headline: r.headline, summary: r.summary, data: r, slides: r.slides,
-    sections: [['Themes', r.themes], ['Top takeaways', r.topTakeaways], ['What I can apply', r.learnings], ['Follow-ups', r.actionItems], ['People and companies', r.peopleAndCompanies]].filter(([, a]) => a?.length).map(([heading, items]) => ({ heading, items })) };
+function reportOf(kind, key, aud) {
+  const conf = state.conference.name || 'Conference', v = wrapV(wrapRec(kind, key), aud); if (!v) return null;
+  const audience = v.audience || 'notes', suffix = { notes: '', team: ' · for the team', exec: ' · executive briefing', email: ' · update' }[audience] || '';
+  const sections = vSections(v, kind).map(s => ({ heading: s.heading, kind: s.kind, items: s.items }));
+  if (kind === 'day') return { kind, key, audience, title: `${fmtDate(key, { weekday: 'long', month: 'long', day: 'numeric' })} wrap-up${suffix}`, subtitle: conf, headline: v.headline, summary: v.summary, data: v, sections };
+  return { kind, key: 'conf', audience, title: `${conf}: ${audience === 'exec' ? 'executive briefing' : audience === 'team' ? 'update for the team' : audience === 'email' ? 'update' : 'key takeaways'}`, subtitle: [conf, days().length ? `${fmtDate(days()[0], { month: 'short', day: 'numeric' })}–${fmtDate(days().at(-1), { month: 'short', day: 'numeric' })}` : ''].filter(Boolean).join(' · '), headline: v.headline, summary: v.summary, data: v, slides: v.slides, sections };
 }
-const reportText = (rp) => `${rp.title}\n${rp.subtitle}\n\n${rp.headline}\n\n${rp.summary}\n${rp.sections.map(s => `\n${s.heading}\n${s.items.map(x => '• ' + x).join('\n')}`).join('\n')}`;
+const reportText = (rp) => rp.audience === 'email'
+  ? `Subject: ${rp.headline}\n\n${rp.summary}\n${rp.sections.map(s => `\n${s.heading}\n${s.items.map(x => '• ' + x).join('\n')}`).join('\n')}`.trim()
+  : `${rp.title}\n${rp.subtitle}\n\n${rp.headline}\n\n${rp.summary}\n${rp.sections.map(s => `\n${s.heading}\n${s.items.map(x => '• ' + x).join('\n')}`).join('\n')}`;
 const SEC_STYLE = { Highlights: ['b-take', 'target'], 'Top takeaways': ['b-take', 'target'], Themes: ['b-learn', 'bulb'], 'What I can apply': ['b-learn', 'bulb'], 'People and companies': ['b-q', 'chat'], 'Follow-ups': ['b-act', 'flag'], 'Open questions': ['b-q', 'help'] };
+const paras = (t) => (t || '').split(/\n\s*\n/).map(x => x.trim()).filter(Boolean);
+const ASK_CHIPS = { notes: ['Make it shorter', 'Add more detail', 'Group the points by theme', 'Focus on what I can apply at work'], team: ['Make it shorter', 'Less jargon', 'Add ideas we could try next quarter', 'Make it more upbeat'],
+  exec: ['Even shorter: five bullets at most', 'Add the business case', 'Add risks and costs', 'Make the recommendations sharper'], email: ['Make it shorter', 'More formal', 'More casual', 'Add a clear ask at the end'] };
 function openWrap(kind, key) {
   const label = kind === 'day' ? `${fmtDate(key, { weekday: 'long' })} Wrap-up` : 'Conference Takeaways';
-  const sh = openSheet({ title: label, left: 'Close', right: 'Export', cls: 'wide', body: `<div id="wrapBody"></div>`,
-    onRight: (api) => { if (picking) return run(); const rp = reportOf(kind, key); rp && exportMenu($('[data-act=right]', api.el), rp); } });
-  const body = $('#wrapBody', sh.el);
   const what = kind === 'day' ? 'Wrap-up' : 'Takeaways';
-  let busy = false, picking = false;
-  // Nothing is generated until the user asks: an AI briefing sends the chosen notes and briefs to Claude.
-  // This screen is that question, and where the user picks what goes in (for a refresh too).
-  const ready = (refresh) => {
-    picking = true;
+  // view: read, pick (choose the reader, options and sources before anything is sent), or edit
+  let view = 'read', aud = wrapRec(kind, key)?.active || 'notes', busy = false, revising = false, pick = null;
+  const sh = openSheet({ title: label, left: 'Close', right: 'Export', cls: 'wide', body: `<div id="wrapBody"></div>`,
+    onRight: (api) => { if (view === 'pick') return run(); if (view === 'edit') return saveEdit(); const rp = reportOf(kind, key, aud); rp && exportMenu($('[data-act=right]', api.el), rp); } });
+  const body = $('#wrapBody', sh.el);
+  const top = () => body.closest('.sheet-b')?.scrollTo?.(0, 0);
+  const versions = () => wrapVersions(wrapRec(kind, key));
+  const openPick = (a, mode) => {
+    const v = versions()[a], base = v ? { audience: a, length: v.length || AUDIENCES[a].length, cite: v.cite ?? AUDIENCES[a].cite, focus: v.focus || '' } : stylePref(a);
+    pick = { ...base, mode }; view = 'pick'; paint(); top();
+  };
+  const ready = () => {
     const items = wrapItems(kind, key), dayList = kind === 'conf' ? wrapDays() : [];
-    if (!items.length && !dayList.length) { picking = false; sh.setRight('Export', false); body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">${kind === 'day' ? 'Nothing to wrap up yet: add notes or finish a session on this day.' : 'Nothing to summarise yet: take notes or finish a session first.'}</p>`; return; }
+    if (!items.length && !dayList.length) { view = 'read'; sh.setRight('Export', false); body.innerHTML = `<p class="muted" style="text-align:center;padding:30px">${kind === 'day' ? 'Nothing to wrap up yet: add notes or finish a session on this day.' : 'Nothing to summarise yet: take notes or finish a session first.'}</p>`; return; }
+    const vs = versions(), has = Object.keys(vs).length > 0, exists = !!vs[pick.audience];
     const pk = (s) => `${kind}:${s.id}`;
     const meta = (s) => [s.start ? fmtTime(s.start) : '', s.informal ? `Quick note${KINDS[s.kind] ? ` · ${KINDS[s.kind]}` : ''}` : s.brief ? 'Brief' : `Notes only (${liveNotes(s).length})`, s.speaker].filter(Boolean).join(' · ');
     const box = (k, title, sub) => `<label class="pv-item"><input type="checkbox" data-pk="${esc(k)}" ${picked(k) ? 'checked' : ''}><div><b>${esc(title)}</b><span>${esc(sub)}</span></div></label>`;
     const byDay = kind === 'conf' ? [...new Set(items.map(s => s.date || ''))] : [key];
-    body.innerHTML = `<div class="wr-ready" style="padding-bottom:8px"><h2>${refresh ? `Refresh the ${what.toLowerCase()}` : kind === 'day' ? `Wrap up ${fmtDate(key, { weekday: 'long' })}` : 'Pull the conference together'}</h2>
-        <p class="muted" id="wrSum"></p>
-        <p class="f-cap">${settings.apiKey ? `Only what’s ticked is sent to Claude using your API key${refresh ? ', and it replaces the current one' : ''}.` : 'No Claude key is set, so this is written on this device from the ticked session briefs.'}</p></div>
-      ${dayList.length ? `<div class="grp-t">Day wrap-ups</div><div class="preview" style="margin-top:0">${dayList.map(d => box(`conf:day:${d}`, `${fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' })} wrap-up`, state.dayBriefs[d].headline || '')).join('')}</div>` : ''}
+    const goLabel = () => `${exists ? 'Refresh' : 'Create'} ${pick.audience === 'notes' ? what : `“${AUDIENCES[pick.audience].label}” Version`}`;
+    body.innerHTML = `<div class="wr-ready" style="padding-bottom:4px"><h2>${has ? (exists ? `Refresh “${esc(AUDIENCES[pick.audience].label)}”` : 'A new version') : kind === 'day' ? `Wrap up ${fmtDate(key, { weekday: 'long' })}` : 'Pull the conference together'}</h2>
+        <p class="muted" id="wrSum"></p></div>
+      <div class="grp-t">Write it for</div><div class="preview" style="margin-top:0">${AUD_ORDER.map(a => `<label class="pv-item"><input type="radio" name="wrAud" value="${a}" ${pick.audience === a ? 'checked' : ''} ${!settings.apiKey && a !== 'notes' ? 'disabled' : ''}><div><b>${esc(AUDIENCES[a].label)}${vs[a] ? ' <small class="muted" style="font-weight:400">· has a version</small>' : ''}</b><span>${esc(AUDIENCES[a].desc)}</span></div></label>`).join('')}</div>
+      ${settings.apiKey ? '' : '<p class="f-cap">Add a Claude key in Settings to write versions for your team, executives or an email.</p>'}
+      <div class="grp" style="margin-top:12px">
+        <div class="f-row"><label>Length</label><div class="seg" id="wrLen" style="margin:0;flex:0 1 240px">${Object.entries(LENGTHS).map(([k, [l]]) => `<button data-len="${k}" class="${pick.length === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+        <div class="f-row"><label for="wrCite" style="flex:1">Cite the session for each point</label><span class="switch"><input type="checkbox" id="wrCite" ${pick.cite ? 'checked' : ''}><span></span></span></div>
+        <div class="f-row col"><label for="wrFocus">Tailor it (optional)</label><textarea id="wrFocus" rows="2" style="min-height:52px" placeholder="${pick.audience === 'exec' ? 'Our executive team is weighing an AI recruiting pilot; focus on cost and risk' : pick.audience === 'team' ? 'My team are HR business partners at a 5,000-person hospital group' : 'Anything to focus on, leave out, or know about the readers'}">${esc(pick.focus || '')}</textarea></div>
+      </div>
+      ${dayList.length ? `<div class="grp-t">Day wrap-ups</div><div class="preview" style="margin-top:0">${dayList.map(d => box(`conf:day:${d}`, `${fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' })} wrap-up`, wrapInput(state.dayBriefs[d])?.headline || '')).join('')}</div>` : ''}
       ${byDay.map(d => { const ss = items.filter(s => kind === 'day' || (s.date || '') === d); return ss.length ? `<div class="grp-t" style="display:flex;align-items:baseline;gap:8px"><span>${kind === 'day' ? 'Sessions and notes' : d ? fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' }) : 'No date'}</span><span class="spacer"></span><button class="btn btn-plain btn-sm" data-pall="${esc(d)}">All</button><button class="btn btn-plain btn-sm" data-pnone="${esc(d)}">None</button></div>
         <div class="preview" style="margin-top:0">${ss.map(s => box(pk(s), s.title || 'Untitled', meta(s))).join('')}</div>` : ''; }).join('')}
-      <div class="wr-ready" style="padding-top:14px">${refresh ? `<button class="btn btn-gray" id="wrBack">Keep the Current One</button> ` : ''}<button class="btn btn-primary" id="wrGo">${I.sparkles} ${refresh ? 'Refresh' : 'Create'} ${what}</button></div>`;
+      <p class="f-cap" style="text-align:center;margin-top:14px">${settings.apiKey ? `Only what’s ticked is sent to Claude using your API key${exists ? `, and it replaces the current “${esc(AUDIENCES[pick.audience].label)}” version` : ''}.` : 'No Claude key is set, so this is written on this device from the ticked session briefs.'}</p>
+      <div class="wr-ready" style="padding-top:4px">${has ? `<button class="btn btn-gray" id="wrBack">Back</button> ` : ''}<button class="btn btn-primary" id="wrGo">${I.sparkles} <span id="wrGoL"></span></button></div>`;
     const sum = () => {
       const on = items.filter(s => picked(pk(s))), dOn = dayList.filter(d => picked(`conf:day:${d}`)).length;
       const briefed = on.filter(s => s.brief && !s.informal).length, quick = on.filter(s => s.informal).length, raw = on.length - briefed - quick;
       const parts = [dOn && `${dOn} day wrap-up${dOn === 1 ? '' : 's'}`, briefed && `${briefed} session brief${briefed === 1 ? '' : 's'}`, raw && `${raw} session${raw === 1 ? '' : 's'} with notes only`, quick && `${quick} quick note${quick === 1 ? '' : 's'}`].filter(Boolean);
       const left = items.length - on.length + dayList.length - dOn, any = parts.length > 0;
-      $('#wrSum', body).textContent = any ? `Copilot will combine ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')} into ${kind === 'day' ? 'one end-of-day briefing' : 'one set of takeaways and a slide deck'}${left ? `, leaving out ${left}` : ''}.` : 'Tick what to include.';
-      $('#wrGo', body).disabled = !any; sh.setRight(refresh ? 'Refresh' : 'Create', any);
+      $('#wrSum', body).textContent = any ? `Copilot will combine ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')} into ${kind === 'day' ? 'one end-of-day briefing' : 'one set of takeaways and a slide deck'} ${pick.audience === 'notes' ? 'for you' : pick.audience === 'team' ? 'for your team' : pick.audience === 'exec' ? 'for executives' : 'as a message to send'}${left ? `, leaving out ${left}` : ''}.` : 'Tick what to include.';
+      $('#wrGoL', body).textContent = goLabel(); $('#wrGo', body).disabled = !any; sh.setRight(exists ? 'Refresh' : 'Create', any);
     };
+    $$('[name=wrAud]', body).forEach(r => r.onchange = () => { pick = { ...(versions()[r.value] ? { audience: r.value, length: versions()[r.value].length || AUDIENCES[r.value].length, cite: versions()[r.value].cite ?? AUDIENCES[r.value].cite, focus: versions()[r.value].focus || '' } : stylePref(r.value)), mode: pick.mode }; ready(); });
+    $$('[data-len]', body).forEach(b => b.onclick = () => { pick.length = b.dataset.len; $$('[data-len]', body).forEach(x => x.classList.toggle('on', x === b)); });
+    $('#wrCite', body).onchange = (e) => { pick.cite = e.target.checked; };
+    $('#wrFocus', body).oninput = (e) => { pick.focus = e.target.value; };
     $$('[data-pk]', body).forEach(c => c.onchange = () => { setPicked(c.dataset.pk, c.checked); sum(); });
     const setDay = (d, on) => { for (const s of items) if (kind === 'day' || (s.date || '') === d) setPicked(pk(s), on); $$('[data-pk]', body).forEach(c => c.checked = picked(c.dataset.pk)); sum(); };
     $$('[data-pall]', body).forEach(b => b.onclick = () => setDay(b.dataset.pall, true));
     $$('[data-pnone]', body).forEach(b => b.onclick = () => setDay(b.dataset.pnone, false));
     $('#wrGo', body).onclick = () => run();
-    $('#wrBack', body)?.addEventListener('click', () => { picking = false; paint(); });
+    $('#wrBack', body)?.addEventListener('click', () => { view = 'read'; paint(); });
     sum();
   };
+  const editor = () => {
+    const v = wrapV(wrapRec(kind, key), aud), secs = vSections(v, kind);
+    const sec = (s, i) => `<div class="wr-esec" data-sec="${i}"><input class="bf-in" data-h value="${esc(s.heading)}" placeholder="Section heading" aria-label="Section heading"><input type="hidden" data-kind value="${esc(s.kind || 'other')}">
+      <textarea class="bf-ta" data-items rows="${Math.max(2, s.items.length + 1)}" aria-label="Points, one per line">${esc(s.items.join('\n'))}</textarea></div>`;
+    body.innerHTML = `<article class="brief editing" id="wrEdit">
+      <label class="bf-l" for="we-head">${v.audience === 'email' ? 'Subject' : 'Headline'}</label><input class="bf-in bf-head" id="we-head" value="${esc(v.headline || '')}">
+      <label class="bf-l" for="we-sum">${v.audience === 'email' ? 'Message' : 'Summary'}</label><textarea class="bf-ta" id="we-sum" rows="5">${esc(v.summary || '')}</textarea>
+      <label class="bf-l">Sections <small>a heading, then one point per line; clear a section to remove it</small></label>
+      <div id="weSecs">${secs.map(sec).join('')}</div>
+      <button class="btn btn-sm btn-gray" id="weAdd" style="margin-top:8px">${I.plus} Add a Section</button>
+      ${kind === 'conf' && v.slides?.length ? '<p class="f-cap">The slide deck isn’t edited here. After saving, ask Claude to “update the slides to match”.</p>' : ''}
+      <div class="edit-row" style="margin-top:16px"><button class="btn btn-sm btn-gray" id="weCancel">Cancel</button><button class="btn btn-sm btn-primary" id="weSave">Save</button></div></article>`;
+    sh.setRight('Save', true);
+    const fit = (t) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; };
+    $$('.bf-ta', body).forEach(t => { fit(t); t.oninput = () => fit(t); });
+    $('#weAdd', body).onclick = () => { const d = document.createElement('div'); d.innerHTML = sec({ heading: '', kind: 'other', items: [] }, $$('[data-sec]', body).length); const el = d.firstElementChild; $('#weSecs', body).appendChild(el); const t = $('textarea', el); t.oninput = () => fit(t); $('input', el).focus(); };
+    $('#weCancel', body).onclick = () => { view = 'read'; paint(); };
+    $('#weSave', body).onclick = saveEdit;
+    $('#wrEdit', body).addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') { e.stopPropagation(); view = 'read'; paint(); } });
+    $('#we-head', body).focus();
+  };
+  const saveEdit = () => {
+    const v = wrapV(wrapRec(kind, key), aud); if (!v || !$('#wrEdit', body)) return;
+    const sections = $$('[data-sec]', body).map(el => ({ heading: $('[data-h]', el).value.trim(), kind: $('[data-kind]', el).value, items: $('[data-items]', el).value.split('\n').map(x => x.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean) }))
+      .filter(s => s.items.length).map(s => ({ ...s, heading: s.heading || 'Notes' }));
+    putVersion(kind, key, withSections(v, kind, { headline: $('#we-head', body).value.trim(), summary: $('#we-sum', body).value.trim(), sections, editedAt: now(), prev: vCore(v), undone: false }));
+    view = 'read'; paint(); toast('Saved. Undo Change is below it.');
+  };
+  const ask = async (request, confirmFirst) => {
+    if (!settings.apiKey) { toast('Add a Claude key in Settings to ask for changes'); return openSettings(); }
+    if (confirmFirst && !await confirmSheet('Change it?', `Copilot will ask Claude to “${request.charAt(0).toLowerCase() + request.slice(1)}”, sending this version and the ticked notes and briefs with your API key. You can undo the change.`, 'Change', false)) return;
+    revising = true; paint();
+    try { await reviseWrap(kind, key, aud, request); toast('Updated. Undo Change is below it.', false, 4000); }
+    catch (e) { toast(e.message || 'Couldn’t make the change', false, 5000); if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings(); }
+    finally { revising = false; if (body.isConnected) paint(); }
+  };
   const paint = () => {
-    const rp = reportOf(kind, key);
-    picking = false; sh.setRight('Export', !!rp && !busy);
-    if (busy) { body.innerHTML = `<div class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:40px"><span class="spin"></span>${kind === 'day' ? 'Pulling the day together…' : 'Pulling the whole conference together…'}</div>`; return; }
-    if (!rp) return ready();
-    const r = rp.data;
-    body.innerHTML = `<article class="brief"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${esc(rp.subtitle)} · from ${r.days ? `${r.days} day wrap-up${r.days === 1 ? '' : 's'} and ` : ''}${r.sessions || 0} session${r.sessions === 1 ? '' : 's'} and notes${r.left ? ` (${r.left} left out)` : ''} · ${r.source === 'ai' ? 'written by Claude' : 'written on this device'} ${esc(ago(r.generatedAt))}</p>
-      <h2 class="brief-head">${esc(rp.headline)}</h2><p class="brief-sum">${esc(rp.summary)}</p>
-      ${rp.sections.map(s => { const [cls, ic] = SEC_STYLE[s.heading] || ['b-take', 'target']; return `<div class="brief-blk ${cls}"><h4>${I[ic]}${esc(s.heading)}</h4><ul>${s.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`; }).join('')}
-      ${kind === 'conf' && rp.slides?.length ? `<p class="f-cap" style="margin:16px 0 0">${rp.slides.length}-slide deck ready for PowerPoint export.</p>` : ''}
+    if (view === 'pick') return ready();
+    if (view === 'edit') return editor();
+    if (busy) { sh.setRight('Export', false); body.innerHTML = `<div class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:40px"><span class="spin"></span>${kind === 'day' ? 'Pulling the day together…' : 'Pulling the whole conference together…'}</div>`; return; }
+    const vs = versions(), keys = AUD_ORDER.filter(a => vs[a]);
+    if (!keys.length) { openPickFirst(); return; }
+    if (!vs[aud]) aud = keys[0];
+    const rp = reportOf(kind, key, aud), v = rp.data;
+    sh.setRight('Export', !revising);
+    const changed = Math.max(v.editedAt || 0, v.revisedAt || 0);
+    const style = [AUDIENCES[rp.audience]?.label, LENGTHS[v.length]?.[0], v.cite ? 'with sources' : ''].filter(Boolean).join(' · ');
+    const slidesOld = kind === 'conf' && v.slides?.length && (v.editedAt || 0) > (v.slidesAt || v.generatedAt || 0);
+    body.innerHTML = `<div class="wr-vers"><div class="seg" role="tablist">${keys.map(a => `<button data-ver="${a}" class="${a === aud ? 'on' : ''}">${esc(AUDIENCES[a].label.replace(/ or Slack update$/, ''))}</button>`).join('')}</div><button class="btn btn-sm btn-tinted" id="wrNew">${I.plus} New Version</button></div>
+      <article class="brief ${revising ? 'busy' : ''}"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${esc(style)} · from ${v.days ? `${v.days} day wrap-up${v.days === 1 ? '' : 's'} and ` : ''}${v.sessions || 0} session${v.sessions === 1 ? '' : 's'} and notes${v.left ? ` (${v.left} left out)` : ''} · ${v.source === 'ai' ? 'written by Claude' : 'written on this device'} ${esc(ago(v.generatedAt))}${changed ? ` · ${(v.editedAt || 0) >= (v.revisedAt || 0) ? 'edited by you' : 'revised by Claude'} ${esc(ago(changed))}` : ''}</p>
+      ${rp.audience === 'email' ? `<p class="wr-subj"><span>Subject</span> ${esc(rp.headline)}</p>` : `<h2 class="brief-head">${esc(rp.headline)}</h2>`}
+      ${paras(rp.summary).map(t => `<p class="brief-sum">${esc(t)}</p>`).join('')}
+      ${rp.sections.map(s => { const [cls, ic] = SEC_KIND_STYLE[s.kind] || SEC_STYLE[s.heading] || ['b-take', 'target']; return `<div class="brief-blk ${cls}"><h4>${I[ic]}${esc(s.heading)}</h4><ul>${s.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`; }).join('')}
+      ${kind === 'conf' && rp.slides?.length ? `<p class="f-cap" style="margin:16px 0 0">${rp.slides.length}-slide deck ready for PowerPoint export.${slidesOld ? ' It was written before your edits: ask Claude to “update the slides to match”.' : ''}</p>` : ''}
+      <div class="ask-wrap">
+        <form class="ask" id="wrAsk" autocomplete="off"><span class="ask-ic">${revising ? '<span class="spin"></span>' : I.sparkles}</span>
+          <input id="wrAskIn" enterkeyhint="send" aria-label="Ask Claude to change this" placeholder="${settings.apiKey ? (revising ? 'Making the change…' : 'Ask Claude to change this…') : 'Add a Claude key in Settings to ask for changes'}" ${revising || !settings.apiKey ? 'disabled' : ''}>
+          <button class="in-btn send" type="submit" aria-label="Send request" ${revising || !settings.apiKey ? 'disabled' : ''}>${I.up}</button></form>
+        ${settings.apiKey && !revising ? `<div class="ask-chips">${[...(slidesOld ? ['Update the slides to match'] : []), ...(ASK_CHIPS[rp.audience] || ASK_CHIPS.notes)].map(t => `<button data-ask="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : ''}
+      </div>
       <div class="brief-foot">
         <button class="btn btn-sm btn-primary" id="wrExport">${I.download} Export</button>
         <button class="btn btn-sm btn-gray" id="wrCopy">${I.copy} Copy</button>
-        <button class="btn btn-sm btn-gray" id="wrRedo">${I.sparkles} Choose &amp; Refresh…</button>
+        ${rp.audience === 'email' ? `<button class="btn btn-sm btn-gray" id="wrMail">${I.share} Open in Mail</button>` : ''}
+        <button class="btn btn-sm btn-gray" id="wrEditB" ${revising ? 'disabled' : ''}>${I.pencil} Edit</button>
+        <button class="btn btn-sm btn-gray" id="wrRedo" ${revising ? 'disabled' : ''}>${I.sparkles} Choose &amp; Refresh…</button>
+        ${v.prev && !revising ? `<button class="btn btn-sm btn-plain" id="wrUndo">${v.undone ? 'Redo Change' : 'Undo Change'}</button>` : ''}
         <button class="btn btn-sm btn-plain danger-ink" id="wrDel">${I.trash} Delete</button>
-        ${r.source === 'ai' ? '' : '<small>Add a Claude key in Settings for a fuller briefing</small>'}
+        ${v.source === 'ai' || changed ? '' : '<small>Add a Claude key in Settings for a fuller briefing</small>'}
       </div></article>`;
+    $$('[data-ver]', body).forEach(b => b.onclick = () => { aud = b.dataset.ver; paint(); });
+    $('#wrNew', body).onclick = () => openPick(AUD_ORDER.find(a => !vs[a]) || aud, 'new');
     $('#wrCopy', body).onclick = async () => { try { await navigator.clipboard.writeText(reportText(rp)); toast('Copied'); } catch { toast('Copy failed'); } };
-    $('#wrRedo', body).onclick = () => { ready(true); body.closest('.sheet-b')?.scrollTo?.(0, 0); };
+    $('#wrMail', body)?.addEventListener('click', () => { const t = reportText(rp).replace(/^Subject: .*\n\n/, ''); location.href = `mailto:?subject=${encodeURIComponent(rp.headline)}&body=${encodeURIComponent(t.length > 1800 ? t.slice(0, 1800) + '…' : t)}`; });
     $('#wrExport', body).onclick = (e) => exportMenu(e.currentTarget, rp);
-    $('#wrDel', body).onclick = async () => { if (await confirmDeleteBriefing({ kind, key })) paint(); };
+    $('#wrEditB', body).onclick = () => { view = 'edit'; paint(); };
+    $('#wrRedo', body).onclick = () => openPick(aud, 'refresh');
+    $('#wrUndo', body)?.addEventListener('click', () => { const cur = wrapV(wrapRec(kind, key), aud); if (!cur?.prev) return; putVersion(kind, key, { ...cur.prev, prev: vCore(cur), undone: !cur.undone }); paint(); toast(cur.undone ? 'Change redone' : 'Change undone'); });
+    $('#wrDel', body).onclick = async () => {
+      if (keys.length > 1) {
+        if (!await confirmSheet(`Delete the “${AUDIENCES[aud].label}” version?`, 'It is removed from all your devices. The other versions and your notes stay.', 'Delete')) return;
+        dropVersion(kind, key, aud); aud = wrapRec(kind, key).active; render(); paint(); toast('Version deleted');
+      } else if (await confirmDeleteBriefing({ kind, key })) paint();
+    };
+    const form = $('#wrAsk', body);
+    form?.addEventListener('submit', e => { e.preventDefault(); const t = $('#wrAskIn', form).value.trim(); if (t) ask(t, false); });
+    // A suggestion chip is one tap, so it asks before sending; a typed request is already deliberate
+    $$('[data-ask]', body).forEach(b => b.onclick = () => ask(b.dataset.ask, true));
   };
-  // The current briefing stays in place until a new one has been written, so a failed refresh loses nothing.
+  const openPickFirst = () => { const last = wrapPrefs().last; openPick(settings.apiKey && AUDIENCES[last] ? last : 'notes', 'first'); };
+  // The current version stays in place until the new one has been written, so a failed refresh loses nothing
   const run = async () => {
-    if (busy) return;
-    busy = true; paint();
+    if (busy || view !== 'pick') return;
+    const st = { audience: pick.audience, length: pick.length, cite: pick.cite, focus: (pick.focus || '').trim() };
+    saveStylePref(st);
+    busy = true; view = 'read'; aud = st.audience; paint();
     let err;
-    try { kind === 'day' ? await generateDayBrief(key) : await generateConfBrief(); } catch (e) { err = e; }
+    try { await generateWrap(kind, key, st); } catch (e) { err = e; }
     busy = false;
     if (!body.isConnected) return;
+    if (err && !versions()[st.audience]) { view = 'pick'; }
     paint();
     if (err) { toast(err.message); if (err.code === 'NO_KEY' || err.code === 'NEED_WS') openSettings(); }
+    else render();
   };
   paint();
 }
@@ -4844,8 +5010,9 @@ async function flightsFromConfirmation() {
 function newerNotes(items, since) { return items.reduce((n, s) => n + liveNotes(s).filter(x => (x.ts || 0) > since).length, 0); }
 function briefingsAll() {
   const out = [], ss = sessionsArr();
-  if (state.confBrief) out.push({ kind: 'conf', key: null, title: 'Conference Takeaways', r: state.confBrief, stale: newerNotes(ss, state.confBrief.generatedAt || 0) });
-  for (const [d, r] of Object.entries(state.dayBriefs || {}).sort()) out.push({ kind: 'day', key: d, title: `${fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' })} Wrap-up`, r, stale: newerNotes(ss.filter(s => s.date === d), r.generatedAt || 0) });
+  const vers = (r) => Object.keys(wrapVersions(r)).length;
+  if (state.confBrief) { const v = wrapV(state.confBrief); out.push({ kind: 'conf', key: null, title: 'Conference Takeaways', r: v, versions: vers(state.confBrief), stale: newerNotes(ss, v?.generatedAt || 0) }); }
+  for (const [d, r] of Object.entries(state.dayBriefs || {}).sort()) { const v = wrapV(r); if (v) out.push({ kind: 'day', key: d, title: `${fmtDate(d, { weekday: 'long', month: 'short', day: 'numeric' })} Wrap-up`, r: v, versions: vers(r), stale: newerNotes(ss.filter(s => s.date === d), v.generatedAt || 0) }); }
   for (const s of ss.filter(s => s.brief).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1))
     out.push({ kind: 'session', key: s.id, title: s.title || 'Untitled session', r: s.brief, stale: newerNotes([s], s.brief.generatedAt || 0), date: s.date, informal: s.informal });
   return out;
@@ -4868,7 +5035,7 @@ function openLibrary() {
   const row = (b) => {
     const r = b.r, id = `${b.kind}|${b.key || ''}`;
     const meta = [b.kind === 'session' && b.date ? fmtDate(b.date, { weekday: 'short', month: 'short', day: 'numeric' }) : '', b.informal ? 'Quick note' : '',
-      r.source === 'ai' ? 'Claude' : 'On this device', r.editedAt || r.revisedAt ? 'edited' : '', r.generatedAt ? ago(r.generatedAt) : ''].filter(Boolean).map(esc).join(' · ');
+      b.versions > 1 ? `${b.versions} versions` : '', r.source === 'ai' ? 'Claude' : 'On this device', r.editedAt || r.revisedAt ? 'edited' : '', r.generatedAt ? ago(r.generatedAt) : ''].filter(Boolean).map(esc).join(' · ');
     const ic = b.kind === 'conf' ? ['ic-conf', I.book] : b.kind === 'day' ? ['ic-wrap', I.sparkles] : b.informal ? ['ic-note', I.chat] : ['ic-done', I.check];
     return `<div class="bl-row"><button class="bl-open" data-open="${esc(id)}"><span class="ic ${ic[0]}">${ic[1]}</span><span class="bl-tx"><b>${esc(b.title)}</b><small>${meta}${b.stale ? ` · <em>${b.stale} newer note${b.stale === 1 ? '' : 's'}</em>` : ''}</small></span></button><button class="bl-del" data-del="${esc(id)}" aria-label="Delete ${esc(b.title)}" title="Delete">${I.trash}</button></div>`;
   };
@@ -4938,7 +5105,7 @@ function reportHTML(rp) {
     .sub{color:#6e6e73;font-size:10pt;margin:0 0 4mm}h1{font-size:24pt;letter-spacing:-.02em;margin:0 0 2mm;line-height:1.15}h2.hl{font-size:15pt;margin:6mm 0 2mm;letter-spacing:-.01em}
     p.sum{font-size:11.5pt;margin:0 0 4mm}h3{font-size:10pt;color:#0066cc;margin:6mm 0 2mm;text-transform:none}ul{margin:0;padding-left:5mm}li{margin:0 0 1.6mm}
     .foot{margin-top:10mm;color:#86868b;font-size:8.5pt;border-top:1px solid #d2d2d7;padding-top:3mm}</style></head><body>
-    <p class="sub">${esc(rp.subtitle)}</p><h1>${esc(rp.title)}</h1><h2 class="hl">${esc(rp.headline)}</h2><p class="sum">${esc(rp.summary)}</p>
+    <p class="sub">${esc(rp.subtitle)}</p><h1>${esc(rp.title)}</h1><h2 class="hl">${esc(rp.headline)}</h2>${paras(rp.summary).map(t => `<p class="sum">${esc(t)}</p>`).join('')}
     ${rp.sections.map(s => `<h3>${esc(s.heading)}</h3><ul>${s.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('')}
     <p class="foot">Made with Conference Copilot · ${esc(new Date().toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }))}</p></body></html>`;
 }
@@ -4978,7 +5145,7 @@ function exportDOCX(rp) {
   const para = (text, style, extra = '') => `<w:p><w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ''}${extra}</w:pPr><w:r><w:t xml:space="preserve">${xe(text)}</w:t></w:r></w:p>`;
   const bullet = (text) => `<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:ind w:left="360" w:hanging="260"/><w:spacing w:after="80"/></w:pPr><w:r><w:t xml:space="preserve">•  ${xe(text)}</w:t></w:r></w:p>`;
   const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>
-    ${para(rp.subtitle, 'Subtitle')}${para(rp.title, 'Title')}${para(rp.headline, 'Heading1')}${para(rp.summary)}
+    ${para(rp.subtitle, 'Subtitle')}${para(rp.title, 'Title')}${para(rp.headline, 'Heading1')}${paras(rp.summary).map(t => para(t)).join('')}
     ${rp.sections.map(s => para(s.heading, 'Heading2') + s.items.map(bullet).join('')).join('')}
     ${para(`Made with Conference Copilot · ${new Date().toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}`, 'Footer')}
     <w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1200" w:right="1200" w:bottom="1200" w:left="1200" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
