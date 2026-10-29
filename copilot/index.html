@@ -399,12 +399,63 @@ body.resizing iframe,body.resizing video{pointer-events:none}
 .brief-head{font-family:var(--font-d);font-size:1.3rem;line-height:1.28;font-weight:700;letter-spacing:-.015em;margin:0 0 8px;text-wrap:balance}
 .brief-sum{margin:0;font-size:1rem;line-height:1.55;max-width:68ch}
 .brief-sum+.brief-sum{margin-top:10px}
-.brief-blk{margin-top:20px}
-.brief-blk h4{margin:0 0 8px;font-size:.8rem;font-weight:700;letter-spacing:.02em;display:flex;align-items:center;gap:7px}
-.brief-blk h4 svg{width:15px;height:15px}
-.brief-blk ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
-.brief-blk li{position:relative;padding-left:16px;font-size:.9667rem;line-height:1.5;max-width:68ch}
-.brief-blk li::before{content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--dot)}
+/* Sections: each a titled card, two columns when the reading area is wide, with an outline to jump between them */
+.brief{container-type:inline-size}
+.bsec-nav{position:sticky;top:0;z-index:2;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:16px -8px 0;padding:8px;background:var(--surface);border-radius:12px}
+.bsec-nav::-webkit-scrollbar{display:none}
+.bsec-nav.more{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent)}
+.bsec-nav button{flex:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;background:var(--fill);font-size:.8333rem;font-weight:600;color:var(--text);transition:background .15s,color .15s}
+.bsec-nav button svg{width:14px;height:14px;color:var(--dot)}
+.bsec-nav button small{font-size:.75rem;font-weight:600;color:var(--text-3);font-variant-numeric:tabular-nums}
+.bsec-nav button.on{background:color-mix(in srgb,var(--dot) 16%,var(--surface));color:var(--dot)}
+.bsec-nav button.on small{color:inherit}
+.bsecs{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:14px}
+.bsec-nav+.bsecs{margin-top:6px}
+@media (max-width:520px){.brief{padding:18px 14px}.bsec{padding:12px 13px 14px}.bsec-nav{margin:14px -4px 0;padding:8px 4px}}
+.bsec{scroll-margin-top:58px;border-radius:14px;padding:14px 16px 16px;background:color-mix(in srgb,var(--dot) 5%,var(--surface));border:1px solid color-mix(in srgb,var(--dot) 22%,var(--sep))}
+.bsec-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bsec-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--dot) 15%,transparent);color:var(--dot)}
+.bsec-ic svg{width:16px;height:16px}
+.bsec .bsec-h h4{flex:1;min-width:0;margin:0;font-family:var(--font-d);font-size:1.0667rem;font-weight:700;letter-spacing:-.01em;line-height:1.3;color:var(--text)}
+.bsec-n{font-size:.75rem;font-weight:700;color:var(--dot);background:color-mix(in srgb,var(--dot) 12%,transparent);border-radius:999px;padding:3px 8px;font-variant-numeric:tabular-nums}
+.bsec-ask{width:30px;height:30px;margin:-4px -6px -4px 0;border-radius:8px;display:grid;place-items:center;color:var(--purple);opacity:.7;transition:opacity .15s,background .15s}
+.bsec-ask:hover,.bsec-ask:focus-visible{opacity:1;background:var(--purple-soft)}
+.bsec-ask svg{width:15px;height:15px}
+.bsec ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.bsec li{position:relative;padding-left:16px;font-size:.9667rem;line-height:1.5;max-width:72ch}
+.bsec li::before{content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--dot)}
+@container (min-width:620px){
+  .bsecs{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .bsec:first-child{grid-column:1/-1}
+  .bsec:first-child li{font-size:1rem}
+  .brief-head{font-size:1.6rem;line-height:1.22}
+  .brief-sum{font-size:1.0333rem}
+}
+/* The conversation with Claude: what you asked, and the box to ask more */
+.ask-h{display:flex;align-items:center;gap:7px;margin:0;font-size:.9333rem;font-weight:700}
+.ask-h svg{width:16px;height:16px;color:var(--purple)}
+.ask-sub{margin:3px 0 12px;font-size:.8rem;color:var(--text-2)}
+.ask-thread{display:flex;flex-direction:column;gap:12px;margin:0 0 12px}
+.ask-msg{align-self:flex-end;max-width:92%;display:flex;flex-direction:column;align-items:flex-end}
+.ask-q{background:var(--accent);color:#fff;padding:7px 12px;border-radius:16px 16px 4px 16px;font-size:.9rem;line-height:1.4;overflow-wrap:anywhere}
+.ask-r{display:flex;align-items:center;gap:5px;margin-top:4px;font-size:.75rem;color:var(--text-3)}
+.ask-r svg{width:12px;height:12px;color:var(--purple)}
+.ask-r .spin{width:11px;height:11px}
+.ask-undo{margin-top:6px}
+/* Wrap-ups and takeaways: room to read on Mac and iPad, with the conversation beside the text */
+@media (min-width:900px){.overlay .sheet.wr-sheet{max-width:min(1240px,calc(100vw - 48px));height:calc(100dvh - 48px);max-height:none}}
+.wr-layout.wide{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start}
+.wr-rail{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.wr-layout.wide .wr-rail{margin-top:0;position:sticky;top:0}
+.wr-panel{background:var(--surface);border:1px solid var(--sep);border-radius:14px;padding:14px}
+.wr-layout.wide .ask-chips{flex-direction:column;align-items:flex-start}
+.wr-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.wr-acts small{color:var(--text-3);font-size:.8rem;width:100%}
+.wr-dock{flex:none;border-top:1px solid var(--sep);background:var(--win);padding:10px 14px calc(env(safe-area-inset-bottom) + 10px);border-radius:0 0 14px 14px}
+.wr-dock[hidden]{display:none}
+.wr-dock .ask-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px 8px;padding:0 14px}
+.wr-dock .ask-chips::-webkit-scrollbar{display:none}
+.wr-dock .ask-chips button{flex:none}
 .b-take{--dot:var(--accent)} .b-take h4{color:var(--accent)}
 .b-learn{--dot:var(--green)} .b-learn h4{color:var(--green)}
 .b-quote{--dot:var(--purple)} .b-quote h4{color:var(--purple)} .b-quote li{font-style:italic;color:var(--text-2)}
@@ -1721,9 +1772,42 @@ function renderDetail() {
   updateComposer();
 }
 
+/* ---------- Brief sections: titled cards, an outline of their titles, and a way to ask about one ---------- */
+// secs: [{ heading, cls, icon, items }]; prefix keeps ids apart when a brief and a wrap-up are both on screen
+function sectionsHTML(secs, { prefix = 'b', ask = false } = {}) {
+  secs = secs.filter(x => x.items?.length); if (!secs.length) return '';
+  const id = (i) => `${prefix}-sec-${i}`;
+  const nav = secs.length >= 3 ? `<nav class="bsec-nav" aria-label="Sections">${secs.map((x, i) => `<button class="${x.cls}" data-jump="${id(i)}">${x.icon}<span>${esc(x.heading)}</span><small>${x.items.length}</small></button>`).join('')}</nav>` : '';
+  return `${nav}<div class="bsecs">${secs.map((x, i) => `<section class="bsec brief-blk ${x.cls}" id="${id(i)}" aria-labelledby="${id(i)}-h">
+    <header class="bsec-h"><span class="bsec-ic" aria-hidden="true">${x.icon}</span><h4 id="${id(i)}-h">${esc(x.heading)}</h4><span class="bsec-n" title="${x.items.length} point${x.items.length === 1 ? '' : 's'}">${x.items.length}</span>${ask ? `<button class="bsec-ask" data-ask-sec="${esc(x.heading)}" title="Ask Claude to change this section" aria-label="Ask Claude to change ${esc(x.heading)}">${I.sparkles}</button>` : ''}</header>
+    <ul>${x.items.map(t => `<li>${esc(t)}</li>`).join('')}</ul></section>`).join('')}</div>`;
+}
+const spies = new WeakMap();
+// Outline buttons jump to their section, and the one being read lights up; a section's ✦ starts a request about it
+function bindSections(root, scroller, input) {
+  $$('[data-jump]', root).forEach(b => b.onclick = () => { $$('[data-jump]', root).forEach(x => x.classList.toggle('on', x === b)); $('#' + b.dataset.jump, root)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  $$('[data-ask-sec]', root).forEach(b => b.onclick = () => {
+    const i = input(); if (!i || i.disabled) return;
+    i.value = `In “${b.dataset.askSec}”, `; i.focus({ preventScroll: true }); i.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); i.setSelectionRange(i.value.length, i.value.length);
+  });
+  spies.get(scroller)?.disconnect();
+  const nav = $('.bsec-nav', root); if (!nav) return;
+  // Fade the end of the outline while more titles are off to the side
+  const fade = () => nav.classList.toggle('more', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4);
+  nav.onscroll = fade; requestAnimationFrame(fade);
+  if (!scroller || !('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) $$('button', nav).forEach(b => b.classList.toggle('on', b.dataset.jump === e.target.id)); }, { root: scroller, rootMargin: '-70px 0px -55% 0px' });
+  $$('.bsec', root).forEach(x => io.observe(x)); spies.set(scroller, io);
+}
+// The requests made so far, newest last, and the one Claude is working on
+function askThreadHTML(asks = [], pending = '') {
+  const msgs = asks.slice(-5).map(a => `<div class="ask-msg"><span class="ask-q">${esc(a.q)}</span><span class="ask-r">${I.sparkles} Changed ${esc(ago(a.t))}</span></div>`);
+  if (pending) msgs.push(`<div class="ask-msg"><span class="ask-q">${esc(pending)}</span><span class="ask-r"><span class="spin"></span> Claude is making the change…</span></div>`);
+  return msgs.length ? `<div class="ask-thread">${msgs.join('')}</div>` : '';
+}
+const addAsk = (asks, q) => [...(asks || []), { q: q.trim(), t: now() }].slice(-8);
 function renderBrief(s) {
   const b = s.brief;
-  const list = (arr, cls, icon, label) => arr?.length ? `<div class="brief-blk ${cls}"><h4>${icon}${label}</h4><ul>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
   const changed = b.revisedAt || b.editedAt ? Math.max(b.revisedAt || 0, b.editedAt || 0) : 0;
   const head = `<div class="sec-h"><h3>Brief</h3><small>${b.source === 'ai' ? 'Written by Claude' : 'Written on this device'} · ${esc(ago(b.generatedAt))}${changed ? ` · ${b.editedAt >= (b.revisedAt || 0) ? 'edited by you' : 'revised by Claude'} ${esc(ago(changed))}` : ''}</small></div>`;
   if (ui.editingBrief === s.id) {
@@ -1739,12 +1823,11 @@ function renderBrief(s) {
   return `${head}<article class="brief ${busy ? 'busy' : ''}">
     ${b.headline ? `<h2 class="brief-head">${esc(b.headline)}</h2>` : ''}
     ${b.summary ? `<p class="brief-sum">${esc(b.summary)}</p>` : ''}
-    ${list(b.keyTakeaways, 'b-take', I.target, 'Key takeaways')}
-    ${list(b.learnings, 'b-learn', I.bulb, 'What I learned')}
-    ${list(b.quotes, 'b-quote', I.quote, 'Worth quoting')}
-    ${list(b.actionItems, 'b-act', I.flag, 'Follow-ups')}
-    ${list(b.openQuestions, 'b-q', I.help, 'Open questions')}
+    ${sectionsHTML([{ heading: 'Key takeaways', cls: 'b-take', icon: I.target, items: b.keyTakeaways }, { heading: 'What I learned', cls: 'b-learn', icon: I.bulb, items: b.learnings },
+      { heading: 'Worth quoting', cls: 'b-quote', icon: I.quote, items: b.quotes }, { heading: 'Follow-ups', cls: 'b-act', icon: I.flag, items: b.actionItems }, { heading: 'Open questions', cls: 'b-q', icon: I.help, items: b.openQuestions }], { prefix: 'b', ask: !!settings.apiKey && !busy })}
     <div class="ask-wrap">
+      <h5 class="ask-h">${I.sparkles} Ask Claude</h5><p class="ask-sub">Ask for any change to this brief, or tap ✦ on a section to change just that one. You can undo it.</p>
+      ${askThreadHTML(b.asks, busy ? ui.reviseAsk : '')}
       <form class="ask" id="askForm" autocomplete="off">
         <span class="ask-ic">${busy ? '<span class="spin"></span>' : I.sparkles}</span>
         <input id="askInput" enterkeyhint="send" aria-label="Ask Claude to change this brief" placeholder="${settings.apiKey ? (busy ? 'Revising the brief…' : 'Ask Claude to change this brief…') : 'Add a Claude key in Settings to ask for changes'}" ${busy || !settings.apiKey ? 'disabled' : ''}>
@@ -1773,7 +1856,7 @@ function saveBriefEdit(s) {
 }
 function undoBrief(s) {
   const b = s.brief; if (!b?.prev) return;
-  s.brief = { ...b.prev, prev: briefCore(b), undone: !b.undone };
+  s.brief = { ...b.prev, asks: b.asks, prev: briefCore(b), undone: !b.undone };
   touch(s); renderDetail(); toast(b.undone ? 'Change redone' : 'Change undone');
 }
 function noteAsText(n) {
@@ -1786,7 +1869,7 @@ function noteAsText(n) {
 async function reviseBrief(s, request) {
   request = request.trim(); if (!request || !s.brief) return;
   if (!settings.apiKey) { toast('Add a Claude key in Settings to ask for changes'); return openSettings(); }
-  ui.busyRevise = s.id; if (ui.selected === s.id) renderDetail();
+  ui.busyRevise = s.id; ui.reviseAsk = request; if (ui.selected === s.id) renderDetail();
   try {
     const notes = liveNotes(s).sort((a, b) => a.ts - b.ts).map(noteAsText).filter(Boolean).join('\n\n').slice(0, 150000);
     const r = await claude({
@@ -1795,7 +1878,7 @@ async function reviseBrief(s, request) {
       schema: BRIEF_SCHEMA,
     });
     const fresh = S(s.id); if (!fresh) return;
-    fresh.brief = { ...briefCore(fresh.brief), ...r, revisedAt: now(), prev: briefCore(fresh.brief), undone: false };
+    fresh.brief = { ...briefCore(fresh.brief), ...r, asks: addAsk(fresh.brief.asks, request), revisedAt: now(), prev: briefCore(fresh.brief), undone: false };
     touch(fresh); toast('Brief updated. Undo Change is below it.', false, 4000);
   } catch (e) {
     toast(e.message || 'Could not change the brief', false, 5000);
@@ -1816,6 +1899,7 @@ function bindBrief(root, s) {
   $$('.bf-ta', root).forEach(t => { const fit = () => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; }; fit(); t.oninput = fit; });
   const form = $('#askForm', root);
   form?.addEventListener('submit', e => { e.preventDefault(); reviseBrief(s, $('#askInput', form).value); });
+  bindSections(root, $('#detail'), () => $('#askInput', root));
   // A suggestion chip is one tap, so it asks before sending the notes to Claude; a typed request is already deliberate.
   $$('[data-ask]', root).forEach(b => b.onclick = async () => {
     if (settings.apiKey && !await confirmSheet('Change the brief?', `Copilot will ask Claude to “${b.dataset.ask.charAt(0).toLowerCase() + b.dataset.ask.slice(1)}”, sending the brief and your notes with your API key. You can undo the change.`, 'Change Brief', false)) return;
@@ -4288,7 +4372,7 @@ async function reviseWrap(kind, key, aud, request) {
     system: `${WRAP_SYSTEM}\n\n${styleText(kind, st)}\n\nYou are revising a briefing that already exists; the attendee may have edited parts of it by hand. Make the change they ask for and keep everything else as it is, including their wording. Return the complete briefing, every field.${kind === 'conf' ? ' Keep the slides consistent with the text.' : ''} Use the material to add or check facts; if the request needs something it doesn't support, leave it out rather than inventing it.`,
     content: [{ type: 'text', text: `${m.text}\n\nThe current briefing:\n${JSON.stringify(cur, null, 1)}\n\nThe attendee's request: ${request.trim()}` }] });
   const fresh = wrapV(wrapRec(kind, key), aud) || v;
-  putVersion(kind, key, withSections(fresh, kind, { headline: r.headline || '', summary: r.summary || '', sections: (r.sections || []).filter(s => s.items?.length), ...(kind === 'conf' ? { slides: r.slides || [], slidesAt: now() } : {}), revisedAt: now(), prev: vCore(fresh), undone: false }));
+  putVersion(kind, key, withSections(fresh, kind, { asks: addAsk(fresh.asks, request), headline: r.headline || '', summary: r.summary || '', sections: (r.sections || []).filter(s => s.items?.length), ...(kind === 'conf' ? { slides: r.slides || [], slidesAt: now() } : {}), revisedAt: now(), prev: vCore(fresh), undone: false }));
 }
 // A briefing as neutral sections, shared by the sheet and every export format
 function reportOf(kind, key, aud) {
@@ -4310,9 +4394,15 @@ function openWrap(kind, key) {
   const what = kind === 'day' ? 'Wrap-up' : 'Takeaways';
   // view: read, pick (choose the reader, options and sources before anything is sent), or edit
   let view = 'read', aud = wrapRec(kind, key)?.active || 'notes', busy = false, revising = false, pick = null;
-  const sh = openSheet({ title: label, left: 'Close', right: 'Export', cls: 'wide', body: `<div id="wrapBody"></div>`,
+  const sh = openSheet({ title: label, left: 'Close', right: 'Export', cls: 'wide wr-sheet', body: `<div id="wrapBody"></div>`, onClose: () => removeEventListener('resize', onResize),
     onRight: (api) => { if (view === 'pick') return run(); if (view === 'edit') return saveEdit(); const rp = reportOf(kind, key, aud); rp && exportMenu($('[data-act=right]', api.el), rp); } });
-  const body = $('#wrapBody', sh.el);
+  const body = $('#wrapBody', sh.el), sheetEl = $('.sheet', sh.el);
+  // Narrow screens keep the request box pinned under the text, like a chat; wide ones put the conversation beside it
+  const dock = Object.assign(document.createElement('div'), { className: 'wr-dock', hidden: true }); sheetEl.appendChild(dock);
+  const isWide = () => sheetEl.clientWidth >= 900;
+  let wasWide = isWide(), rt;
+  function onResize() { clearTimeout(rt); rt = setTimeout(() => { if (isWide() !== wasWide && view === 'read' && !busy && body.isConnected) paint(); }, 150); }
+  addEventListener('resize', onResize);
   const top = () => body.closest('.sheet-b')?.scrollTo?.(0, 0);
   const versions = () => wrapVersions(wrapRec(kind, key));
   const openPick = (a, mode) => {
@@ -4393,12 +4483,13 @@ function openWrap(kind, key) {
   const ask = async (request, confirmFirst) => {
     if (!settings.apiKey) { toast('Add a Claude key in Settings to ask for changes'); return openSettings(); }
     if (confirmFirst && !await confirmSheet('Change it?', `Copilot will ask Claude to “${request.charAt(0).toLowerCase() + request.slice(1)}”, sending this version and the ticked notes and briefs with your API key. You can undo the change.`, 'Change', false)) return;
-    revising = true; paint();
-    try { await reviseWrap(kind, key, aud, request); toast('Updated. Undo Change is below it.', false, 4000); }
+    revising = request; paint();
+    try { await reviseWrap(kind, key, aud, request); toast(isWide() ? 'Updated. Undo Change is beside it.' : 'Updated. Undo Change is below it.', false, 4000); }
     catch (e) { toast(e.message || 'Couldn’t make the change', false, 5000); if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings(); }
     finally { revising = false; if (body.isConnected) paint(); }
   };
   const paint = () => {
+    dock.hidden = true; dock.innerHTML = '';
     if (view === 'pick') return ready();
     if (view === 'edit') return editor();
     if (busy) { sh.setRight('Export', false); body.innerHTML = `<div class="muted" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:40px"><span class="spin"></span>${kind === 'day' ? 'Pulling the day together…' : 'Pulling the whole conference together…'}</div>`; return; }
@@ -4410,28 +4501,36 @@ function openWrap(kind, key) {
     const changed = Math.max(v.editedAt || 0, v.revisedAt || 0);
     const style = [AUDIENCES[rp.audience]?.label, LENGTHS[v.length]?.[0], v.cite ? 'with sources' : ''].filter(Boolean).join(' · ');
     const slidesOld = kind === 'conf' && v.slides?.length && (v.editedAt || 0) > (v.slidesAt || v.generatedAt || 0);
+    const wide = wasWide = isWide(), asks = v.asks || [];
+    const chips = settings.apiKey && !revising ? [...(slidesOld ? ['Update the slides to match'] : []), ...(ASK_CHIPS[rp.audience] || ASK_CHIPS.notes)] : [];
+    const chipsHTML = chips.length ? `<div class="ask-chips">${chips.map(t => `<button data-ask="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : '';
+    const formHTML = `<form class="ask" id="wrAsk" autocomplete="off"><span class="ask-ic">${revising ? '<span class="spin"></span>' : I.sparkles}</span>
+        <input id="wrAskIn" enterkeyhint="send" aria-label="Ask Claude to change this" placeholder="${settings.apiKey ? (revising ? 'Making the change…' : 'Ask Claude to change this…') : 'Add a Claude key in Settings to ask for changes'}" ${revising || !settings.apiKey ? 'disabled' : ''}>
+        <button class="in-btn send" type="submit" aria-label="Send request" ${revising || !settings.apiKey ? 'disabled' : ''}>${I.up}</button></form>`;
+    const undoHTML = v.prev && !revising ? `<button class="btn btn-sm btn-plain ask-undo" id="wrUndo">${v.undone ? 'Redo Change' : 'Undo Change'}</button>` : '';
+    const thread = askThreadHTML(asks, typeof revising === 'string' ? revising : '');
+    const chat = wide || thread || undoHTML ? `<div class="wr-panel"><h5 class="ask-h">${I.sparkles} Ask Claude</h5>
+        <p class="ask-sub">Changes the “${esc(AUDIENCES[rp.audience]?.label || 'For me')}” version, using the ticked notes and briefs. Tap ✦ on a section to change just that one. You can undo it.</p>
+        ${thread}${wide ? formHTML + chipsHTML : ''}${undoHTML}</div>` : '';
     body.innerHTML = `<div class="wr-vers"><div class="seg" role="tablist">${keys.map(a => `<button data-ver="${a}" class="${a === aud ? 'on' : ''}">${esc(AUDIENCES[a].label.replace(/ or Slack update$/, ''))}</button>`).join('')}</div><button class="btn btn-sm btn-tinted" id="wrNew">${I.plus} New Version</button></div>
+      <div class="wr-layout ${wide ? 'wide' : ''}">
       <article class="brief ${revising ? 'busy' : ''}"><p class="muted" style="margin:0 0 6px;font-size:.8rem">${esc(style)} · from ${v.days ? `${v.days} day wrap-up${v.days === 1 ? '' : 's'} and ` : ''}${v.sessions || 0} session${v.sessions === 1 ? '' : 's'} and notes${v.left ? ` (${v.left} left out)` : ''} · ${v.source === 'ai' ? 'written by Claude' : 'written on this device'} ${esc(ago(v.generatedAt))}${changed ? ` · ${(v.editedAt || 0) >= (v.revisedAt || 0) ? 'edited by you' : 'revised by Claude'} ${esc(ago(changed))}` : ''}</p>
       ${rp.audience === 'email' ? `<p class="wr-subj"><span>Subject</span> ${esc(rp.headline)}</p>` : `<h2 class="brief-head">${esc(rp.headline)}</h2>`}
       ${paras(rp.summary).map(t => `<p class="brief-sum">${esc(t)}</p>`).join('')}
-      ${rp.sections.map(s => { const [cls, ic] = SEC_KIND_STYLE[s.kind] || SEC_STYLE[s.heading] || ['b-take', 'target']; return `<div class="brief-blk ${cls}"><h4>${I[ic]}${esc(s.heading)}</h4><ul>${s.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`; }).join('')}
+      ${sectionsHTML(rp.sections.map(x => { const [cls, ic] = SEC_KIND_STYLE[x.kind] || SEC_STYLE[x.heading] || ['b-take', 'target']; return { heading: x.heading, cls, icon: I[ic], items: x.items }; }), { prefix: 'w', ask: !!settings.apiKey && !revising })}
       ${kind === 'conf' && rp.slides?.length ? `<p class="f-cap" style="margin:16px 0 0">${rp.slides.length}-slide deck ready for PowerPoint export.${slidesOld ? ' It was written before your edits: ask Claude to “update the slides to match”.' : ''}</p>` : ''}
-      <div class="ask-wrap">
-        <form class="ask" id="wrAsk" autocomplete="off"><span class="ask-ic">${revising ? '<span class="spin"></span>' : I.sparkles}</span>
-          <input id="wrAskIn" enterkeyhint="send" aria-label="Ask Claude to change this" placeholder="${settings.apiKey ? (revising ? 'Making the change…' : 'Ask Claude to change this…') : 'Add a Claude key in Settings to ask for changes'}" ${revising || !settings.apiKey ? 'disabled' : ''}>
-          <button class="in-btn send" type="submit" aria-label="Send request" ${revising || !settings.apiKey ? 'disabled' : ''}>${I.up}</button></form>
-        ${settings.apiKey && !revising ? `<div class="ask-chips">${[...(slidesOld ? ['Update the slides to match'] : []), ...(ASK_CHIPS[rp.audience] || ASK_CHIPS.notes)].map(t => `<button data-ask="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : ''}
-      </div>
-      <div class="brief-foot">
-        <button class="btn btn-sm btn-primary" id="wrExport">${I.download} Export</button>
-        <button class="btn btn-sm btn-gray" id="wrCopy">${I.copy} Copy</button>
-        ${rp.audience === 'email' ? `<button class="btn btn-sm btn-gray" id="wrMail">${I.share} Open in Mail</button>` : ''}
-        <button class="btn btn-sm btn-gray" id="wrEditB" ${revising ? 'disabled' : ''}>${I.pencil} Edit</button>
-        <button class="btn btn-sm btn-gray" id="wrRedo" ${revising ? 'disabled' : ''}>${I.sparkles} Choose &amp; Refresh…</button>
-        ${v.prev && !revising ? `<button class="btn btn-sm btn-plain" id="wrUndo">${v.undone ? 'Redo Change' : 'Undo Change'}</button>` : ''}
-        <button class="btn btn-sm btn-plain danger-ink" id="wrDel">${I.trash} Delete</button>
-        ${v.source === 'ai' || changed ? '' : '<small>Add a Claude key in Settings for a fuller briefing</small>'}
-      </div></article>`;
+      </article>
+      <aside class="wr-rail" aria-label="Ask Claude and actions">${chat}
+        <div class="wr-panel wr-acts">
+          <button class="btn btn-sm btn-primary" id="wrExport">${I.download} Export</button>
+          <button class="btn btn-sm btn-gray" id="wrCopy">${I.copy} Copy</button>
+          ${rp.audience === 'email' ? `<button class="btn btn-sm btn-gray" id="wrMail">${I.share} Open in Mail</button>` : ''}
+          <button class="btn btn-sm btn-gray" id="wrEditB" ${revising ? 'disabled' : ''}>${I.pencil} Edit</button>
+          <button class="btn btn-sm btn-gray" id="wrRedo" ${revising ? 'disabled' : ''}>${I.sparkles} Choose &amp; Refresh…</button>
+          <button class="btn btn-sm btn-plain danger-ink" id="wrDel">${I.trash} Delete</button>
+          ${v.source === 'ai' || changed ? '' : '<small>Add a Claude key in Settings for a fuller briefing</small>'}
+        </div></aside></div>`;
+    if (!wide) { dock.innerHTML = chipsHTML + formHTML; dock.hidden = false; }
     $$('[data-ver]', body).forEach(b => b.onclick = () => { aud = b.dataset.ver; paint(); });
     $('#wrNew', body).onclick = () => openPick(AUD_ORDER.find(a => !vs[a]) || aud, 'new');
     $('#wrCopy', body).onclick = async () => { try { await navigator.clipboard.writeText(reportText(rp)); toast('Copied'); } catch { toast('Copy failed'); } };
@@ -4439,17 +4538,18 @@ function openWrap(kind, key) {
     $('#wrExport', body).onclick = (e) => exportMenu(e.currentTarget, rp);
     $('#wrEditB', body).onclick = () => { view = 'edit'; paint(); };
     $('#wrRedo', body).onclick = () => openPick(aud, 'refresh');
-    $('#wrUndo', body)?.addEventListener('click', () => { const cur = wrapV(wrapRec(kind, key), aud); if (!cur?.prev) return; putVersion(kind, key, { ...cur.prev, prev: vCore(cur), undone: !cur.undone }); paint(); toast(cur.undone ? 'Change redone' : 'Change undone'); });
+    $('#wrUndo', body)?.addEventListener('click', () => { const cur = wrapV(wrapRec(kind, key), aud); if (!cur?.prev) return; putVersion(kind, key, { ...cur.prev, asks: cur.asks, prev: vCore(cur), undone: !cur.undone }); paint(); toast(cur.undone ? 'Change redone' : 'Change undone'); });
     $('#wrDel', body).onclick = async () => {
       if (keys.length > 1) {
         if (!await confirmSheet(`Delete the “${AUDIENCES[aud].label}” version?`, 'It is removed from all your devices. The other versions and your notes stay.', 'Delete')) return;
         dropVersion(kind, key, aud); aud = wrapRec(kind, key).active; render(); paint(); toast('Version deleted');
       } else if (await confirmDeleteBriefing({ kind, key })) paint();
     };
-    const form = $('#wrAsk', body);
+    const form = $('#wrAsk', sheetEl);
     form?.addEventListener('submit', e => { e.preventDefault(); const t = $('#wrAskIn', form).value.trim(); if (t) ask(t, false); });
     // A suggestion chip is one tap, so it asks before sending; a typed request is already deliberate
-    $$('[data-ask]', body).forEach(b => b.onclick = () => ask(b.dataset.ask, true));
+    $$('[data-ask]', sheetEl).forEach(b => b.onclick = () => ask(b.dataset.ask, true));
+    bindSections(body, body.closest('.sheet-b'), () => $('#wrAskIn', sheetEl));
   };
   const openPickFirst = () => { const last = wrapPrefs().last; openPick(settings.apiKey && AUDIENCES[last] ? last : 'notes', 'first'); };
   // The current version stays in place until the new one has been written, so a failed refresh loses nothing
