@@ -453,6 +453,32 @@ body.resizing iframe,body.resizing video{pointer-events:none}
 .wr-acts small{color:var(--text-3);font-size:.8rem;width:100%}
 .wr-dock{flex:none;border-top:1px solid var(--sep);background:var(--win);padding:10px 14px calc(env(safe-area-inset-bottom) + 10px);border-radius:0 0 14px 14px}
 .wr-dock[hidden]{display:none}
+/* Presentations: theme choices, the slide previews */
+.dk-slide{position:relative;aspect-ratio:16/9;overflow:hidden;container-type:inline-size;border-radius:8px;box-shadow:0 0 0 1px var(--sep),0 4px 14px rgba(0,0,0,.08)}
+.dk-slide>*{position:absolute;display:block}
+.dk-t{display:flex !important;flex-direction:column}
+.dk-t p{margin:0;line-height:1.2;white-space:pre-wrap;overflow-wrap:break-word}
+.dk-intro{margin:4px 2px 6px;font-size:.9667rem;line-height:1.5}
+.dk-themes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.dk-theme{display:flex;flex-direction:column;gap:6px;padding:6px;border-radius:12px;border:2px solid transparent;font-size:.8667rem;font-weight:600;text-align:center}
+.dk-theme.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.dk-check{display:flex;gap:8px;align-items:center;margin:14px 2px 0;font-size:.9333rem}
+.seg button small{font-weight:400;color:var(--text-3)}
+.dk-busy{display:flex;flex-direction:column;align-items:center;gap:10px;padding:70px 20px;text-align:center}
+.dk-stale{display:flex;align-items:center;gap:10px;padding:10px 14px;margin:0 0 12px;border-radius:12px;background:var(--orange-soft);color:var(--orange);font-size:.9rem}
+.dk-stale svg{width:16px;height:16px;flex:none}.dk-stale span{flex:1}
+.dk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px}
+.dk-meta{flex:1;font-size:.8333rem;min-width:140px}
+.dk-swatches{display:flex;gap:6px}
+.dk-swatches button{display:flex;padding:3px;border-radius:9px;border:2px solid transparent}
+.dk-swatches button.on{border-color:var(--accent)}
+.dk-swatches i{width:12px;height:22px}.dk-swatches i:first-child{border-radius:5px 0 0 5px}.dk-swatches i:last-child{border-radius:0 5px 5px 0}
+.dk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.dk-fig{margin:0}
+.dk-fig figcaption{display:flex;gap:8px;align-items:baseline;margin-top:6px;font-size:.8rem;color:var(--text-2)}
+.dk-fig figcaption b{color:var(--text-3);font-weight:600}
+.dk-fig details{flex:1}.dk-fig summary{cursor:pointer;color:var(--accent)}.dk-fig details p{margin:6px 0 0;line-height:1.45;color:var(--text)}
+@media (max-width:520px){.dk-themes{grid-template-columns:repeat(2,minmax(0,1fr))}.dk-grid{grid-template-columns:1fr}.seg button small{display:none}}
 .wr-dock .ask-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px 8px;padding:0 14px}
 .wr-dock .ask-chips::-webkit-scrollbar{display:none}
 .wr-dock .ask-chips button{flex:none}
@@ -4262,16 +4288,15 @@ const AUD_ORDER = ['notes', 'team', 'exec', 'email'];
 const LENGTHS = { short: ['Short', 'Keep it short: the fewest words that carry each point, and 3 or 4 items per section at most.'], standard: ['Standard', 'Complete but tight: 4 to 7 items per section.'], detailed: ['Detailed', 'Thorough: up to 10 items per section, with specifics, numbers and examples from the material.'] };
 const SEC_KINDS = ['highlights', 'insights', 'implications', 'themes', 'learnings', 'resources', 'recommendations', 'actions', 'people', 'questions', 'risks', 'other'];
 const SEC_KIND_STYLE = { highlights: ['b-take', 'target'], insights: ['b-take', 'target'], implications: ['b-take', 'target'], themes: ['b-learn', 'bulb'], learnings: ['b-learn', 'bulb'], resources: ['b-learn', 'bulb'], recommendations: ['b-act', 'flag'], actions: ['b-act', 'flag'], people: ['b-q', 'chat'], questions: ['b-q', 'help'], risks: ['b-q', 'help'], other: ['b-take', 'target'] };
-const wrapSchema = (kind) => ({ type: 'object', additionalProperties: false, required: ['headline', 'summary', 'sections', ...(kind === 'conf' ? ['slides'] : [])], properties: { headline: { type: 'string' }, summary: { type: 'string' },
-  sections: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['heading', 'kind', 'items'], properties: { heading: { type: 'string' }, kind: { type: 'string', enum: SEC_KINDS }, items: strArr } } },
-  ...(kind === 'conf' ? { slides: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['title', 'bullets'], properties: { title: { type: 'string' }, bullets: strArr } } } } : {}) } });
+const wrapSchema = (kind) => ({ type: 'object', additionalProperties: false, required: ['headline', 'summary', 'sections'], properties: { headline: { type: 'string' }, summary: { type: 'string' },
+  sections: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['heading', 'kind', 'items'], properties: { heading: { type: 'string' }, kind: { type: 'string', enum: SEC_KINDS }, items: strArr } } } } });
 const WRAP_SYSTEM = `You consolidate one attendee's conference material into a briefing. The material is briefs of sessions they attended, raw notes from sessions without a brief, quick notes from informal moments (booth visits, conversations, meetups) and, for the whole conference, their day wrap-ups. Connect ideas across sessions when the material supports it, and never add facts the material doesn't contain. Keep each list item to one or two sentences. Write the headline, summary and sections for the reader described below: choose section headings that suit that reader, give each section the kind that fits it best, and leave out any section the material doesn't support.`;
 function styleText(kind, st) {
   const a = AUDIENCES[st.audience] || AUDIENCES.notes;
   return [a.guide, `Length: ${(LENGTHS[st.length] || LENGTHS.standard)[1]}`,
     st.cite ? 'Sources: end each point with the session, speaker or encounter it came from in brackets, for example (Opening Keynote) or (booth: Workday).' : 'Sources: don\'t cite sessions or speakers point by point; name a speaker or company only where it adds weight or the reader would want to follow up.',
     st.focus ? `Tailor it to this, from the attendee: ${st.focus}` : '',
-    kind === 'conf' ? `Also write slides for this reader: ${st.audience === 'exec' ? '4 to 6' : '6 to 10'} slides, each with a short title and 3 to 5 concise bullets, starting with the big picture and ending with what to do next.` : ''].filter(Boolean).join('\n');
+    ''].filter(Boolean).join('\n');
 }
 // The reader's last choices on this device, as the starting point next time
 const wrapPrefs = () => LS.get('cc.wrapStyle', {});
@@ -4283,7 +4308,8 @@ const wrapRec = (kind, key) => kind === 'day' ? state.dayBriefs?.[key] : state.c
 function wrapVersions(r) { if (!r) return {}; if (r.versions) return r.versions; const { versions, active, droppedAt, ...v } = r; return { notes: { ...v, audience: 'notes' } }; }
 function wrapV(r, aud) { const vs = wrapVersions(r); return vs[aud || r?.active] || vs.notes || Object.values(vs)[0] || null; }
 const wrapInput = (r) => wrapVersions(r).notes || wrapV(r);
-const vTime = (v) => Math.max(v?.generatedAt || 0, v?.editedAt || 0, v?.revisedAt || 0);
+const vContent = (v) => Math.max(v?.generatedAt || 0, v?.editedAt || 0, v?.revisedAt || 0);
+const vTime = (v) => Math.max(vContent(v), v?.deck?.at || 0);
 const vCore = (v) => { if (!v) return null; const { prev, undone, ...rest } = v; return rest; };
 function putVersion(kind, key, v) {
   const r = wrapRec(kind, key), rec = { versions: { ...wrapVersions(r), [v.audience]: v }, active: v.audience, droppedAt: { ...(r?.droppedAt || {}) }, generatedAt: now() };
@@ -4349,7 +4375,7 @@ async function generateWrap(kind, key, st) {
   if (settings.apiKey) {
     const r = await claude({ system: `${WRAP_SYSTEM}\n\n${styleText(kind, st)}`, schema: wrapSchema(kind),
       content: [{ type: 'text', text: `${m.text}\n\nWrite the ${kind === 'day' ? 'end-of-day briefing for this day' : 'takeaways for the whole conference'}.` }] });
-    v = { headline: r.headline || '', summary: r.summary || '', sections: (r.sections || []).filter(s => s.items?.length), ...(kind === 'conf' ? { slides: r.slides || [], slidesAt: now() } : {}), source: 'ai' };
+    v = { headline: r.headline || '', summary: r.summary || '', sections: (r.sections || []).filter(s => s.items?.length), source: 'ai' };
   } else {
     if (st.audience !== 'notes') throw new Error('Add a Claude key in Settings to write versions for other readers.');
     const b = m.items.filter(s => s.brief), people = m.items.filter(s => s.informal && s.speaker).map(s => `${s.speaker} (${s.title})`);
@@ -4357,7 +4383,7 @@ async function generateWrap(kind, key, st) {
     const legacy = kind === 'day'
       ? { headline: `${fmtDate(key, { weekday: 'long' })}: ${b.length} session${b.length === 1 ? '' : 's'} wrapped up`, summary: b.map(line).join(' '), highlights: b.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), peopleAndCompanies: people, actionItems: b.flatMap(s => s.brief.actionItems), openQuestions: b.flatMap(s => s.brief.openQuestions).slice(0, 4) }
       : { headline: `${state.conference.name || 'Conference'}: ${b.length} sessions`, summary: b.slice(0, 8).map(line).join(' '), topTakeaways: b.flatMap(s => s.brief.keyTakeaways.slice(0, 2)), learnings: b.flatMap(s => s.brief.learnings).slice(0, 6), actionItems: b.flatMap(s => s.brief.actionItems), peopleAndCompanies: people };
-    v = { headline: legacy.headline, summary: legacy.summary, sections: vSections(legacy, kind), ...(kind === 'conf' ? { slides: [] } : {}), source: 'offline' };
+    v = { headline: legacy.headline, summary: legacy.summary, sections: vSections(legacy, kind), source: 'offline' };
   }
   Object.assign(v, { audience: st.audience, length: st.length, cite: !!st.cite, focus: st.focus || '', generatedAt: now(), sessions: m.mats.length, days: m.days.length, left: m.left });
   putVersion(kind, key, v);
@@ -4367,12 +4393,12 @@ async function reviseWrap(kind, key, aud, request) {
   const v = wrapV(wrapRec(kind, key), aud); if (!v || !request.trim()) return;
   const a = AUDIENCES[v.audience] || AUDIENCES.notes, st = { audience: v.audience || 'notes', length: v.length || a.length, cite: v.cite ?? a.cite, focus: v.focus || '' };
   const m = wrapMaterial(kind, key);
-  const cur = { headline: v.headline, summary: v.summary, sections: vSections(v, kind), ...(kind === 'conf' ? { slides: v.slides || [] } : {}) };
+  const cur = { headline: v.headline, summary: v.summary, sections: vSections(v, kind) };
   const r = await claude({ schema: wrapSchema(kind),
-    system: `${WRAP_SYSTEM}\n\n${styleText(kind, st)}\n\nYou are revising a briefing that already exists; the attendee may have edited parts of it by hand. Make the change they ask for and keep everything else as it is, including their wording. Return the complete briefing, every field.${kind === 'conf' ? ' Keep the slides consistent with the text.' : ''} Use the material to add or check facts; if the request needs something it doesn't support, leave it out rather than inventing it.`,
+    system: `${WRAP_SYSTEM}\n\n${styleText(kind, st)}\n\nYou are revising a briefing that already exists; the attendee may have edited parts of it by hand. Make the change they ask for and keep everything else as it is, including their wording. Return the complete briefing, every field. Use the material to add or check facts; if the request needs something it doesn't support, leave it out rather than inventing it.`,
     content: [{ type: 'text', text: `${m.text}\n\nThe current briefing:\n${JSON.stringify(cur, null, 1)}\n\nThe attendee's request: ${request.trim()}` }] });
   const fresh = wrapV(wrapRec(kind, key), aud) || v;
-  putVersion(kind, key, withSections(fresh, kind, { asks: addAsk(fresh.asks, request), headline: r.headline || '', summary: r.summary || '', sections: (r.sections || []).filter(s => s.items?.length), ...(kind === 'conf' ? { slides: r.slides || [], slidesAt: now() } : {}), revisedAt: now(), prev: vCore(fresh), undone: false }));
+  putVersion(kind, key, withSections(fresh, kind, { asks: addAsk(fresh.asks, request), headline: r.headline || '', summary: r.summary || '', sections: (r.sections || []).filter(s => s.items?.length), revisedAt: now(), prev: vCore(fresh), undone: false }));
 }
 // A briefing as neutral sections, shared by the sheet and every export format
 function reportOf(kind, key, aud) {
@@ -4380,7 +4406,7 @@ function reportOf(kind, key, aud) {
   const audience = v.audience || 'notes', suffix = { notes: '', team: ' · for the team', exec: ' · executive briefing', email: ' · update' }[audience] || '';
   const sections = vSections(v, kind).map(s => ({ heading: s.heading, kind: s.kind, items: s.items }));
   if (kind === 'day') return { kind, key, audience, title: `${fmtDate(key, { weekday: 'long', month: 'long', day: 'numeric' })} wrap-up${suffix}`, subtitle: conf, headline: v.headline, summary: v.summary, data: v, sections };
-  return { kind, key: 'conf', audience, title: `${conf}: ${audience === 'exec' ? 'executive briefing' : audience === 'team' ? 'update for the team' : audience === 'email' ? 'update' : 'key takeaways'}`, subtitle: [conf, days().length ? `${fmtDate(days()[0], { month: 'short', day: 'numeric' })}–${fmtDate(days().at(-1), { month: 'short', day: 'numeric' })}` : ''].filter(Boolean).join(' · '), headline: v.headline, summary: v.summary, data: v, slides: v.slides, sections };
+  return { kind, key: 'conf', audience, title: `${conf}: ${audience === 'exec' ? 'executive briefing' : audience === 'team' ? 'update for the team' : audience === 'email' ? 'update' : 'key takeaways'}`, subtitle: [conf, days().length ? `${fmtDate(days()[0], { month: 'short', day: 'numeric' })}–${fmtDate(days().at(-1), { month: 'short', day: 'numeric' })}` : ''].filter(Boolean).join(' · '), headline: v.headline, summary: v.summary, data: v, sections };
 }
 const reportText = (rp) => rp.audience === 'email'
   ? `Subject: ${rp.headline}\n\n${rp.summary}\n${rp.sections.map(s => `\n${s.heading}\n${s.items.map(x => '• ' + x).join('\n')}`).join('\n')}`.trim()
@@ -4462,7 +4488,6 @@ function openWrap(kind, key) {
       <label class="bf-l">Sections <small>a heading, then one point per line; clear a section to remove it</small></label>
       <div id="weSecs">${secs.map(sec).join('')}</div>
       <button class="btn btn-sm btn-gray" id="weAdd" style="margin-top:8px">${I.plus} Add a Section</button>
-      ${kind === 'conf' && v.slides?.length ? '<p class="f-cap">The slide deck isn’t edited here. After saving, ask Claude to “update the slides to match”.</p>' : ''}
       <div class="edit-row" style="margin-top:16px"><button class="btn btn-sm btn-gray" id="weCancel">Cancel</button><button class="btn btn-sm btn-primary" id="weSave">Save</button></div></article>`;
     sh.setRight('Save', true);
     const fit = (t) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; };
@@ -4500,9 +4525,8 @@ function openWrap(kind, key) {
     sh.setRight('Export', !revising);
     const changed = Math.max(v.editedAt || 0, v.revisedAt || 0);
     const style = [AUDIENCES[rp.audience]?.label, LENGTHS[v.length]?.[0], v.cite ? 'with sources' : ''].filter(Boolean).join(' · ');
-    const slidesOld = kind === 'conf' && v.slides?.length && (v.editedAt || 0) > (v.slidesAt || v.generatedAt || 0);
     const wide = wasWide = isWide(), asks = v.asks || [];
-    const chips = settings.apiKey && !revising ? [...(slidesOld ? ['Update the slides to match'] : []), ...(ASK_CHIPS[rp.audience] || ASK_CHIPS.notes)] : [];
+    const chips = settings.apiKey && !revising ? (ASK_CHIPS[rp.audience] || ASK_CHIPS.notes) : [];
     const chipsHTML = chips.length ? `<div class="ask-chips">${chips.map(t => `<button data-ask="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : '';
     const formHTML = `<form class="ask" id="wrAsk" autocomplete="off"><span class="ask-ic">${revising ? '<span class="spin"></span>' : I.sparkles}</span>
         <input id="wrAskIn" enterkeyhint="send" aria-label="Ask Claude to change this" placeholder="${settings.apiKey ? (revising ? 'Making the change…' : 'Ask Claude to change this…') : 'Add a Claude key in Settings to ask for changes'}" ${revising || !settings.apiKey ? 'disabled' : ''}>
@@ -4518,11 +4542,11 @@ function openWrap(kind, key) {
       ${rp.audience === 'email' ? `<p class="wr-subj"><span>Subject</span> ${esc(rp.headline)}</p>` : `<h2 class="brief-head">${esc(rp.headline)}</h2>`}
       ${paras(rp.summary).map(t => `<p class="brief-sum">${esc(t)}</p>`).join('')}
       ${sectionsHTML(rp.sections.map(x => { const [cls, ic] = SEC_KIND_STYLE[x.kind] || SEC_STYLE[x.heading] || ['b-take', 'target']; return { heading: x.heading, cls, icon: I[ic], items: x.items }; }), { prefix: 'w', ask: !!settings.apiKey && !revising })}
-      ${kind === 'conf' && rp.slides?.length ? `<p class="f-cap" style="margin:16px 0 0">${rp.slides.length}-slide deck ready for PowerPoint export.${slidesOld ? ' It was written before your edits: ask Claude to “update the slides to match”.' : ''}</p>` : ''}
       </article>
       <aside class="wr-rail" aria-label="Ask Claude and actions">${chat}
         <div class="wr-panel wr-acts">
           <button class="btn btn-sm btn-primary" id="wrExport">${I.download} Export</button>
+          <button class="btn btn-sm btn-gray" id="wrDeck">${I.slides} Presentation</button>
           <button class="btn btn-sm btn-gray" id="wrCopy">${I.copy} Copy</button>
           ${rp.audience === 'email' ? `<button class="btn btn-sm btn-gray" id="wrMail">${I.share} Open in Mail</button>` : ''}
           <button class="btn btn-sm btn-gray" id="wrEditB" ${revising ? 'disabled' : ''}>${I.pencil} Edit</button>
@@ -4536,9 +4560,10 @@ function openWrap(kind, key) {
     $('#wrCopy', body).onclick = async () => { try { await navigator.clipboard.writeText(reportText(rp)); toast('Copied'); } catch { toast('Copy failed'); } };
     $('#wrMail', body)?.addEventListener('click', () => { const t = reportText(rp).replace(/^Subject: .*\n\n/, ''); location.href = `mailto:?subject=${encodeURIComponent(rp.headline)}&body=${encodeURIComponent(t.length > 1800 ? t.slice(0, 1800) + '…' : t)}`; });
     $('#wrExport', body).onclick = (e) => exportMenu(e.currentTarget, rp);
+    $('#wrDeck', body).onclick = () => openDeck(rp);
     $('#wrEditB', body).onclick = () => { view = 'edit'; paint(); };
     $('#wrRedo', body).onclick = () => openPick(aud, 'refresh');
-    $('#wrUndo', body)?.addEventListener('click', () => { const cur = wrapV(wrapRec(kind, key), aud); if (!cur?.prev) return; putVersion(kind, key, { ...cur.prev, asks: cur.asks, prev: vCore(cur), undone: !cur.undone }); paint(); toast(cur.undone ? 'Change redone' : 'Change undone'); });
+    $('#wrUndo', body)?.addEventListener('click', () => { const cur = wrapV(wrapRec(kind, key), aud); if (!cur?.prev) return; putVersion(kind, key, { ...cur.prev, asks: cur.asks, deck: cur.deck, prev: vCore(cur), undone: !cur.undone }); paint(); toast(cur.undone ? 'Change redone' : 'Change undone'); });
     $('#wrDel', body).onclick = async () => {
       if (keys.length > 1) {
         if (!await confirmSheet(`Delete the “${AUDIENCES[aud].label}” version?`, 'It is removed from all your devices. The other versions and your notes stay.', 'Delete')) return;
@@ -5342,7 +5367,7 @@ function exportMenu(anchor, rp) {
   openMenu(anchor, [
     { label: 'PDF…', icon: I.doc, run: () => exportPDF(rp) },
     { label: 'Word Document (.docx)', icon: I.doc, run: () => exportDOCX(rp) },
-    { label: 'PowerPoint Presentation (.pptx)', icon: I.slides, run: () => exportPPTX(rp) },
+    { label: 'PowerPoint Presentation…', icon: I.slides, run: () => openDeck(rp) },
     { sep: true },
     { label: 'Save to Google Docs', icon: I.cloud, run: () => reportToGoogleDoc(rp) },
   ]);
@@ -5423,60 +5448,320 @@ function exportDOCX(rp) {
     ['word/document.xml', doc], ['word/styles.xml', styles],
   ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'), `${fileSafe(rp.title)}.docx`);
 }
-function deckSlides(rp) {
-  // Claude writes a deck for the conference; otherwise each section becomes slides of up to 5 bullets
-  const out = [];
-  if (rp.slides?.length) rp.slides.forEach(s => out.push({ title: s.title, bullets: s.bullets }));
-  else {
-    out.push({ title: 'In short', bullets: [rp.headline, rp.summary].filter(Boolean) });
-    for (const s of rp.sections) for (let i = 0; i < s.items.length; i += 5) out.push({ title: s.items.length > 5 ? `${s.heading} (${i / 5 + 1})` : s.heading, bullets: s.items.slice(i, i + 5) });
+/* ---------- Presentations: designed when the briefing is exported, previewed here, built on the device ---------- */
+// Claude picks a layout for each idea; the same layout code draws the preview and the PowerPoint file, so what you see is what you get
+const DECK_THEMES = {
+  midnight: { label: 'Midnight', bg: '0F172A', bg2: '17223B', card: '1E293B', line: '334155', text: 'F8FAFC', muted: 'B8C2D3', accent: '38BDF8', accent2: 'A78BFA', onAccent: '0B1220', dark: '020617', light: 'F8FAFC', soft: '94A3B8', head: 'Helvetica Neue' },
+  paper: { label: 'Paper', bg: 'FAFAF7', bg2: 'F1EFE8', card: 'FFFFFF', line: 'E3E1D8', text: '1D1D1F', muted: '55555A', accent: '0066CC', accent2: 'E8590C', onAccent: 'FFFFFF', dark: '1D1D1F', light: 'FAFAF7', soft: 'B5B5BA', head: 'Georgia' },
+  sunset: { label: 'Sunset', bg: 'FFF7ED', bg2: 'FFEDD5', card: 'FFFFFF', line: 'FED7AA', text: '431407', muted: '7C2D12', accent: 'C2410C', accent2: 'BE185D', onAccent: 'FFFFFF', dark: '431407', light: 'FFF7ED', soft: 'FDBA74', head: 'Helvetica Neue' },
+  forest: { label: 'Forest', bg: 'F3F7F2', bg2: 'E2ECDF', card: 'FFFFFF', line: 'CFDECB', text: '14281D', muted: '3F5A47', accent: '1F7A4D', accent2: '0E7490', onAccent: 'FFFFFF', dark: '14281D', light: 'F3F7F2', soft: '9FC5AE', head: 'Georgia' },
+};
+const DECK_LENGTHS = { short: ['Short', '5 to 7'], standard: ['Standard', '8 to 11'], long: ['Long', '12 to 16'] };
+const DECK_LAYOUTS = ['statement', 'bullets', 'cards', 'numbers', 'quote', 'steps', 'compare', 'closing'];
+const DECK_SCHEMA = { type: 'object', additionalProperties: false, required: ['title', 'subtitle', 'slides'], properties: { title: { type: 'string' }, subtitle: { type: 'string' },
+  slides: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['layout', 'kicker', 'title', 'body', 'items', 'notes'], properties: {
+    layout: { type: 'string', enum: DECK_LAYOUTS }, kicker: { type: 'string' }, title: { type: 'string' }, body: { type: 'string' }, notes: { type: 'string' },
+    items: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['heading', 'text', 'value'], properties: { heading: { type: 'string' }, text: { type: 'string' }, value: { type: 'string' } } } } } } } } };
+const DECK_SYSTEM = `You are a presentation designer. You turn a conference briefing into a slide deck that someone will stand up and present. Pick the layout that best carries each idea, and vary them: never two bullet slides in a row, and use at least four different layouts in a deck of eight or more slides.
+
+Layouts and how to fill them (leave a field you don't use as an empty string or an empty list):
+- statement: one bold idea. title = the statement, at most 14 words; body = an optional single line of support.
+- bullets: title + 3 to 5 items; heading = the point in at most 10 words, text = optional detail in at most 15 words.
+- cards: title + 2 to 4 items for parallel ideas (themes, recommendations, options); heading = 2 to 5 words, text = at most 20 words.
+- numbers: title + 1 to 3 items; value = a figure written exactly as it appears in the briefing (e.g. "30–40%", "$40k", "3 in 4"), heading = what it measures in at most 8 words, text = optional context. Use it only when the briefing contains real figures; never invent, round or estimate one.
+- quote: title = a line a speaker said, word for word, taken only from the quotes provided; body = who said it, and in which session.
+- steps: title + 3 to 5 items in order (a plan, a process, a sequence of actions); heading = 2 to 5 words, text = at most 15 words.
+- compare: title + exactly 2 items; heading = each side's label (e.g. "Today" and "Next", or "What we heard" and "What it means for us"), text = 2 to 4 short lines separated by newlines.
+- closing: the last slide. title = the call to action; items = 2 to 4 next steps, heading only.
+
+Rules: open with a statement that gives the big picture and end with closing. Titles say the point, not the topic ("Trust beats features", not "Trust"). kicker = a 1 to 3 word label for the slide, such as "The big picture" or "What to do". Write for the reader described below, in their language and at their level. Use only what is in the briefing: no invented facts, figures, names or quotes. title and subtitle = the deck's cover. notes = what the presenter says on that slide: 2 to 4 natural sentences, first person, adding context beyond what is on the slide.`;
+
+const SW = 960, SH = 540, MX = 56;
+const FONT_W = (o = {}) => (o.font === 'Georgia' ? 0.53 : 0.5) + (o.b ? 0.05 : 0);
+// How many lines a text wraps to in a box (an estimate from the average glyph width; it errs on the safe side)
+function deckLines(text, size, w, o) {
+  const max = Math.max(1, Math.floor(w / (size * FONT_W(o)))); let lines = 0;
+  for (const para of String(text || '').split('\n')) {
+    let cur = 0, l = 1;
+    for (const word of para.split(/\s+/).filter(Boolean)) { const n = word.length; if (cur && cur + 1 + n > max) { l++; cur = n; } else cur += (cur ? 1 : 0) + n; }
+    lines += l;
   }
-  return out;
+  return lines;
 }
-function exportPPTX(rp) {
-  const NS = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
-  const EMU = 12700; // per point
-  const W = 12192000, H = 6858000;
-  let shapeId = 2;
-  const run = (t, sz, color, bold) => `<a:r><a:rPr lang="en-US" sz="${sz * 100}"${bold ? ' b="1"' : ''} dirty="0"><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="Helvetica Neue"/><a:cs typeface="Arial"/></a:rPr><a:t>${xe(t)}</a:t></a:r>`;
-  const box = (x, y, w, h, parasXml, anchor = 't') => `<p:sp><p:nvSpPr><p:cNvPr id="${shapeId++}" name="Text ${shapeId}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" anchor="${anchor}"><a:normAutofit/></a:bodyPr><a:lstStyle/>${parasXml}</p:txBody></p:sp>`;
-  const rect = (x, y, w, h, color) => `<p:sp><p:nvSpPr><p:cNvPr id="${shapeId++}" name="Shape ${shapeId}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm><a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr></p:sp>`;
-  const p = (inner, extra = '') => `<a:p><a:pPr${extra}/>${inner}</a:p>`;
-  const bulletP = (t, sz) => `<a:p><a:pPr marL="342900" indent="-285750"><a:lnSpc><a:spcPct val="110000"/></a:lnSpc><a:spcBef><a:spcPts val="1000"/></a:spcBef><a:buClr><a:srgbClr val="0071E3"/></a:buClr><a:buFont typeface="Arial"/><a:buChar char="•"/></a:pPr>${run(t, sz, '3A3A3C')}</a:p>`;
-  const slideXml = (shapes, bg = 'FFFFFF') => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld ${NS}><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="${bg}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${shapes}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
-  const M = 72 * EMU * 0.9; // ~0.9in margin
-  const slides = [];
-  shapeId = 2;
-  slides.push(slideXml(
-    box(M, H * 0.30, W - 2 * M, 60 * EMU, p(run(rp.subtitle, 18, '6E6E73'))) +
-    box(M, H * 0.30 + 70 * EMU, W - 2 * M, 150 * EMU, p(run(rp.title, 46, '1D1D1F', true), ' algn="l"')) +
-    box(M, H * 0.30 + 230 * EMU, W - 2 * M, 90 * EMU, p(run(rp.headline, 22, '0066CC'))), 'F5F5F7'));
-  for (const s of deckSlides(rp)) {
-    shapeId = 2;
-    const bullets = s.bullets.map(b => bulletP(b, s.bullets.length > 4 ? 20 : 22)).join('');
-    slides.push(slideXml(
-      rect(M, M * 0.9, 56 * EMU, 6 * EMU, '0071E3') +
-      box(M, M * 0.9 + 22 * EMU, W - 2 * M, 80 * EMU, p(run(s.title, 34, '1D1D1F', true)), 'b') +
-      box(M, M * 0.9 + 130 * EMU, W - 2 * M, H - (M * 0.9 + 130 * EMU) - M, bullets)));
+const deckFit = (text, w, h, max, min, o) => { for (let s = max; s > min; s--) if (deckLines(text, s, w, o) * s * 1.2 <= h) return s; return min; };
+// A heading and its text in one box: shrink both together until they fit
+function deckFitPair(a, b, w, h, as, bs, o = {}) {
+  for (let k = 1; k >= 0.5; k -= 0.05) {
+    const A = Math.round(as * k), B = Math.round(bs * k);
+    if ((a ? deckLines(a, A, w, { ...o, b: 1 }) * A * 1.2 : 0) + (b ? 6 + deckLines(b, B, w, {}) * B * 1.2 : 0) <= h) return [A, B];
   }
-  const n = slides.length;
-  const theme = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Copilot"><a:themeElements><a:clrScheme name="Copilot"><a:dk1><a:srgbClr val="1D1D1F"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="3A3A3C"/></a:dk2><a:lt2><a:srgbClr val="F5F5F7"/></a:lt2><a:accent1><a:srgbClr val="0071E3"/></a:accent1><a:accent2><a:srgbClr val="F56300"/></a:accent2><a:accent3><a:srgbClr val="1A7F37"/></a:accent3><a:accent4><a:srgbClr val="7A3FD0"/></a:accent4><a:accent5><a:srgbClr val="00759A"/></a:accent5><a:accent6><a:srgbClr val="D70015"/></a:accent6><a:hlink><a:srgbClr val="0066CC"/></a:hlink><a:folHlink><a:srgbClr val="7A3FD0"/></a:folHlink></a:clrScheme><a:fontScheme name="Copilot"><a:majorFont><a:latin typeface="Helvetica Neue"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Helvetica Neue"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Copilot"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
-  const emptyTree = '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld>';
+  return [Math.round(as / 2), Math.round(bs / 2)];
+}
+const dR = (x, y, w, h, fill, o = {}) => ({ k: 'rect', x, y, w, h, fill, ...o });
+const dO = (x, y, w, h, fill, o = {}) => ({ k: 'oval', x, y, w, h, fill, ...o });
+const dT = (x, y, w, h, paras, anchor = 't') => ({ k: 'text', x, y, w, h, paras, anchor });
+const dP = (t, size, color, o = {}) => ({ t: String(t ?? ''), size, color, ...o });
+const stamp = () => new Date().toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
+
+// One slide of the deck as shapes on a 960×540 canvas
+function deckSlide(s, th, n, deck) {
+  const els = [], items = (s.items || []).filter(x => x.heading || x.text || x.value), acc = (j) => j % 2 ? th.accent2 : th.accent;
+  const kicker = (color, x = MX, y = 38) => s.kicker && els.push(dT(x, y, 760, 18, [dP(s.kicker.toUpperCase(), 11, color, { b: 1, ls: 2 })]));
+  const title = (color, y = 60, h = 70, max = 34) => { const sz = deckFit(s.title, 848, h, max, 18, { b: 1, font: th.head }); els.push(dT(MX, y, 848, h, [dP(s.title, sz, color, { b: 1, font: th.head })])); };
+  const pageNo = (color) => els.push(dT(SW - MX - 80, SH - 34, 80, 14, [dP(n, 10, color, { align: 'r' })]));
+  const corner = () => n % 2 ? els.push(dO(SW - 130, -90, 220, 220, th.accent2, { op: 0.12 })) : els.push(dO(-90, SH - 110, 200, 200, th.accent, { op: 0.1 }));
+  let layout = s.layout;
+  if (layout === 'compare' && items.length < 2) layout = 'bullets';
+  if (layout === 'steps' && items.length < 2) layout = 'bullets';
+  if (['bullets', 'cards', 'numbers'].includes(layout) && !items.length) layout = 'statement';
+  if (layout === 'cover') {
+    els.push(dO(590, 70, 430, 430, th.accent), dO(770, 250, 300, 300, th.accent2, { op: 0.9 }), dO(530, 340, 170, 170, th.text, { op: 0.07 }));
+    if (s.kicker) els.push(dT(MX, 140, 500, 18, [dP(s.kicker.toUpperCase(), 12, th.accent, { b: 1, ls: 2 })]));
+    const sz = deckFit(s.title, 520, 200, 46, 24, { b: 1, font: th.head });
+    els.push(dT(MX, 168, 520, 200, [dP(s.title, sz, th.text, { b: 1, font: th.head })]));
+    if (s.body) els.push(dT(MX, 380, 500, 60, [dP(s.body, deckFit(s.body, 500, 60, 18, 12, {}), th.muted)]));
+    els.push(dT(MX, 490, 520, 16, [dP(`Made with Conference Copilot · ${stamp()}`, 10, th.muted)]));
+    return { bg: th.bg, els, notes: s.notes || '' };
+  }
+  if (layout === 'statement') {
+    els.push(dO(640, 250, 460, 460, th.onAccent, { op: 0.1 }), dO(-140, -170, 380, 380, th.onAccent, { op: 0.07 }));
+    kicker(th.onAccent, 80, 120);
+    const sz = deckFit(s.title, 780, 230, 46, 24, { b: 1, font: th.head });
+    els.push(dT(80, 150, 780, 230, [dP(s.title, sz, th.onAccent, { b: 1, font: th.head })], 'ctr'));
+    if (s.body) els.push(dT(80, 396, 760, 70, [dP(s.body, deckFit(s.body, 760, 70, 20, 12, {}), th.onAccent, { op: 0.88 })]));
+    return { bg: th.accent, els, notes: s.notes || '' };
+  }
+  if (layout === 'quote') {
+    els.push(dT(44, 0, 220, 230, [dP('“', 230, th.accent, { b: 1, font: 'Georgia', op: 0.35 })]));
+    kicker(th.accent);
+    const sz = deckFit(s.title, 720, 240, 36, 18, { font: th.head });
+    els.push(dT(120, 120, 720, 250, [dP(s.title, sz, th.text, { i: 1, font: th.head })], 'ctr'));
+    if (s.body) els.push(dR(120, 404, 40, 4, th.accent), dT(176, 393, 660, 50, [dP(s.body, deckFit(s.body, 660, 50, 16, 11, {}), th.muted)]));
+    pageNo(th.muted);
+    return { bg: th.bg2, els, notes: s.notes || '' };
+  }
+  if (layout === 'closing') {
+    els.push(dO(660, 200, 420, 420, th.accent, { op: 0.28 }), dO(800, 60, 220, 220, th.accent2, { op: 0.3 }));
+    kicker(th.soft, MX, 90);
+    const sz = deckFit(s.title, 700, 140, 40, 22, { b: 1, font: th.head });
+    els.push(dT(MX, 114, 700, 140, [dP(s.title, sz, th.light, { b: 1, font: th.head })]));
+    items.slice(0, 4).forEach((it, j) => {
+      const y = 282 + j * 50;
+      els.push(dR(MX, y + 6, 24, 24, acc(j), { r: 6 }), dT(MX, y + 6, 24, 24, [dP(j + 1, 12, th.onAccent, { b: 1, align: 'ctr' })], 'ctr'));
+      const t = it.heading || it.text; els.push(dT(MX + 40, y, 640, 36, [dP(t, deckFit(t, 640, 36, 18, 11, {}), th.light)], 'ctr'));
+    });
+    return { bg: th.dark, els, notes: s.notes || '' };
+  }
+  corner(); kicker(th.accent); title(th.text); pageNo(th.muted);
+  const top = 150, bottom = 488;
+  if (layout === 'cards') {
+    const list = items.slice(0, 4), gap = 20, cw = (848 - gap * (list.length - 1)) / list.length;
+    list.forEach((it, j) => {
+      const x = MX + j * (cw + gap);
+      els.push(dR(x, top, cw, bottom - top, th.card, { r: 14, line: th.line }), dR(x + 20, top + 22, 40, 6, acc(j), { r: 3 }));
+      els.push(dT(x + 20, top + 40, cw - 40, 30, [dP(String(j + 1).padStart(2, '0'), 22, acc(j), { b: 1, font: th.head })]));
+      const [A, B] = deckFitPair(it.heading, it.text, cw - 40, bottom - top - 100, 24, 17);
+      els.push(dT(x + 20, top + 82, cw - 40, bottom - top - 100, [dP(it.heading, A, th.text, { b: 1 }), ...(it.text ? [dP(it.text, B, th.muted, { gap: 6 })] : [])]));
+    });
+  } else if (layout === 'numbers') {
+    const list = items.slice(0, 3), gap = 40, cw = (848 - gap * (list.length - 1)) / list.length;
+    list.forEach((it, j) => {
+      const x = MX + j * (cw + gap), val = it.value || it.heading;
+      els.push(dT(x, 170, cw, 120, [dP(val, deckFit(val, cw, 120, list.length === 1 ? 96 : 72, 28, { b: 1, font: th.head }), acc(j), { b: 1, font: th.head })], 'b'));
+      els.push(dR(x, 304, 48, 5, acc(j), { r: 2 }));
+      const [A, B] = deckFitPair(it.value ? it.heading : '', it.text, cw, 160, 22, 16);
+      els.push(dT(x, 322, cw, 160, [...(it.value && it.heading ? [dP(it.heading, A, th.text, { b: 1 })] : []), ...(it.text ? [dP(it.text, B, th.muted, { gap: 6 })] : [])]));
+    });
+  } else if (layout === 'steps') {
+    const list = items.slice(0, 5), k = list.length, span = 848 - 64, colw = Math.min(210, 848 / k - 14);
+    els.push(dR(MX + 32, top + 58, span, 3, th.muted, { op: 0.3 }));
+    list.forEach((it, j) => {
+      const cx = MX + 32 + (k === 1 ? span / 2 : j * span / (k - 1));
+      els.push(dO(cx - 28, top + 32, 56, 56, acc(j)), dT(cx - 28, top + 32, 56, 56, [dP(j + 1, 22, th.onAccent, { b: 1, align: 'ctr', font: th.head })], 'ctr'));
+      const x = Math.min(Math.max(cx - colw / 2, MX - 8), SW - MX + 8 - colw);
+      const [A, B] = deckFitPair(it.heading, it.text, colw, 200, 19, 15);
+      els.push(dT(x, top + 104, colw, 200, [dP(it.heading, A, th.text, { b: 1, align: 'ctr' }), ...(it.text ? [dP(it.text, B, th.muted, { align: 'ctr', gap: 6 })] : [])]));
+    });
+  } else if (layout === 'compare') {
+    items.slice(0, 2).forEach((it, j) => {
+      const x = MX + j * 434, fill = j ? th.accent : th.card, fg = j ? th.onAccent : th.text, sub = j ? th.onAccent : th.muted;
+      els.push(dR(x, top, 414, bottom - top, fill, { r: 16, ...(j ? {} : { line: th.line }) }));
+      const lines = String(it.text || '').split('\n').map(l => l.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean);
+      const [A, B] = deckFitPair(it.heading, lines.join('\n'), 414 - 56, bottom - top - 56 - lines.length * 8, 28, 20);
+      els.push(dT(x + 28, top + 28, 414 - 56, bottom - top - 56, [dP(it.heading, A, fg, { b: 1, font: th.head }), ...lines.map((l, i) => dP(`—  ${l}`, B, sub, { gap: i ? 8 : 14, op: j ? 0.92 : 1 }))]));
+    });
+  } else {
+    const list = items.slice(0, 6), gap = 10, rowH = (bottom - top - gap * (list.length - 1)) / list.length;
+    list.forEach((it, j) => {
+      const y = top + j * (rowH + gap), d = Math.min(30, rowH - 14);
+      els.push(dR(MX, y, 848, rowH, th.card, { r: 12, line: th.line }), dO(MX + 18, y + rowH / 2 - d / 2, d, d, acc(j)));
+      els.push(dT(MX + 18, y + rowH / 2 - d / 2, d, d, [dP(j + 1, Math.round(d * 0.45), th.onAccent, { b: 1, align: 'ctr' })], 'ctr'));
+      const [A, B] = deckFitPair(it.heading, it.text, 848 - 90, rowH - 12, 22, 16);
+      els.push(dT(MX + 18 + d + 18, y + 6, 848 - 90, rowH - 12, [dP(it.heading, A, th.text, { b: 1 }), ...(it.text ? [dP(it.text, B, th.muted, { gap: 2 })] : [])], 'ctr'));
+    });
+    if (s.body && list.length < 4) els.push(dT(MX, bottom - 30, 848, 30, [dP(s.body, 13, th.muted, { i: 1 })]));
+  }
+  return { bg: th.bg, els, notes: s.notes || '' };
+}
+// The whole deck: a cover, then each slide
+function deckModel(deck, themeKey) {
+  const th = DECK_THEMES[themeKey] || DECK_THEMES.midnight;
+  const cover = { layout: 'cover', kicker: deck.kicker || '', title: deck.title, body: deck.subtitle, notes: deck.coverNotes || '' };
+  return [cover, ...deck.slides].map((s, i) => deckSlide(s, th, i + 1, deck));
+}
+
+// Without Claude: the briefing laid out on the device, one layout per kind of section
+function localDeck(rp) {
+  const slides = [], first = (t) => (String(t || '').match(/^.*?[.!?](\s|$)/) || [t || ''])[0].trim();
+  slides.push({ layout: 'statement', kicker: 'The big picture', title: rp.headline, body: first(rp.summary) === rp.headline ? '' : first(rp.summary), items: [], notes: '' });
+  const secs = rp.sections.filter(s => s.items.length), acts = secs.find(s => ['actions', 'recommendations'].includes(s.kind));
+  for (const s of secs) {
+    if (s === acts && s.items.length <= 4) continue;
+    const short = s.items.every(x => x.length <= 110);
+    const layout = ['recommendations', 'actions'].includes(s.kind) && s.items.length <= 5 && short ? 'steps' : s.items.length <= 4 && short && s.items.length >= 2 ? 'cards' : 'bullets';
+    for (let i = 0; i < s.items.length; i += layout === 'bullets' ? 5 : 4)
+      slides.push({ layout, kicker: s.heading, title: s.items.length > 5 && i ? `${s.heading} (continued)` : s.heading, body: '', notes: '',
+        items: s.items.slice(i, i + (layout === 'bullets' ? 5 : 4)).map(t => { const m = t.match(/^(.{8,70}?)[:—–-]\s+(.+)$/); return m ? { heading: m[1], text: m[2], value: '' } : { heading: t, text: '', value: '' }; }) });
+  }
+  slides.push({ layout: 'closing', kicker: 'What next', title: acts ? acts.heading : 'Thank you', body: '', notes: '', items: (acts?.items || []).slice(0, 4).map(t => ({ heading: t, text: '', value: '' })) });
+  return { title: rp.title, subtitle: rp.subtitle, kicker: AUDIENCES[rp.audience]?.label || '', slides, source: 'offline', at: now(), srcT: vContent(rp.data) };
+}
+// The quotes Claude may use: lines the session briefs recorded as said, from the sessions this briefing draws on
+function deckQuotes(rp) {
+  const items = rp.kind === 'conf' ? wrapItems('conf').filter(s => picked(`conf:${s.id}`)) : wrapItems('day', rp.key).filter(s => picked(`day:${s.id}`));
+  return items.flatMap(s => (s.brief?.quotes || []).map(q => `${q} (${[s.speaker, s.title].filter(Boolean).join(', ')})`)).slice(0, 30);
+}
+async function generateDeck(rp, length, notesOn) {
+  const a = AUDIENCES[rp.audience] || AUDIENCES.notes, quotes = deckQuotes(rp);
+  const r = await claude({ system: DECK_SYSTEM, schema: DECK_SCHEMA, maxTokens: 12000,
+    content: [{ type: 'text', text: `Who the deck is for: ${a.label}. ${a.guide}\n\nLength: ${DECK_LENGTHS[length][1]} slides, not counting the cover, which is added automatically.\nSpeaker notes: ${notesOn ? 'write them for every slide' : 'leave every notes field empty'}.\n\nThe briefing:\n${reportText(rp)}\n\n${quotes.length ? `Lines speakers said, word for word (the only quotes you may use):\n${quotes.join('\n')}` : 'No quotes were recorded, so use no quote slides.'}` }] });
+  const slides = (r.slides || []).filter(s => DECK_LAYOUTS.includes(s.layout) && s.title).map(s => ({ ...s, notes: notesOn ? s.notes || '' : '' }));
+  if (!slides.length) throw new Error('Claude didn’t return any slides. Try again.');
+  return { title: r.title || rp.title, subtitle: r.subtitle || rp.subtitle, kicker: a.label, slides, source: 'ai', length, notes: notesOn, at: now(), srcT: vContent(rp.data) };
+}
+
+// The preview: the same shapes as the file, drawn with HTML
+const deckFont = (f) => f === 'Georgia' ? "Georgia, 'Times New Roman', serif" : "'Helvetica Neue', Helvetica, Arial, sans-serif";
+const rgba = (hex, op = 1) => op >= 1 ? `#${hex}` : `rgba(${parseInt(hex.slice(0, 2), 16)},${parseInt(hex.slice(2, 4), 16)},${parseInt(hex.slice(4), 16)},${op})`;
+const cq = (pt) => `${(pt / SW * 100).toFixed(3)}cqw`;
+function deckSlideHTML(sl) {
+  const pos = (e) => `left:${e.x / SW * 100}%;top:${e.y / SH * 100}%;width:${e.w / SW * 100}%;height:${e.h / SH * 100}%`;
+  return `<div class="dk-slide" style="background:#${sl.bg}">${sl.els.map(e => e.k === 'text'
+    ? `<div class="dk-t" style="${pos(e)};justify-content:${{ t: 'flex-start', ctr: 'center', b: 'flex-end' }[e.anchor]}">${e.paras.map(p => `<p style="font-size:${cq(p.size)};color:${rgba(p.color, p.op)};font-family:${deckFont(p.font)};font-weight:${p.b ? 700 : 400};${p.i ? 'font-style:italic;' : ''}text-align:${{ ctr: 'center', r: 'right' }[p.align] || 'left'};${p.ls ? `letter-spacing:${cq(p.ls)};` : ''}${p.gap ? `margin-top:${cq(p.gap)}` : ''}">${esc(p.t)}</p>`).join('')}</div>`
+    : `<i style="${pos(e)};background:${rgba(e.fill, e.op)};border-radius:${e.k === 'oval' ? '50%' : cq(e.r || 0)};${e.line ? `box-shadow:inset 0 0 0 ${cq(0.75)} #${e.line}` : ''}"></i>`).join('')}</div>`;
+}
+
+// The PowerPoint file, from the same shapes (points × 12,700 = EMU), with speaker notes when there are any
+function buildPPTX(model, title) {
+  const NS = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
+  const E = (pt) => Math.round(pt * 12700), W = E(SW), H = E(SH);
+  const fill = (hex, op = 1) => `<a:solidFill><a:srgbClr val="${hex}">${op < 1 ? `<a:alpha val="${Math.round(op * 100000)}"/>` : ''}</a:srgbClr></a:solidFill>`;
+  const xfrm = (e) => `<a:xfrm><a:off x="${E(e.x)}" y="${E(e.y)}"/><a:ext cx="${Math.max(1, E(e.w))}" cy="${Math.max(1, E(e.h))}"/></a:xfrm>`;
+  const font = (f) => `<a:latin typeface="${f || 'Helvetica Neue'}"/><a:cs typeface="Arial"/>`;
+  const shape = (e, id) => {
+    if (e.k === 'text') return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="Text ${id}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr>${xfrm(e)}<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" anchor="${e.anchor}"><a:noAutofit/></a:bodyPr><a:lstStyle/>${e.paras.map(p => `<a:p><a:pPr algn="${p.align || 'l'}"><a:lnSpc><a:spcPct val="100000"/></a:lnSpc>${p.gap ? `<a:spcBef><a:spcPts val="${Math.round(p.gap * 100)}"/></a:spcBef>` : ''}</a:pPr><a:r><a:rPr lang="en-US" sz="${Math.round(p.size * 100)}"${p.b ? ' b="1"' : ''}${p.i ? ' i="1"' : ''}${p.ls ? ` spc="${Math.round(p.ls * 100)}"` : ''} dirty="0">${fill(p.color, p.op)}${font(p.font)}</a:rPr><a:t>${xe(p.t)}</a:t></a:r></a:p>`).join('')}</p:txBody></p:sp>`;
+    const geom = e.k === 'oval' ? 'ellipse' : e.r ? 'roundRect' : 'rect';
+    const adj = e.k === 'rect' && e.r ? `<a:gd name="adj" fmla="val ${Math.min(50000, Math.round(e.r / Math.min(e.w, e.h) * 100000))}"/>` : '';
+    return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="Shape ${id}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${xfrm(e)}<a:prstGeom prst="${geom}"><a:avLst>${adj}</a:avLst></a:prstGeom>${fill(e.fill, e.op)}${e.line ? `<a:ln w="9525">${fill(e.line)}</a:ln>` : '<a:ln><a:noFill/></a:ln>'}</p:spPr></p:sp>`;
+  };
+  const tree = (inner) => `<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${inner}</p:spTree>`;
+  const slideXml = (sl) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld ${NS}><p:cSld><p:bg><p:bgPr>${fill(sl.bg)}<a:effectLst/></p:bgPr></p:bg>${tree(sl.els.map((e, i) => shape(e, i + 2)).join(''))}</p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
+  const ph = (id, name, type, idx, lock, x, y, w, h, body) => `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${name}"/><p:cNvSpPr><a:spLocks noGrp="1"${lock}/></p:cNvSpPr><p:nvPr><p:ph type="${type}"${idx}/></p:nvPr></p:nvSpPr><p:spPr>${x == null ? '' : `<a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom>`}</p:spPr>${body == null ? '' : `<p:txBody><a:bodyPr/><a:lstStyle/>${body}</p:txBody>`}</p:sp>`;
+  const notesXml = (text) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:notes ${NS}><p:cSld>${tree(ph(2, 'Slide Image Placeholder 1', 'sldImg', '', ' noRot="1" noChangeAspect="1"') + ph(3, 'Notes Placeholder 2', 'body', ' idx="1"', '', null, 0, 0, 0, text.split('\n').filter(Boolean).map(l => `<a:p><a:r><a:rPr lang="en-US" dirty="0"/><a:t>${xe(l)}</a:t></a:r></a:p>`).join('') || '<a:p><a:endParaRPr lang="en-US"/></a:p>'))}</p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:notes>`;
+  const withNotes = model.some(s => s.notes.trim());
+  const scheme = `<a:clrScheme name="Copilot"><a:dk1><a:srgbClr val="1D1D1F"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="3A3A3C"/></a:dk2><a:lt2><a:srgbClr val="F5F5F7"/></a:lt2><a:accent1><a:srgbClr val="0071E3"/></a:accent1><a:accent2><a:srgbClr val="F56300"/></a:accent2><a:accent3><a:srgbClr val="1A7F37"/></a:accent3><a:accent4><a:srgbClr val="7A3FD0"/></a:accent4><a:accent5><a:srgbClr val="00759A"/></a:accent5><a:accent6><a:srgbClr val="D70015"/></a:accent6><a:hlink><a:srgbClr val="0066CC"/></a:hlink><a:folHlink><a:srgbClr val="7A3FD0"/></a:folHlink></a:clrScheme>`;
+  const solid = '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>';
+  const theme = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Copilot"><a:themeElements>${scheme}<a:fontScheme name="Copilot"><a:majorFont><a:latin typeface="Helvetica Neue"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Helvetica Neue"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Copilot"><a:fillStyleLst>${solid.repeat(3)}</a:fillStyleLst><a:lnStyleLst>${[6350, 12700, 19050].map(w => `<a:ln w="${w}">${solid}</a:ln>`).join('')}</a:lnStyleLst><a:effectStyleLst>${'<a:effectStyle><a:effectLst/></a:effectStyle>'.repeat(3)}</a:effectStyleLst><a:bgFillStyleLst>${solid.repeat(3)}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+  const clrMap = '<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>';
+  const emptyTree = `<p:cSld>${tree('')}</p:cSld>`;
   const rels = (items) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${items.map(([id, type, target]) => `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"/>`).join('')}</Relationships>`;
+  const CT = 'application/vnd.openxmlformats-officedocument.presentationml';
+  const n = model.length, nm = n + 3; // presentation rIds: 1 master, 2 theme, 3.. slides, then the notes master
   const files = [
-    ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${slides.map((_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('')}</Types>`],
-    ['_rels/.rels', rels([['rId1', 'officeDocument', 'ppt/presentation.xml']])],
-    ['ppt/presentation.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:presentation ${NS} saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${slides.map((_, i) => `<p:sldId id="${256 + i}" r:id="rId${i + 3}"/>`).join('')}</p:sldIdLst><p:sldSz cx="${W}" cy="${H}"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`],
-    ['ppt/_rels/presentation.xml.rels', rels([['rId1', 'slideMaster', 'slideMasters/slideMaster1.xml'], ['rId2', 'theme', 'theme/theme1.xml'], ...slides.map((_, i) => [`rId${i + 3}`, 'slide', `slides/slide${i + 1}.xml`])])],
-    ['ppt/slideMasters/slideMaster1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldMaster ${NS}>${emptyTree}<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>`],
+    ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="${CT}.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="${CT}.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="${CT}.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${withNotes ? `<Override PartName="/ppt/theme/theme2.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/ppt/notesMasters/notesMaster1.xml" ContentType="${CT}.notesMaster+xml"/>` : ''}${model.map((s, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="${CT}.slide+xml"/>${withNotes ? `<Override PartName="/ppt/notesSlides/notesSlide${i + 1}.xml" ContentType="${CT}.notesSlide+xml"/>` : ''}`).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`],
+    ['_rels/.rels', rels([['rId1', 'officeDocument', 'ppt/presentation.xml']]).replace('</Relationships>', '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>')],
+    ['docProps/core.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${xe(title)}</dc:title><dc:creator>Conference Copilot</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString().slice(0, 19)}Z</dcterms:created></cp:coreProperties>`],
+    ['ppt/presentation.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:presentation ${NS} saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst>${withNotes ? `<p:notesMasterIdLst><p:notesMasterId r:id="rId${nm}"/></p:notesMasterIdLst>` : ''}<p:sldIdLst>${model.map((_, i) => `<p:sldId id="${256 + i}" r:id="rId${i + 3}"/>`).join('')}</p:sldIdLst><p:sldSz cx="${W}" cy="${H}"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`],
+    ['ppt/_rels/presentation.xml.rels', rels([['rId1', 'slideMaster', 'slideMasters/slideMaster1.xml'], ['rId2', 'theme', 'theme/theme1.xml'], ...model.map((_, i) => [`rId${i + 3}`, 'slide', `slides/slide${i + 1}.xml`]), ...(withNotes ? [[`rId${nm}`, 'notesMaster', 'notesMasters/notesMaster1.xml']] : [])])],
+    ['ppt/slideMasters/slideMaster1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldMaster ${NS}>${emptyTree}${clrMap}<p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>`],
     ['ppt/slideMasters/_rels/slideMaster1.xml.rels', rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'theme', '../theme/theme1.xml']])],
     ['ppt/slideLayouts/slideLayout1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldLayout ${NS} type="blank" preserve="1">${emptyTree.replace('<p:cSld>', '<p:cSld name="Blank">')}<p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`],
     ['ppt/slideLayouts/_rels/slideLayout1.xml.rels', rels([['rId1', 'slideMaster', '../slideMasters/slideMaster1.xml']])],
     ['ppt/theme/theme1.xml', theme],
-    ...slides.flatMap((x, i) => [[`ppt/slides/slide${i + 1}.xml`, x], [`ppt/slides/_rels/slide${i + 1}.xml.rels`, rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml']])]]),
+    ...(withNotes ? [
+      ['ppt/theme/theme2.xml', theme],
+      ['ppt/notesMasters/notesMaster1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:notesMaster ${NS}><p:cSld>${tree(ph(2, 'Slide Image Placeholder 1', 'sldImg', ' idx="2"', ' noRot="1" noChangeAspect="1"', 381000, 685800, 6096000, 3429000) + ph(3, 'Notes Placeholder 2', 'body', ' sz="quarter" idx="3"', '', 685800, 4343400, 5486400, 4114800, '<a:p><a:endParaRPr lang="en-US"/></a:p>'))}</p:cSld>${clrMap}</p:notesMaster>`],
+      ['ppt/notesMasters/_rels/notesMaster1.xml.rels', rels([['rId1', 'theme', '../theme/theme2.xml']])],
+    ] : []),
+    ...model.flatMap((s, i) => [
+      [`ppt/slides/slide${i + 1}.xml`, slideXml(s)],
+      [`ppt/slides/_rels/slide${i + 1}.xml.rels`, rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ...(withNotes ? [['rId2', 'notesSlide', `../notesSlides/notesSlide${i + 1}.xml`]] : [])])],
+      ...(withNotes ? [[`ppt/notesSlides/notesSlide${i + 1}.xml`, notesXml(s.notes)], [`ppt/notesSlides/_rels/notesSlide${i + 1}.xml.rels`, rels([['rId1', 'notesMaster', '../notesMasters/notesMaster1.xml'], ['rId2', 'slide', `../slides/slide${i + 1}.xml`]])]] : []),
+    ]),
   ];
-  saveBlob(zipFiles(files, 'application/vnd.openxmlformats-officedocument.presentationml.presentation'), `${fileSafe(rp.title)}.pptx`);
-  return n;
+  return zipFiles(files, `${CT}.presentation`);
+}
+function savePPTX(rp, deck, themeKey) { saveBlob(buildPPTX(deckModel(deck, themeKey), deck.title || rp.title), `${fileSafe(deck.title || rp.title)}.pptx`); }
+
+// Export → PowerPoint: choose a look, length and speaker notes; Claude designs the deck (that screen is the go-ahead); preview, then download
+function openDeck(rp) {
+  const kind = rp.kind, key = rp.key, aud = rp.audience;
+  const cur = () => wrapV(wrapRec(kind, key), aud) || rp.data;
+  let deck = cur().deck || null, busy = false, view = deck ? 'preview' : 'setup';
+  let theme = LS.get('cc.deckTheme', 'midnight'), length = LS.get('cc.deckLength', (AUDIENCES[aud] || AUDIENCES.notes).length === 'short' ? 'short' : 'standard'), notesOn = LS.get('cc.deckNotes', true);
+  if (!DECK_THEMES[theme]) theme = 'midnight';
+  const stale = () => deck && deck.srcT !== vContent(cur());
+  const label = AUDIENCES[aud]?.label || 'For me';
+  const sh = openSheet({ title: 'Presentation', left: 'Close', right: '', cls: 'wide wr-sheet dk-sheet', body: '<div id="dkBody"></div>',
+    onRight: () => view === 'preview' ? savePPTX(rp, deck, theme) : go() });
+  const body = $('#dkBody', sh.el);
+  const go = async () => {
+    if (busy) return;
+    LS.set('cc.deckLength', length); LS.set('cc.deckNotes', notesOn); LS.set('cc.deckTheme', theme);
+    busy = true; paint();
+    try {
+      const fr = reportOf(kind, key, aud) || rp, d = settings.apiKey ? await generateDeck(fr, length, notesOn) : localDeck(fr);
+      const v = cur(); if (v?.audience) putVersion(kind, key, { ...v, deck: d });
+      deck = d; view = 'preview'; render();
+    } catch (e) { toast(e.message || 'Couldn’t design the presentation', false, 5000); if (e.code === 'NO_KEY' || e.code === 'NEED_WS') openSettings(); }
+    finally { busy = false; if (body.isConnected) paint(); }
+  };
+  const swatch = (k) => { const t = DECK_THEMES[k]; return `<button class="dk-theme ${k === theme ? 'on' : ''}" data-theme="${k}" aria-pressed="${k === theme}">${deckSlideHTML(deckSlide({ layout: 'cover', title: 'Aa', body: '' }, t, 1))}<span>${esc(t.label)}</span></button>`; };
+  const paint = () => {
+    if (busy) {
+      sh.setRight('', false);
+      body.innerHTML = `<div class="dk-busy"><span class="spin"></span><b>${settings.apiKey ? 'Claude is designing your slides…' : 'Laying out your slides…'}</b><span class="muted">Picking a layout for each idea${notesOn && settings.apiKey ? ' and writing speaker notes' : ''}.</span></div>`;
+      return;
+    }
+    if (view === 'setup') {
+      sh.setRight(settings.apiKey ? 'Create' : 'Build', true);
+      body.innerHTML = `<p class="dk-intro">A presentation of the <b>“${esc(label)}”</b> version of this ${kind === 'day' ? 'wrap-up' : 'briefing'}, designed now from what it says. ${settings.apiKey ? 'Claude picks a layout for every idea: big statements, cards, numbers, quotes, steps and comparisons.' : 'Without a Claude key it’s laid out on this device; add a key in Settings for a deck Claude designs, with speaker notes.'}</p>
+        <div class="grp-t">Look</div><div class="dk-themes">${Object.keys(DECK_THEMES).map(swatch).join('')}</div>
+        ${settings.apiKey ? `<div class="grp-t">Length</div><div class="seg in-form" id="dkLen">${Object.entries(DECK_LENGTHS).map(([k, [l, r]]) => `<button data-len="${k}" class="${k === length ? 'on' : ''}">${l}<small> · ${r}</small></button>`).join('')}</div>
+        <label class="dk-check"><input type="checkbox" id="dkNotes" ${notesOn ? 'checked' : ''}> Write speaker notes for each slide</label>` : ''}
+        <div class="stack" style="max-width:none;margin-top:18px"><button class="btn btn-primary" id="dkGo">${I.sparkles} ${settings.apiKey ? 'Create Presentation' : 'Build Presentation'}</button></div>
+        ${settings.apiKey ? `<p class="f-cap">This sends the text of this version${deckQuotes(rp).length ? ' and the quotes from its session briefs' : ''} to Claude using your API key. You can change the look afterwards without sending anything again.</p>` : ''}
+        ${deck ? `<p class="f-cap"><button class="btn-plain" id="dkBack" style="color:var(--accent)">Back to the presentation you have</button></p>` : ''}`;
+      $$('[data-theme]', body).forEach(b => b.onclick = () => { theme = b.dataset.theme; LS.set('cc.deckTheme', theme); paint(); });
+      $$('[data-len]', body).forEach(b => b.onclick = () => { length = b.dataset.len; paint(); });
+      $('#dkNotes', body)?.addEventListener('change', e => { notesOn = e.target.checked; });
+      $('#dkGo', body).onclick = go;
+      $('#dkBack', body)?.addEventListener('click', () => { view = 'preview'; paint(); });
+      return;
+    }
+    sh.setRight('Download', true);
+    const model = deckModel(deck, theme);
+    body.innerHTML = `${stale() ? `<div class="dk-stale">${I.clock}<span>This briefing changed after the presentation was made ${esc(ago(deck.at))}.</span><button class="btn btn-sm btn-tinted" id="dkRedo2">Make It Again</button></div>` : ''}
+      <div class="dk-bar"><div class="dk-swatches" role="group" aria-label="Look">${Object.entries(DECK_THEMES).map(([k, t]) => `<button data-theme="${k}" class="${k === theme ? 'on' : ''}" title="${esc(t.label)}" aria-label="${esc(t.label)}" aria-pressed="${k === theme}"><i style="background:#${t.bg}"></i><i style="background:#${t.accent}"></i><i style="background:#${t.accent2}"></i></button>`).join('')}</div>
+        <span class="muted dk-meta">${model.length} slides · ${deck.source === 'ai' ? 'designed by Claude' : 'laid out on this device'} ${esc(ago(deck.at))}</span>
+        <button class="btn btn-sm btn-gray" id="dkRedo">${I.sparkles} Start Over…</button><button class="btn btn-sm btn-primary" id="dkDl">${I.download} Download .pptx</button></div>
+      <div class="dk-grid">${model.map((sl, i) => `<figure class="dk-fig">${deckSlideHTML(sl)}<figcaption><b>${i + 1}</b>${sl.notes ? `<details><summary>Speaker notes</summary><p>${esc(sl.notes)}</p></details>` : ''}</figcaption></figure>`).join('')}</div>`;
+    $$('[data-theme]', body).forEach(b => b.onclick = () => { theme = b.dataset.theme; LS.set('cc.deckTheme', theme); paint(); });
+    $('#dkDl', body).onclick = () => savePPTX(rp, deck, theme);
+    $('#dkRedo', body).onclick = () => { view = 'setup'; paint(); };
+    $('#dkRedo2', body)?.addEventListener('click', () => { view = 'setup'; paint(); });
+  };
+  paint();
 }
 async function reportToGoogleDoc(rp) {
   if (!settings.clientId) { toast('Connect Google Drive in Settings to save to Google Docs'); return openSettings(); }
